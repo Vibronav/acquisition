@@ -12,11 +12,13 @@ def ssh_connect(hostname, port, username, password):
     ssh.connect(hostname, port, username, password)
 
 
-def on_rec_start(username, material, speed):
+def on_rec_start(username, material, speed, delay=0.05):
     global ssh
     filename = f'{username}_{material}_{speed}_{time.strftime("%Y-%m-%d_%H.%M.%S", time.localtime())}'
-    # stdin, stdout, stderr = ssh.exec_command(f"arecord -D dmic_sv -c2 -r 44100 -f S32_LE -t wav -V mono -v {filename}.wav")
-    time.sleep(0.05)
+    if ssh:
+        stdin, stdout, stderr = ssh.exec_command(f"arecord -D dmic_sv -c2 -r 44100 -f S32_LE -t wav -V mono -v {filename}.wav")
+        print(stdout.read().decode('utf-8'))
+    time.sleep(delay)
     play_chirp_signal()
 
 

@@ -186,7 +186,7 @@ function onBtnRecordClicked(){
 					var name  = "video_"+rand+".webm" ;
 			}
 
-			downloadLink.innerHTML = 'Download '+name;
+			downloadLink.innerHTML = '<br> Download recording '+name;
 
 			downloadLink.setAttribute( "download", name);
 			downloadLink.setAttribute( "name", name);

@@ -31,12 +31,12 @@ def build_interface(materials=MATERIALS, speeds=SPEEDS):
     
     <div style="float: left; width: 30%;">
     <p>Material</p>
-    {_choices2radiobuttons(MATERIALS, "material")}
+    {_choices2radiobuttons(materials, "material")}
     </div>
     
     <div style="float: left; width: 30%;">
     <p>Speed</p>
-    {_choices2radiobuttons(SPEEDS, "speed")}
+    {_choices2radiobuttons(speeds, "speed")}
     </div>
     
     <a id="downloadLink" download="mediarecorder.webm" name="mediarecorder.webm" href></a>
