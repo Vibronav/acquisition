@@ -63,10 +63,6 @@ if (!navigator.mediaDevices.getUserMedia){
 					if (e) {
 						log(e);
 						return;
-					}else{
-					   /*setInterval(function() {
-						  log(Math.round(soundMeter.instant.toFixed(2) * 100));
-					  }, 100);*/
 					}
 				  });
 				
@@ -99,7 +95,18 @@ function onBtnRecordClicked(){
 
 		/* use the stream */
 		log('Start recording...');
-		IPython.notebook.kernel.execute(`on_rec_start("${username.value}", "${material.value}", "${speed.value}")`)
+        fetch("/start", {
+            method: "POST",
+            body: JSON.stringify({
+                username: username.value,
+                material: material.value,
+                speed: speed.value
+            }),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        });
+
 		if (typeof MediaRecorder.isTypeSupported == 'function'){
 			/*
 				MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
@@ -150,32 +157,8 @@ function onBtnRecordClicked(){
 		mediaRecorder.onstop = function(){
 			log('mediaRecorder.onstop, mediaRecorder.state = ' + mediaRecorder.state);
 
-			//var recording = new Blob(chunks, {type: containerType});
 			var recording = new Blob(chunks, {type: mediaRecorder.mimeType});
-			
-
 			downloadLink.href = URL.createObjectURL(recording);
-
-			/* 
-				srcObject code from https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject
-			*/
-
-			/*if ('srcObject' in playbackVideoElement) {
-			  try {
-			    playbackVideoElement.srcObject = recording;
-			  } catch (err) {
-			    if (err.name != "TypeError") {
-			      throw err;
-			    }*/
-			    // Even if they do, they may only support MediaStream
-			    // playbackVideoElement.src = URL.createObjectURL(recording);
-			/*  }
-			} else {
-			  playbackVideoElement.src = URL.createObjectURL(recording);
-			} */
-
-			// playbackVideoElement.controls = true;
-			// playbackVideoElement.play();
 
 			var rand =  Math.floor((Math.random() * 10000000));
 			switch(containerType){
@@ -191,7 +174,7 @@ function onBtnRecordClicked(){
 			downloadLink.setAttribute( "download", name);
 			downloadLink.setAttribute( "name", name);
 			downloadLink.click();
-			IPython.notebook.kernel.execute("on_rec_stop()")
+			fetch("/stop")
 		};
 
 		mediaRecorder.onpause = function(){
@@ -219,17 +202,6 @@ function onBtnRecordClicked(){
 
 navigator.mediaDevices.ondevicechange = function(event) {
 	log("mediaDevices.ondevicechange");
-	/*
-	if (localStream != null){
-		localStream.getTracks().forEach(function(track) {
-			if(track.kind == "audio"){
-				track.onended = function(event){
-					log("audio track.onended");
-				}
-			}
-		});
-	}
-	*/
 }
 
 function onBtnStopClicked(){
@@ -240,43 +212,6 @@ function onBtnStopClicked(){
 	stopBtn.style.visibility = 'hidden';
 }
 
-/*
-function onPauseResumeClicked(){
-	if(pauseResBtn.textContent === "Pause"){
-		pauseResBtn.textContent = "Resume";
-		mediaRecorder.pause();
-		stopBtn.disabled = true;
-	}else{
-		pauseResBtn.textContent = "Pause";
-		mediaRecorder.resume();
-		stopBtn.disabled = false;
-	}
-	recBtn.disabled = true;
-	pauseResBtn.disabled = false;
-}
-
-function onStateClicked(){
-	
-	if(mediaRecorder != null && localStream != null && soundMeter != null){
-		log("mediaRecorder.state="+mediaRecorder.state);
-		log("mediaRecorder.mimeType="+mediaRecorder.mimeType);
-		log("mediaRecorder.videoBitsPerSecond="+mediaRecorder.videoBitsPerSecond);
-		log("mediaRecorder.audioBitsPerSecond="+mediaRecorder.audioBitsPerSecond);
-
-		localStream.getTracks().forEach(function(track) {
-			if(track.kind == "audio"){
-				log("Audio: track.readyState="+track.readyState+", track.muted=" + track.muted);
-			}
-			if(track.kind == "video"){
-				log("Video: track.readyState="+track.readyState+", track.muted=" + track.muted);
-			}
-		});
-		
-		log("Audio activity: " + Math.round(soundMeter.instant.toFixed(2) * 100));
-	}
-	
-}
-*/
 function log(message){
 	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 	console.log(message)

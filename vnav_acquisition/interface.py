@@ -1,4 +1,4 @@
-from IPython.display import HTML
+from IPython.display import HTML, display
 import os
 
 MATERIALS = ("Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
@@ -16,7 +16,7 @@ def _choices2radiobuttons(choice_list, choice_name):
     return '\n'.join(choice_html_str)
 
 
-def build_interface(materials=MATERIALS, speeds=SPEEDS):
+def get_html(materials=MATERIALS, speeds=SPEEDS):
     html = f'''
     <video id="live" controls autoplay playsinline muted></video>
     <div id="controls">
@@ -45,4 +45,8 @@ def build_interface(materials=MATERIALS, speeds=SPEEDS):
 
     js = open(os.path.join(os.path.dirname(__file__), "main.js")).read()
 
-    display(HTML(f'{html}<script type="text/javascript">{js}</script>'))
+    return f'{html}<script type="text/javascript">{js}</script>'
+
+
+def build_interface(materials=MATERIALS, speeds=SPEEDS):
+    display(HTML(get_html(materials, speeds)))

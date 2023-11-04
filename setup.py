@@ -18,6 +18,11 @@ setup(
     packages=find_packages(),
     install_requires=install_requires,
     extras_require={},
-    package_data={},
-    data_files=[]
+    package_data={
+        'vnav_acquisition': ['*.js']
+    },
+    data_files=[],
+    entry_points={
+        'console_scripts': ['vnav_acquisition=vnav_acquisition.webserver:main'],
+    }
 )

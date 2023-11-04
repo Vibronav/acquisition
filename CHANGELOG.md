@@ -10,3 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Deleted
 ### Changed
 ### Fixed
+
+## [0.1.0] - 2023-11-04
+### Added
+- Initial version of the tool.
