@@ -6,10 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased] - yyyy-mm-dd
 ### Added
-- Initial version of the tool.
 ### Deleted
 ### Changed
 ### Fixed
+
+## [0.2.0] - 2023-11-18
+### Added
+- Working remote control of Raspberry PI
 
 ## [0.1.0] - 2023-11-04
 ### Added

@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import os
 
 with open('requirements.txt') as fp:
     install_requires = fp.read()
