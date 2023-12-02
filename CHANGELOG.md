@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [0.3.0] - 2023-12-02
+### Added
+- Choice of camera, unified file names for audio and video.
+
 ## [0.2.0] - 2023-11-18
 ### Added
 - Working remote control of Raspberry PI

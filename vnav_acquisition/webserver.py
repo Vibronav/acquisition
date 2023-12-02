@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start
 import json
@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 
 @app.route("/", methods=['GET'])
-def test():
+def frontpage():
     return get_html()
 
 
@@ -25,8 +25,8 @@ def start():
     params = json.loads(request.data.decode('utf-8'))  # Get the request data as a string
     print("Received start/POST request data:")
     print(params)
-    on_rec_start(**params)
-    return "OK start"
+    file_name = on_rec_start(**params)
+    return jsonify(file_name)
 
 
 def main():

@@ -45,6 +45,7 @@ def on_rec_start(username, material, speed, delay=0.05):
         ssh.exec_command(start_command)
     else:
         print("SSH not connected")
+    return os.path.splitext(file_name)[0]
 
 
 def on_rec_stop(delete=False):

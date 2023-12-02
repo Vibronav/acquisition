@@ -3,17 +3,19 @@
 /* globals MediaRecorder */
 // Spec is at http://dvcs.w3.org/hg/dap/raw-file/tip/media-stream-capture/RecordingProposal.html
 
-var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
-
 var recBtn = document.querySelector('button#rec');
 // var pauseResBtn = document.querySelector('button#pauseRes');
 var stopBtn = document.querySelector('button#stop');
 var username = document.getElementById('username')
 
-var liveVideoElement = document.querySelector('#live');
+var liveVideoElement = document.querySelector('#video');
 // var playbackVideoElement = document.querySelector('#playback');
 var dataElement = document.querySelector('#data');
 var downloadLink = document.querySelector('a#downloadLink');
+
+const audioInputSelect = document.querySelector('select#audioSource');
+const videoSelect = document.querySelector('select#videoSource');
+const selectors = [audioInputSelect, videoSelect];
 
 liveVideoElement.controls = false;
 // playbackVideoElement.controls=false;
@@ -24,53 +26,108 @@ var count = 0;
 var localStream = null;
 var soundMeter  = null;
 var containerType = "video/webm"; //defaults to webm but we switch to mp4 on Safari 14.0.2+
+var videoFileName = ""
 
-if (!navigator.mediaDevices.getUserMedia){
-	alert('navigator.mediaDevices.getUserMedia not supported on your browser, use the latest version of Firefox or Chrome');
-}else{
-	if (window.MediaRecorder == undefined) {
-			alert('MediaRecorder not supported on your browser, use the latest version of Firefox or Chrome');
-	}else{
-		navigator.mediaDevices.getUserMedia(constraints)
-			.then(function(stream) {
-				localStream = stream;
-				
-				localStream.getTracks().forEach(function(track) {
-					if(track.kind == "audio"){
-						track.onended = function(event){
-							 log("audio track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-						}
-					}
-					if(track.kind == "video"){
-						track.onended = function(event){
-							log("video track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-						}
-					}
-				});
-				
-				liveVideoElement.srcObject = localStream;
-				liveVideoElement.play();
-				
-				try {
-					window.AudioContext = window.AudioContext || window.webkitAudioContext;
-					window.audioContext = new AudioContext();
-				  } catch (e) {
-					log('Web Audio API not supported.');
-				  }
 
-				  soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
-				  soundMeter.connectToSource(localStream, function(e) {
-					if (e) {
-						log(e);
-						return;
-					}
-				  });
-				
-			}).catch(function(err) {
-				/* handle the error */
-				log('navigator.getUserMedia error: '+err);
-			});
-	}
+function gotDevices(deviceInfos) {
+  // Handles being called several times to update labels. Preserve values.
+  const values = selectors.map(select => select.value);
+  selectors.forEach(select => {
+    while (select.firstChild) {
+      select.removeChild(select.firstChild);
+    }
+  });
+  for (let i = 0; i !== deviceInfos.length; ++i) {
+    const deviceInfo = deviceInfos[i];
+    const option = document.createElement('option');
+    option.value = deviceInfo.deviceId;
+    if (deviceInfo.kind === 'audioinput') {
+      option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
+      audioInputSelect.appendChild(option);
+    } else if (deviceInfo.kind === 'videoinput') {
+      option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
+      videoSelect.appendChild(option);
+    } else {
+      console.log('Some other kind of source/device: ', deviceInfo);
+    }
+  }
+  selectors.forEach((select, selectorIndex) => {
+    if (Array.prototype.slice.call(select.childNodes).some(n => n.value === values[selectorIndex])) {
+      select.value = values[selectorIndex];
+    }
+  });
+}
+navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+
+audioInputSelect.onchange = start;
+videoSelect.onchange = start;
+
+function handleError(error) {
+  console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
+
+// https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output
+function start() {
+    if (window.stream) {
+        window.stream.getTracks().forEach(track => {
+          track.stop();
+        });
+    }
+    const audioSource = audioInputSelect.value;
+    const videoSource = videoSelect.value;
+    const constraints = {
+        audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+        video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+    };
+//    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
+
+    if (!navigator.mediaDevices.getUserMedia){
+        alert('navigator.mediaDevices.getUserMedia not supported on your browser, use the latest version of Firefox or Chrome');
+    } else{
+        if (window.MediaRecorder == undefined) {
+                alert('MediaRecorder not supported on your browser, use the latest version of Firefox or Chrome');
+        }else{
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(stream) {
+                    localStream = stream;
+
+                    localStream.getTracks().forEach(function(track) {
+                        if(track.kind == "audio"){
+                            track.onended = function(event){
+                                 log("audio track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
+                            }
+                        }
+                        if(track.kind == "video"){
+                            track.onended = function(event){
+                                log("video track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
+                            }
+                        }
+                    });
+
+                    liveVideoElement.srcObject = localStream;
+                    liveVideoElement.play();
+
+                    try {
+                        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                        window.audioContext = new AudioContext();
+                      } catch (e) {
+                        log('Web Audio API not supported.');
+                      }
+
+                      soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
+                      soundMeter.connectToSource(localStream, function(e) {
+                        if (e) {
+                            log(e);
+                            return;
+                        }
+                      });
+
+                }).catch(function(err) {
+                    /* handle the error */
+                    log('navigator.getUserMedia error: '+err);
+                });
+        }
+    }
 }
 
 
@@ -88,7 +145,6 @@ function onBtnRecordClicked(){
 	} else {
 		recBtn.disabled = true;
 		recBtn.innerHTML = 'Recording...';
-		// pauseResBtn.disabled = false;
 		stopBtn.style.visibility = 'visible';
 
 		chunks = [];
@@ -105,6 +161,9 @@ function onBtnRecordClicked(){
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }
+        }).then(res => res.json()).then(res => {
+            videoFileName = res;
+            console.log(res)
         });
 
 		if (typeof MediaRecorder.isTypeSupported == 'function'){
@@ -163,10 +222,10 @@ function onBtnRecordClicked(){
 			var rand =  Math.floor((Math.random() * 10000000));
 			switch(containerType){
 				case "video/mp4":
-					var name  = "video_"+rand+".mp4" ;
+					var name  = videoFileName + ".mp4" ;
 					break;
 				default:
-					var name  = "video_"+rand+".webm" ;
+					var name  = videoFileName + ".webm" ;
 			}
 
 			downloadLink.innerHTML = '<br> Download recording '+name;

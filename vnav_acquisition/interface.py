@@ -18,7 +18,16 @@ def _choices2radiobuttons(choice_list, choice_name):
 
 def get_html(materials=MATERIALS, speeds=SPEEDS):
     html = f'''
-    <video id="live" controls autoplay playsinline muted></video>
+    
+    <div class="select">
+        <label for="audioSource">Audio input source: </label><select id="audioSource"></select>
+    </div>
+
+    <div class="select">
+        <label for="videoSource">Video source: </label><select id="videoSource"></select>
+    </div>
+    
+    <video id="video" controls autoplay playsinline muted></video>
     <div id="controls">
         <button id="rec" onclick="onBtnRecordClicked()">Record</button>
         <button id="stop" onclick="onBtnStopClicked()"  style="visibility: hidden">Stop</button>
