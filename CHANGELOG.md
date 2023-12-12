@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.0.0] - 2023-12-02
+### Added
+- External setup file
+### Deleted
+- Support for Jupyter
+
 ## [0.3.0] - 2023-12-02
 ### Added
 - Choice of camera, unified file names for audio and video.

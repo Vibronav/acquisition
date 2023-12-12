@@ -1,22 +1,17 @@
 from IPython.display import HTML, display
 import os
 
-MATERIALS = ("Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
-             "African (silk)")
-SPEEDS = ("slow", "medium", "fast")
-
 
 def _choices2radiobuttons(choice_list, choice_name):
     choice_html_str = []
     for choice in choice_list:
-        choice_code = hash(choice)
         choice_html_str.append(
             f'<input type="radio" name="{choice_name}" value="{choice}">{choice}<br>'
         )
     return '\n'.join(choice_html_str)
 
 
-def get_html(materials=MATERIALS, speeds=SPEEDS):
+def get_html(materials, speeds):
     html = f'''
     
     <div class="select">
@@ -55,7 +50,3 @@ def get_html(materials=MATERIALS, speeds=SPEEDS):
     js = open(os.path.join(os.path.dirname(__file__), "main.js")).read()
 
     return f'{html}<script type="text/javascript">{js}</script>'
-
-
-def build_interface(materials=MATERIALS, speeds=SPEEDS):
-    display(HTML(get_html(materials, speeds)))

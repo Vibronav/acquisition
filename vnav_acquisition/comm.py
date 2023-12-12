@@ -19,13 +19,14 @@ def ssh_connect(hostname, port, username, password):
     ssh.connect(hostname, port, username, password)
 
 
-def on_rec_start(username, material, speed, delay=0.05):
+def on_rec_start(connection, username, material, speed, delay=0.05):
     global ssh
     global file_name
     global remote_path
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
     if ssh is None:
         ssh_connect("raspberrypi", 22, "pi", "VibroNav")
+        ssh_connect(*connection)
         time.sleep(1)
     play_chirp_signal(delay)
     if ssh:
