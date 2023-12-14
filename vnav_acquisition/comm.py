@@ -6,6 +6,8 @@ from .sound import play_chirp_signal
 MIC_NAME = "dmic_sv"
 REMOTE_DIR = "vnav_acquisition"
 LOCAL_DIR = r"c:\vnav_acquisition"
+CHANNEL_FMT = "stereo"
+SAMPLING_RATE = 48000
 
 ssh = None
 file_name = ""
@@ -35,13 +37,13 @@ def on_rec_start(connection, username, material, speed, delay=0.05):
         mkdir_commad = f"mkdir {os.path.dirname(remote_path)}"
         ssh.exec_command(mkdir_commad)
 
-        setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE=44100\n" \
+        setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
                         f"CHANNELS=2\nOUTPUT_FILE={remote_path}\nFORMAT=S32_LE' > " \
                         f"{REMOTE_DIR}/recording_setup.txt"
         ssh.exec_command(setup_command)
 
         start_command = f"bash -c 'source {REMOTE_DIR}/recording_setup.txt && nohup arecord " \
-                        f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V mono " \
+                        f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
                         f"$OUTPUT_FILE &'"
         ssh.exec_command(start_command)
     else:

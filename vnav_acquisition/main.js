@@ -57,7 +57,7 @@ function gotDevices(deviceInfos) {
     }
   });
 }
-navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+navigator.mediaDevices.enumerateDevices().then(gotDevices).then(start).catch(handleError);
 
 audioInputSelect.onchange = start;
 videoSelect.onchange = start;

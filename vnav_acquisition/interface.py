@@ -15,7 +15,7 @@ def get_html(materials, speeds):
     html = f'''
     
     <div class="select">
-        <label for="audioSource">Audio input source: </label><select id="audioSource"></select>
+        <label for="audioSource">Camera audio input source: </label><select id="audioSource"></select>
     </div>
 
     <div class="select">

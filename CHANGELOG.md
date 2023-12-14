@@ -10,7 +10,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [1.0.0] - 2023-12-02
+## [1.0.1] - 2023-12-14
+### Added
+- Support for two channels
+### Fixed
+- Camera is initializet at startup
+
+## [1.0.0] - 2023-12-12
 ### Added
 - External setup file
 ### Deleted

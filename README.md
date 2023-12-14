@@ -17,3 +17,5 @@ Setup JSON file format:
     "speeds": ["speed_1", "speed_2", "speed_3"]
 }
 ```
+
+Recordings from microphone(s) are recorded at RasberryPi device in directory `/home/pi/vnav_acquisition` and downloaded locally to `c:\vnav_acquisition`.
