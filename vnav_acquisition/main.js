@@ -12,6 +12,7 @@ var liveVideoElement = document.querySelector('#video');
 // var playbackVideoElement = document.querySelector('#playback');
 var dataElement = document.querySelector('#data');
 var downloadLink = document.querySelector('a#downloadLink');
+var statusLabel = document.querySelector('div#statusLabel');
 
 const audioInputSelect = document.querySelector('select#audioSource');
 const videoSelect = document.querySelector('select#videoSource');
@@ -25,7 +26,7 @@ var chunks = [];
 var count = 0;
 var localStream = null;
 var soundMeter  = null;
-var containerType = "video/webm"; //defaults to webm but we switch to mp4 on Safari 14.0.2+
+var containerType = "video/mp4"; //defaults to webm but we switch to mp4 on Safari 14.0.2+
 var videoFileName = ""
 
 
@@ -77,7 +78,7 @@ function start() {
     const videoSource = videoSelect.value;
     const constraints = {
         audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+        video: {deviceId: videoSource ? {exact: videoSource} : undefined, width:{min:640,ideal:1280,max:1280 },height:{ min:480,ideal:720,max:720}}
     };
 //    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
@@ -146,6 +147,7 @@ function onBtnRecordClicked(){
 		recBtn.disabled = true;
 		recBtn.innerHTML = 'Recording...';
 		stopBtn.style.visibility = 'visible';
+        statusLabel.innerHTML = '<font color="blue">Recording started.</font>';
 
 		chunks = [];
 
@@ -170,16 +172,16 @@ function onBtnRecordClicked(){
 			/*
 				MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
 			*/
-			if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-			  var options = {mimeType: 'video/webm;codecs=vp9'};
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-			  var options = {mimeType: 'video/webm;codecs=h264'};
-			} else  if (MediaRecorder.isTypeSupported('video/webm')) {
-			  var options = {mimeType: 'video/webm'};
-			} else  if (MediaRecorder.isTypeSupported('video/mp4')) {
+			if (MediaRecorder.isTypeSupported('video/mp4')) {
 			  //Safari 14.0.2 has an EXPERIMENTAL version of MediaRecorder enabled by default
 			  containerType = "video/mp4";
 			  var options = {mimeType: 'video/mp4'};
+			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+			  var options = {mimeType: 'video/webm;codecs=vp9'};
+			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+			  var options = {mimeType: 'video/webm;codecs=h264'};
+			} else if (MediaRecorder.isTypeSupported('video/webm')) {
+			  var options = {mimeType: 'video/webm'};
 			}
 			log('Using '+options.mimeType);
 			mediaRecorder = new MediaRecorder(localStream, options);
@@ -233,7 +235,16 @@ function onBtnRecordClicked(){
 			downloadLink.setAttribute( "download", name);
 			downloadLink.setAttribute( "name", name);
 			downloadLink.click();
-			fetch("/stop")
+
+			fetch("/stop").then(res => res.json()).then(res => {
+                var recordingStatus = res;
+                if (recordingStatus){
+                    statusLabel.innerHTML = '<font color="green">Recording saved succesfully to local directory.</font>';
+                } else {
+                    statusLabel.innerHTML = '<font color="red">Recording save failed.</font>';
+                }
+                console.log(res)
+            });
 		};
 
 		mediaRecorder.onpause = function(){
