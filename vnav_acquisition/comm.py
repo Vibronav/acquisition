@@ -8,7 +8,7 @@ MIC_NAME = "dmic_sv"
 CHANNEL_FMT = "stereo"
 SAMPLING_RATE = 48000
 
-ssh = None
+ssh: paramiko.SSHClient = None
 file_name = ""
 
 
@@ -17,14 +17,22 @@ def ssh_connect(hostname, port, username, password):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, port, username, password)
-    # cp /home/pi/asoundrc.txt /home/pi/.asoundrc
+
+    try:
+        with ssh.open_sftp() as sftp:
+            sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
+            print(f"SFPT setup upload completed.")
+    except Exception as e:
+        print(f"SFPT setup upload error.", e)
 
 
 def on_rec_start(connection, username, material, speed, delay=0.05):
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
+
     if ssh is None:
+        print("Connecting to RaspberryPi with SSH")
         ssh_connect(*connection)
         time.sleep(1)
     play_chirp_signal(delay)
@@ -37,14 +45,17 @@ def on_rec_start(connection, username, material, speed, delay=0.05):
         setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
                         f"CHANNELS=2\nOUTPUT_FILE={remote_path}\nFORMAT=S32_LE' > " \
                         f"{config['remote_dir']}/recording_setup.txt"
+        print("Setup command: \n", setup_command)
         ssh.exec_command(setup_command)
+        time.sleep(1)
 
         start_command = f"bash -c 'source {config['remote_dir']}/recording_setup.txt && nohup arecord " \
                         f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
                         f"$OUTPUT_FILE &'"
+        print("Start command: \n", start_command)
         ssh.exec_command(start_command)
     else:
-        print("SSH not connected")
+        print("SSH connection failed.")
     return os.path.splitext(file_name)[0]
 
 
@@ -52,7 +63,7 @@ def on_rec_stop(delete=False):
     global ssh
     global file_name
     recording_status = False
-    if ssh:
+    if ssh is not None:
         print("Recording stopped")
         stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
         ssh.exec_command(stop_command)
@@ -62,12 +73,10 @@ def on_rec_stop(delete=False):
         os.makedirs(config["local_dir"], exist_ok=True)
 
         try:
-            sftp = ssh.open_sftp()
-            sftp.get(remote_path, local_path)
-        except:
-            print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.")
-        finally:
-            sftp.close()
+            with ssh.open_sftp() as sftp:
+                sftp.get(remote_path, local_path)
+        except Exception as e:
+            print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
 
         if delete:

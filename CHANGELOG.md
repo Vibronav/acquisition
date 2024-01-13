@@ -10,15 +10,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [1.1.0] - 2024-01-10
+## [1.2.0] - 2024-01-13
 ### Added
+- Automated configuration of RaspberryPi
 - Information about failed recording
 - `local_dir` and `remote_dir` in configuration
 ### Changed
 - Interface enhancement
 - Video recording resolution (1280x720)
 
-## [1.0.1] - 2023-12-14
+## [1.1.0] - 2023-12-14
 ### Added
 - Support for two audio channels
 ### Fixed

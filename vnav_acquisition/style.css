@@ -49,3 +49,14 @@ body {
      border-radius: 5px;
      padding: 10px;
 }
+#statusLabel {
+    font-weight: bold;
+    display: block;
+    animation: blinker 1s infinite;
+}
+
+@keyframes blinker {
+    from { opacity: 1.0; }
+    50% { opacity: 0.5; }
+    to { opacity: 1.0; }
+}

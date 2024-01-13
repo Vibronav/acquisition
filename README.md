@@ -3,12 +3,11 @@
 Tool for synchronous acquisition of audio (from rasberry_pi/banana_pi devboard)
 and video from webcam.
 
-
 Run in commandline:
 ```commandline
 vnav_acquisition --setup /path/to/setup.json
 ```
-This runs application in Python and opens web interface in web browser. Before recording ensure that rasberry_pi is properly configured.
+This runs application in Python and opens web interface in web browser.
 
 Setup JSON file format:
 ```
