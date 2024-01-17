@@ -33,8 +33,8 @@ Setup JSON file format:
 ```
 
 Recordings from microphone(s) are recorded at RasberryPi device in directory `/home/pi/$remote_dir$` 
-and downloaded locally to `$local_dir$`. Original recording is saved with extension `.raw.wav`, and postprocessed to
-low frequency components and normalize amplitude.
+and downloaded locally to `$local_dir$`. Audio recording is postprocessed to
+remove low frequency components and normalize amplitude. Original recording is renamed to extension `.raw.wav`.
 
 ## vnav_wav_process
 
@@ -62,5 +62,5 @@ options:
 Requires Python 3.10. To install tool, run in command line:
 
 ```commandline
-pip install git+https://github.com/Vibronav/acquisition.git
+python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
 ```
