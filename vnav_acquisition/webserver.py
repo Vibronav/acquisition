@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from vnav_acquisition.interface import get_html
-from vnav_acquisition.comm import on_rec_stop, on_rec_start
+from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
 from vnav_acquisition.config import config
 import random
 import threading
@@ -33,9 +33,18 @@ def start():
     return jsonify(file_name)
 
 
+@app.route("/delete_last", methods=['GET'])
+def delete_last():
+    deleted_files = delete_last_recording()
+    print("Received delete_last/GET request")
+    return jsonify(deleted_files)
+
+
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--setup", help="Setup JSON file",
+    parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
+                                                 "(from rasberry_pi/banana_pi devboard) and video from webcam")
+    parser.add_argument("--setup", help="Path to setup JSON file (if not provided or some fields are missing, default "
+                                        "configuration is used.)",
                         default=os.path.join(os.path.dirname(__file__), "setup.json"))
     args = parser.parse_args()
     config.load_from_json(args.setup)

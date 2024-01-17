@@ -32,17 +32,16 @@
             $SPEED
         </div>
         <div class="video">
-
             <div id="controls">
                 <button id="rec" onclick="onBtnRecordClicked()">Record</button>
-                <button id="stop" onclick="onBtnStopClicked()"  style="visibility: hidden">Stop</button>
+                <button id="stop" onclick="onBtnStopClicked()"  disabled>Stop</button>
+                <button id="delete" onclick="onBtnDeteleClicked()" disabled>Delete last recording</button>
             </div>
-            <video id="video" style="width: 960px; height: 480px" controls autoplay playsinline muted></video>
 
+            <video id="video" style="width: 960px; height: 480px; margin: 10px;" controls autoplay playsinline muted></video>
 
             <a id="downloadLink" download="mediarecorder.webm" name="mediarecorder.webm" href></a>
             <p id="data"></p>
-
         </div>
     </div>
 </div>

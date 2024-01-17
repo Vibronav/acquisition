@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.3.0]
+### Added
+- Automatic signal postprocessing
+- Button for deleting last recording
+### Changed
+- Visible names of audio/video devices
+
 ## [1.2.0] - 2024-01-13
 ### Added
 - Automated configuration of RaspberryPi

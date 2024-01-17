@@ -4,12 +4,11 @@
 // Spec is at http://dvcs.w3.org/hg/dap/raw-file/tip/media-stream-capture/RecordingProposal.html
 
 var recBtn = document.querySelector('button#rec');
-// var pauseResBtn = document.querySelector('button#pauseRes');
 var stopBtn = document.querySelector('button#stop');
+var deleteBtn = document.querySelector('button#delete');
 var username = document.getElementById('username')
 
 var liveVideoElement = document.querySelector('#video');
-// var playbackVideoElement = document.querySelector('#playback');
 var dataElement = document.querySelector('#data');
 var downloadLink = document.querySelector('a#downloadLink');
 var statusLabel = document.querySelector('div#statusLabel');
@@ -19,14 +18,13 @@ const videoSelect = document.querySelector('select#videoSource');
 const selectors = [audioInputSelect, videoSelect];
 
 liveVideoElement.controls = false;
-// playbackVideoElement.controls=false;
 
 var mediaRecorder;
 var chunks = [];
 var count = 0;
 var localStream = null;
 var soundMeter  = null;
-var containerType = "video/mp4"; //defaults to webm but we switch to mp4 on Safari 14.0.2+
+var containerType = "video/webm";
 var videoFileName = ""
 
 
@@ -38,11 +36,13 @@ function gotDevices(deviceInfos) {
       select.removeChild(select.firstChild);
     }
   });
+  console.log(deviceInfos)
   for (let i = 0; i !== deviceInfos.length; ++i) {
     const deviceInfo = deviceInfos[i];
     const option = document.createElement('option');
     option.value = deviceInfo.deviceId;
     if (deviceInfo.kind === 'audioinput') {
+      console.log(deviceInfo)
       option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
       audioInputSelect.appendChild(option);
     } else if (deviceInfo.kind === 'videoinput') {
@@ -58,7 +58,12 @@ function gotDevices(deviceInfos) {
     }
   });
 }
-navigator.mediaDevices.enumerateDevices().then(gotDevices).then(start).catch(handleError);
+
+navigator.mediaDevices
+    .getUserMedia({ audio: true, video: true })
+    .then((s) => {
+        navigator.mediaDevices.enumerateDevices().then(gotDevices).then(start).catch(handleError);
+    });
 
 audioInputSelect.onchange = start;
 videoSelect.onchange = start;
@@ -111,17 +116,17 @@ function start() {
                     try {
                         window.AudioContext = window.AudioContext || window.webkitAudioContext;
                         window.audioContext = new AudioContext();
-                      } catch (e) {
+                    } catch (e) {
                         log('Web Audio API not supported.');
-                      }
+                    }
 
-                      soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
-                      soundMeter.connectToSource(localStream, function(e) {
+                    soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
+                    soundMeter.connectToSource(localStream, function(e) {
                         if (e) {
                             log(e);
                             return;
                         }
-                      });
+                    });
 
                 }).catch(function(err) {
                     /* handle the error */
@@ -146,8 +151,8 @@ function onBtnRecordClicked(){
 	} else {
 		recBtn.disabled = true;
 		recBtn.innerHTML = 'Recording...';
-		stopBtn.style.visibility = 'visible';
-        statusLabel.innerHTML = '<font color="blue">Recording started.</font>';
+        stopBtn.disabled = false;
+        statusLabel.innerHTML = '<font color="orange">Communicating with RaspberryPi...</font>';
 
 		chunks = [];
 
@@ -166,6 +171,7 @@ function onBtnRecordClicked(){
         }).then(res => res.json()).then(res => {
             videoFileName = res;
             console.log(res)
+            statusLabel.innerHTML = `<font color="blue">Recording started (${res})</font>`;
         });
 
 		if (typeof MediaRecorder.isTypeSupported == 'function'){
@@ -239,7 +245,8 @@ function onBtnRecordClicked(){
 			fetch("/stop").then(res => res.json()).then(res => {
                 var recordingStatus = res;
                 if (recordingStatus){
-                    statusLabel.innerHTML = '<font color="green">Recording saved succesfully to local directory.</font>';
+                    const recorded_files = recordingStatus.join('<br>')
+                    statusLabel.innerHTML = `<font color="green">Recording saved succesfully to local directory:<br>${recorded_files}</font>`;
                 } else {
                     statusLabel.innerHTML = '<font color="red">Recording save failed.</font>';
                 }
@@ -278,9 +285,23 @@ function onBtnStopClicked(){
 	mediaRecorder.stop();
 	recBtn.disabled = false;
 	recBtn.innerHTML = 'Record';
-	// pauseResBtn.disabled = true;
-	stopBtn.style.visibility = 'hidden';
+	stopBtn.disabled = true;
+    deleteBtn.disabled = false;
 }
+
+function onBtnDeteleClicked(){
+    fetch("/delete_last")
+    .then(res => res.json())
+    .then(res => {
+        var recordingStatus = res;
+        if (recordingStatus){
+            const deleted_files = recordingStatus.join('<br>')
+            statusLabel.innerHTML = `<font color="purple">Last recording deleted:<br>${deleted_files}</font>`;
+            deleteBtn.disabled = true;
+        }
+    })
+}
+
 
 function log(message){
 	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;

@@ -2,6 +2,7 @@ import os
 import time
 import paramiko
 from .sound import play_chirp_signal
+from .clean import clean_wav
 from .config import config
 
 MIC_NAME = "dmic_sv"
@@ -62,7 +63,7 @@ def on_rec_start(connection, username, material, speed, delay=0.05):
 def on_rec_stop(delete=False):
     global ssh
     global file_name
-    recording_status = False
+    recorded_files = []
     if ssh is not None:
         print("Recording stopped")
         stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
@@ -78,10 +79,27 @@ def on_rec_stop(delete=False):
         except Exception as e:
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
+        if recording_status:
+            recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
 
         if delete:
             delete_command = f"rm {remote_path}"
             ssh.exec_command(delete_command)
     else:
         print("SSH not connected")
-    return recording_status
+    return recorded_files
+
+
+def delete_last_recording():
+    global file_name
+    deleted = []
+    for file in [file_name, file_name[:-len(".wav")] + ".raw.wav"]:
+        file = os.path.join(config["local_dir"], file)
+        if os.path.exists(file):
+            os.remove(file)
+            deleted.append(file)
+            print(file, "deleted")
+        else:
+            print(file, "does not exist")
+    return deleted
+
