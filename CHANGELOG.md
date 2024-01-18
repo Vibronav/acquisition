@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.3.1]
+### Fixed
+- Not showing error when no files are saved.
+
 ## [1.3.0]
 ### Added
 - Automatic signal postprocessing

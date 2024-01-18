@@ -83,7 +83,7 @@ function start() {
     const videoSource = videoSelect.value;
     const constraints = {
         audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {deviceId: videoSource ? {exact: videoSource} : undefined, width:{min:640,ideal:1280,max:1280 },height:{ min:480,ideal:720,max:720}}
+        video: {deviceId: videoSource ? {exact: videoSource} : undefined, width:{min:640,ideal:1280,max:1280 },height:{ min:480,ideal:720,max:720}, framerate: 60}
     };
 //    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
@@ -244,7 +244,7 @@ function onBtnRecordClicked(){
 
 			fetch("/stop").then(res => res.json()).then(res => {
                 var recordingStatus = res;
-                if (recordingStatus){
+                if (recordingStatus.length){
                     const recorded_files = recordingStatus.join('<br>')
                     statusLabel.innerHTML = `<font color="green">Recording saved succesfully to local directory:<br>${recorded_files}</font>`;
                 } else {

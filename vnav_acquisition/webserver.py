@@ -5,7 +5,6 @@ from vnav_acquisition.config import config
 import random
 import threading
 import webbrowser
-import os
 import argparse
 import json
 
@@ -45,9 +44,10 @@ def main():
                                                  "(from rasberry_pi/banana_pi devboard) and video from webcam")
     parser.add_argument("--setup", help="Path to setup JSON file (if not provided or some fields are missing, default "
                                         "configuration is used.)",
-                        default=os.path.join(os.path.dirname(__file__), "setup.json"))
+                        default="")
     args = parser.parse_args()
-    config.load_from_json(args.setup)
+    if args.setup:
+        config.load_from_json(args.setup)
 
     port = 5000 + random.randint(0, 999)
     url = "http://127.0.0.1:{0}".format(port)
