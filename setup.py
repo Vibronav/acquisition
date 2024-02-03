@@ -5,7 +5,7 @@ with open('requirements.txt') as fp:
 
 setup(
     name='vnav-acquisition',
-    version='1.3.1',
+    version='1.4.0',
     description='Vibronav acquisition tools',
     author='Dominik Rzepka',
     author_email='dominik.rzepka@gmail.com',
@@ -18,7 +18,7 @@ setup(
     install_requires=install_requires,
     extras_require={},
     package_data={
-        'vnav_acquisition': ['*.js', '*.css', '*.json', '*.html', '*.txt']
+        'vnav_acquisition': ['*.js', '*.css', '*.html', '*.txt']
     },
     data_files=[],
     entry_points={

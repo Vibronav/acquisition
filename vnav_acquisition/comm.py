@@ -27,7 +27,7 @@ def ssh_connect(hostname, port, username, password):
         print(f"SFPT setup upload error.", e)
 
 
-def on_rec_start(connection, username, material, speed, delay=0.05):
+def on_rec_start(connection, username, material, speed):
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
@@ -36,7 +36,6 @@ def on_rec_start(connection, username, material, speed, delay=0.05):
         print("Connecting to RaspberryPi with SSH")
         ssh_connect(*connection)
         time.sleep(1)
-    play_chirp_signal(delay)
     if ssh:
         print("Recording started")
         remote_path = f"{config['remote_dir']}/{file_name}"
@@ -48,13 +47,14 @@ def on_rec_start(connection, username, material, speed, delay=0.05):
                         f"{config['remote_dir']}/recording_setup.txt"
         print("Setup command: \n", setup_command)
         ssh.exec_command(setup_command)
-        time.sleep(1)
+        time.sleep(0.01)
 
         start_command = f"bash -c 'source {config['remote_dir']}/recording_setup.txt && nohup arecord " \
                         f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
                         f"$OUTPUT_FILE &'"
         print("Start command: \n", start_command)
         ssh.exec_command(start_command)
+        play_chirp_signal()
     else:
         print("SSH connection failed.")
     return os.path.splitext(file_name)[0]

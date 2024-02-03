@@ -8,7 +8,7 @@ def generate_chirp_signal(duration, start_freq, end_freq, sample_rate):
     return chirp_signal
 
 
-def play_chirp_signal(delay, fs=44100):
+def play_chirp_signal(delay=0, fs=44100):
     delayed_chirp_signal = np.hstack((np.zeros(int(delay*fs)), _chirp_signal))
     sd.play(delayed_chirp_signal, fs)
 

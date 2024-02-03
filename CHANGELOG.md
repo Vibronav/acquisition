@@ -10,9 +10,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.4.0]
+### Added
+- Spikes/clips removal
+### Fixed
+- Too long delay between recording command and playing sync sound.
+
 ## [1.3.1]
 ### Fixed
 - Not showing error when no files are saved.
+- Corrected delays between sending commands and playing sync sound.
 
 ## [1.3.0]
 ### Added
