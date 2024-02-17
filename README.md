@@ -57,6 +57,32 @@ options:
 
 ```
 
+## vnav_audio_video_sync
+
+```
+usage: vnav_audio_video_sync [-h] --audio-path AUDIO_PATH
+                             [--audio-suffix AUDIO_SUFFIX]
+                             [--video-path VIDEO_PATH]
+                             [--annotation-path ANNOTATION_PATH]
+
+Writes audio annotation based on synchronization between audio and video, and
+video annotations.
+
+options:
+  -h, --help            show this help message and exit
+  --audio-path AUDIO_PATH
+                        Path to audio files
+  --audio-suffix AUDIO_SUFFIX
+                        Suffix of audio file, compared to video and annotation
+                        files (default: "")
+  --video-path VIDEO_PATH
+                        Path to video (webm, mp4) files (default: same as
+                        audio files)
+  --annotation-path ANNOTATION_PATH
+                        Path to annotations files (default: same as audio
+                        files)
+```
+
 ## Installation
 
 Requires Python 3.10. To install tool, run in command line:

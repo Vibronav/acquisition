@@ -19,7 +19,7 @@ def read_wave(path):
     return sample_rate, x
 
 
-def highpass(x: np.ndarray, offset_samples: int, filter_order=200):
+def highpass(x: np.ndarray, offset_samples: int = 0, filter_order=200):
     h = np.ones(filter_order)/filter_order
     h = np.convolve(np.convolve(h, h), h)
     x = x[offset_samples:]

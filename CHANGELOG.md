@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.5.0]
+### Added
+- `vnav_audio_video_sync` endpoint for synchronization of video and audio annotations.
+
 ## [1.4.0]
 ### Added
 - Spikes/clips removal

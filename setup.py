@@ -5,7 +5,7 @@ with open('requirements.txt') as fp:
 
 setup(
     name='vnav-acquisition',
-    version='1.4.0',
+    version='1.5.0',
     description='Vibronav acquisition tools',
     author='Dominik Rzepka',
     author_email='dominik.rzepka@gmail.com',
@@ -23,6 +23,7 @@ setup(
     data_files=[],
     entry_points={
         'console_scripts': ['vnav_acquisition=vnav_acquisition.webserver:main',
-                            'vnav_wav_process=vnav_acquisition.clean:main'],
+                            'vnav_wav_process=vnav_acquisition.clean:main',
+                            'vnav_audio_video_sync=vnav_acquisition.sync:main'],
     }
 )
