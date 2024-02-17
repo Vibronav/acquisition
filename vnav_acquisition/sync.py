@@ -19,7 +19,6 @@ def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
         # execute FFmpeg from PowerShell
         try:
             subprocess.run(ffmpeg_command, check=True, shell=True)
-            print("executing ffmpeg was successful")
             fs, x = read_wave(tmp_wav_file)
             os.remove(tmp_wav_file)
             return fs, x
@@ -78,9 +77,8 @@ def add_audio_annotations(video_file, audio_file, annotation_file):
     annotation_set["audio_file"] = audio_file
     annotation_set["audio_annotations"] = audio_annotations
 
-    # with open(annotation_file) as f:
-    #     json.dump(annotation_set, f)
-    print(annotation_set)
+    with open(annotation_file, 'w') as f:
+        json.dump(annotation_set, f, indent=4)
 
 
 def main():
