@@ -5,7 +5,7 @@ with open('requirements.txt') as fp:
 
 setup(
     name='vnav-acquisition',
-    version='1.5.0',
+    version='1.5.1',
     description='Vibronav acquisition tools',
     author='Dominik Rzepka',
     author_email='dominik.rzepka@gmail.com',

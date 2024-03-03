@@ -32,7 +32,17 @@ def argmax_correlation(input_signal, sync_signal):
 
     sqrt_sum_of_squares = np.sqrt(np.convolve(np.square(filtered_input_signal), np.ones(sync_len), mode="valid"))
     correlation = np.correlate(filtered_input_signal, sync_signal)/sqrt_sum_of_squares
-
+    inf = np.isinf(correlation)
+    nan = np.isnan(correlation)
+    if any(inf):
+        correlation[np.isinf(correlation)] = 0
+        print("Inf corrected")
+    if any(nan):
+        if sum(nan) > len(filtered_input_signal)//10:
+            return None
+        else:
+            correlation[nan] = 0
+            print("NaN corrected")
     idx_max = np.argmax(np.abs(correlation))
     return idx_max
 
@@ -49,30 +59,40 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
     audio_fs, audio_signal = read_wave(audio_file)
     audio_signal = audio_signal[audio_channel, :]
     sync_signal = generate_chirp_signal(sample_rate=audio_fs)
-    audio_shift = argmax_correlation(audio_signal, sync_signal)/audio_fs
+    audio_shift = argmax_correlation(audio_signal, sync_signal)
 
     video_fs, video_signal = extract_audio_from_video(video_file)
     video_signal = video_signal[video_channel, :]
     if audio_fs != video_fs:
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
-    video_shift = argmax_correlation(video_signal, sync_signal)/video_fs
+    video_shift = argmax_correlation(video_signal, sync_signal)
 
-    audio_delay = audio_shift - video_shift
-    return audio_delay, audio_fs
+    if None in [audio_shift, video_shift]:
+        return video_shift, audio_shift
+    else:
+        audio_delay = audio_shift/audio_fs - video_shift/video_fs
+        return audio_delay, audio_fs
 
 
 def add_audio_annotations(video_file, audio_file, annotation_file):
     with open(annotation_file) as f:
         annotation_set = json.load(f)
 
-    video_annotations = annotation_set.get("video_annotations", annotation_set["annotations"])
     audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file)
 
-    audio_annotations = dict()
-    audio_annotations["start_time"] = video_annotations["start_time"] + audio_delay
-    audio_annotations["end_time"] = video_annotations["end_time"] + audio_delay
-    audio_annotations["start_sample"] = int(audio_annotations["start_time"] * audio_fs)
-    audio_annotations["end_sample"] = int(audio_annotations["end_time"] * audio_fs)
+    if audio_delay is None:
+        return f"Video file sound corrupted: {video_file}"
+    if audio_fs is None:
+        return f"Audio file sound corrupted: {audio_file}"
+
+    audio_annotations = list()
+    for video_annotation in annotation_set["video_annotations"]:
+        audio_annotation = dict()
+        audio_annotation["start_time"] = video_annotation["start_time"] + audio_delay
+        audio_annotation["end_time"] = video_annotation["end_time"] + audio_delay
+        audio_annotation["start_sample"] = int(audio_annotation["start_time"] * audio_fs)
+        audio_annotation["end_sample"] = int(audio_annotation["end_time"] * audio_fs)
+        audio_annotations.append(audio_annotation)
 
     annotation_set["audio_file"] = audio_file
     annotation_set["audio_annotations"] = audio_annotations
@@ -106,15 +126,29 @@ def main():
     annotation_files = {os.path.splitext(os.path.basename(f))[0]: f
                         for f in glob.glob(args.annotation_path + os.sep + "*.json")}
 
-    skipped = 0
-    for name, audio_file in audio_files.items():
-        if name in video_files and name in annotation_files:
+    skipped = []
+    for name, annotation_file in annotation_files.items():
+        audio_present = name in audio_files
+        video_present = name in video_files
+        if audio_present and video_present:
             print(f"Processing {name}")
-            add_audio_annotations(video_files[name], audio_file, annotation_files[name])
+            result = add_audio_annotations(video_files[name], audio_files[name], annotation_file)
+            if result:
+                print(result)
+                skipped.append(result)
         else:
-            skipped += 1
+            if not audio_present:
+                result = f"Missing audio for: {name}"
+                print(result)
+                skipped.append(result)
+            if not video_present:
+                result = f"Missing video for: {name}"
+                print(result)
+                skipped.append(result)
     if skipped:
-        print(f"Skipped {skipped} files with missing data file (video or annotations)")
+        print(f"Skipped {len(skipped)} files with missing data file (video or annotations)")
+        with open(os.path.join(args.annotation_path, "log.txt"), 'w') as fp:
+            fp.writelines([line + "\n" for line in skipped])
 
 
 if __name__ == "__main__":
