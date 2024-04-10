@@ -1,0 +1,7 @@
+{
+    "connection": ["hostname", 3000, "username", "password"], 
+    "materials": ["material_1", "material_2"],
+    "speeds": ["speed_1", "speed_2", "speed_3"],
+    "local_dir": "vnav_acquisition",
+    "remote_dir": "vnav_acquisition"    
+}

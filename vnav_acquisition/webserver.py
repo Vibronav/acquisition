@@ -11,11 +11,6 @@ import json
 app = Flask(__name__)
 
 
-@app.route("/", methods=['GET'])
-def frontpage():
-    return get_html(materials=config['materials'], speeds=config['speeds'])
-
-
 @app.route("/stop", methods=['GET'])
 def stop():
     recording_status = on_rec_stop()
@@ -49,10 +44,7 @@ def main():
     if args.setup:
         config.load_from_json(args.setup)
 
-    port = 5000 + random.randint(0, 999)
-    url = "http://127.0.0.1:{0}".format(port)
-    threading.Timer(1.25, lambda: webbrowser.open(url) ).start()
-    app.run(port=port, debug=False)
+    app.run(port=5000, debug=False)
 
 
 if __name__ == '__main__':
