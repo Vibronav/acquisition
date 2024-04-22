@@ -1,10 +1,10 @@
-// ThemeSwitchButton.jsx
 import React from 'react';
 import FormControl from '@mui/material/FormControl';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import FormHelperText from '@mui/material/FormHelperText';
 import Switch from '@mui/material/Switch';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 
 export default function ThemeSwitchButton({ currentTheme, onChange }) {
   const handleChange = () => {
@@ -16,9 +16,9 @@ export default function ThemeSwitchButton({ currentTheme, onChange }) {
       <FormGroup>
         <FormControlLabel
           control={
-            <Switch checked={currentTheme} onChange={handleChange} name="themeChange" />
+            <Switch checked={currentTheme} onChange={handleChange} name="themeChange"/>
           }
-          label = {currentTheme? "Light Mode" : "Dark Mode"}
+          label={currentTheme ?   <LightModeIcon /> : <DarkModeIcon />} // Render DarkModeIcon for dark theme and LightModeIcon for light theme
         />
       </FormGroup>
     </FormControl>

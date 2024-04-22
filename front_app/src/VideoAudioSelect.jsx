@@ -53,7 +53,7 @@ export default function VideoAudioSelect() {
 
     return (
         <div>
-            <Stack direction="row">
+            <Stack direction="row" spacing={1}>
                 <FormControl sx={{  width: 300 }}>
                     <InputLabel id="video-devices-label">Video Devices</InputLabel>
                     <Select
