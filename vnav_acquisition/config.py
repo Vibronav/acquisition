@@ -1,4 +1,5 @@
 import json
+from flask import jsonify
 
 
 class Configurator:
@@ -7,12 +8,12 @@ class Configurator:
         'materials': ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
                       "African (silk)"],
         'speeds': ["slow", "medium", "fast"],
-        'local_dir': r"c:\vnav_acquisition",
+        'local_dir': "c:\\vnav_acquisition",
         'remote_dir': "vnav_acquisition"
     }
 
     def __init__(self):
-        self._config = dict()
+        self._config = self._DEFAULT_CONFIG
 
     def load_from_json(self, path):
         with open(path) as f:
@@ -23,3 +24,5 @@ class Configurator:
 
 
 config = Configurator()
+
+

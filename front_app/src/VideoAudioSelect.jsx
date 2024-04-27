@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useState, useEffect} from 'react';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -21,13 +21,18 @@ const MenuProps = {
     },
 };
 
-export default function VideoAudioSelect() {
-    const [videoDevices, setVideoDevices] = React.useState([]);
-    const [audioDevices, setAudioDevices] = React.useState([]);
-    const [selectedVideoDevices, setSelectedVideoDevices] = React.useState([]);
-    const [selectedAudioDevice, setSelectedAudioDevice] = React.useState('');
-
-    React.useEffect(() => {
+export default function VideoAudioSelect({ 
+    selectedVideoDevices, 
+    setSelectedVideoDevices, 
+    selectedAudioDevice, 
+    setSelectedAudioDevice, 
+    videoDevices,
+    setVideoDevices, 
+    audioDevices,
+    setAudioDevices
+ }) {
+   
+    useEffect(() => {
         const fetchMediaDevices = async () => {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
@@ -84,7 +89,7 @@ export default function VideoAudioSelect() {
                         label="Audio Device"
                     >
                         {audioDevices.map((device) => (
-                            <MenuItem key={device.deviceId} value={device.deviceId}>
+                            <MenuItem key={device.label} value={device.label}>
                                 {device.label}
                             </MenuItem>
                         ))}
