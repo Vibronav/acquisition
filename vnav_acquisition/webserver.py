@@ -50,8 +50,6 @@ def main():
     if args.setup:
         config.load_from_json(args.setup)
 
-    url = "http://localhost:5173" #GUI
-    threading.Timer(1.25, lambda: webbrowser.open(url) ).start()
     app.run(port=5000, debug=True)
 
 

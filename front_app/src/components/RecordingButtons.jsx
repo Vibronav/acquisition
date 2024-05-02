@@ -53,7 +53,7 @@ export default function RecordingButtons() {
       <Button
         onClick={handleClick}
         variant="contained"
-        size="small"
+
         startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
         disabled={loading}
       >
@@ -63,7 +63,6 @@ export default function RecordingButtons() {
         <Button
           onClick={handleDeleteLastRecording}
           variant="contained"
-          size="small"
           disabled={loading}
           startIcon={<DeleteOutlineIcon/>}
         >

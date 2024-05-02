@@ -1,5 +1,4 @@
-import {useState, useEffect} from 'react';
-import OutlinedInput from '@mui/material/OutlinedInput';
+import { useEffect } from 'react';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
@@ -7,31 +6,22 @@ import ListItemText from '@mui/material/ListItemText';
 import Select from '@mui/material/Select';
 import Checkbox from '@mui/material/Checkbox';
 import Stack from '@mui/material/Stack';
+import { selectStyles, stackStyles, formControlStyles } from '../themes.js'
 
 
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-    PaperProps: {
-        style: {
-            maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-            width: 250,
-        },
-    },
-};
 
-export default function VideoAudioSelect({ 
-    selectedVideoDevices, 
-    setSelectedVideoDevices, 
-    selectedAudioDevice, 
-    setSelectedAudioDevice, 
+export default function VideoAudioSelect({
+    selectedVideoDevices,
+    setSelectedVideoDevices,
+    selectedAudioDevice,
+    setSelectedAudioDevice,
     videoDevices,
-    setVideoDevices, 
+    setVideoDevices,
     audioDevices,
     setAudioDevices
- }) {
-   
+}) {
+
     useEffect(() => {
         const fetchMediaDevices = async () => {
             try {
@@ -58,17 +48,19 @@ export default function VideoAudioSelect({
 
     return (
         <div>
-            <Stack direction="row" spacing={1}>
-                <FormControl sx={{  width: 300 }}>
+            <Stack
+                sx={stackStyles} direction="row" >
+                <FormControl
+                    sx={formControlStyles} >
                     <InputLabel id="video-devices-label">Video Devices</InputLabel>
                     <Select
+                        sx={selectStyles}
                         labelId="video-devices-label"
                         id="video-devices"
                         multiple
                         value={selectedVideoDevices}
                         onChange={handleVideoDeviceChange}
                         renderValue={(selected) => selected.join(', ')}
-                        MenuProps={MenuProps}
                         label="Video Devices"
                     >
                         {videoDevices.map((device) => (
@@ -79,9 +71,11 @@ export default function VideoAudioSelect({
                         ))}
                     </Select>
                 </FormControl>
-                <FormControl sx={{minWidth: 300 }}>
+                <FormControl
+                    sx={formControlStyles} >
                     <InputLabel id="audio-device-label">Audio Device</InputLabel>
                     <Select
+                        sx={selectStyles}
                         labelId="audio-device-label"
                         id="audio-device"
                         value={selectedAudioDevice}
