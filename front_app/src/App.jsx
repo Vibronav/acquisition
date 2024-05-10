@@ -13,7 +13,24 @@ function App() {
 
   const [configChange, setConfigChange] = useState(true);
   const [light, setLight] = useState(false); // Theme state
-  const [config, setConfig] = useState([]);
+  const [config, setConfig] = useState({
+    username: "",
+    connection: ["raspberrypi", 22, "pi", "VibroNav"],
+    defaultMaterials: [
+      "Slime",
+      "Silicone",
+      "PU",
+      "Plato (play dough)",
+      "Plastic",
+      "Ikea (plastic bag)",
+      "African (silk)"
+    ],
+    addedMaterials:[],
+    speeds: ["slow", "medium", "fast"],
+    local_dir: "c:\\vnav_acquisition",
+    remote_dir: "vnav_acquisition"
+
+  });
 
   // Toggle between light and dark themes
   const toggleTheme = () => {
@@ -41,12 +58,13 @@ function App() {
                 setIsConfigChange={setConfigChange} 
                 isConfigChange={configChange} 
                 config={config} 
-                setConig={setConfig}/> 
+                setConfig={setConfig}/> 
               :
                 <Acquisition 
                   setIsConfigChange={setConfigChange} 
                   isConfigChange={configChange} 
                   config={config} 
+                  setConfig={setConfig}
                   /> 
               }
           </Stack>

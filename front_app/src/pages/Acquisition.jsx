@@ -10,34 +10,11 @@ import { selectStyles, stackStyles, formControlStyles } from './../themes';
 const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
     // State variables
     
-    const [materials, setMaterials] = useState([]); // Materials state
-    const [speeds, setSpeeds] = useState([]); // Speeds state
+
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
     const [selectedAudioDevice, setSelectedAudioDevice] = useState(''); // Selected audio device state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
     const [audioDevices, setAudioDevices] = useState([]); // Audio devices state
-
-    const proxy = "http://127.0.0.1:5000/api"; // Proxy URL for API requests
-
-    useEffect(() => {
-        // Fetch materials and speeds data from API
-        const fetchData = async () => {
-            try {
-                const response = await fetch(proxy + "/parse_config");
-                if (!response.ok) {
-                    throw new Error(`Error fetching data: ${response.status}`);
-                }
-                const data = await response.json();
-                setMaterials(data.materials);
-                setSpeeds(data.speeds)
-            } catch (error) {
-                console.error('Error fetching materials:', error);
-            }
-        };
-
-        fetchData();
-    }, []);
-
 
 
     return (

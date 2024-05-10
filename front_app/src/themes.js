@@ -5,7 +5,7 @@ export const darkTheme = createTheme({
         type: 'dark',
         background: {
             default: "#404045",
-            paper: "#424242"
+            paper: "#535357"
         },
         primary: {
             main: '#568166',
@@ -32,6 +32,10 @@ export const darkTheme = createTheme({
 export const lightTheme = createTheme({
     palette: {
         type: 'light',
+        background: {
+            default: "#fff",
+            paper: "#ebebec"
+        },
         primary: {
             main: '#568166',
         },
