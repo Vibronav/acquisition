@@ -7,6 +7,7 @@ from vnav_acquisition.clean import highpass, read_wave
 from vnav_acquisition.sound import generate_chirp_signal
 import argparse
 import glob
+from collections import defaultdict
 
 
 def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
@@ -86,15 +87,26 @@ def add_audio_annotations(video_file, audio_file, annotation_file):
         return f"Audio file sound corrupted: {audio_file}"
 
     audio_annotations = list()
-    for video_annotation in annotation_set["video_annotations"]:
-        audio_annotation = dict()
-        audio_annotation["start_time"] = video_annotation["start_time"] + audio_delay
-        audio_annotation["end_time"] = video_annotation["end_time"] + audio_delay
-        audio_annotation["start_sample"] = int(audio_annotation["start_time"] * audio_fs)
-        audio_annotation["end_sample"] = int(audio_annotation["end_time"] * audio_fs)
-        audio_annotations.append(audio_annotation)
+    video_annotations = annotation_set["video_annotations"]
+    if type(video_annotations) is list:
+        # interval annotations
+        for video_annotation in video_annotations:
+            audio_annotation = dict()
+            audio_annotation["start_time"] = video_annotation["start_time"] + audio_delay
+            audio_annotation["end_time"] = video_annotation["end_time"] + audio_delay
+            audio_annotation["start_sample"] = int(audio_annotation["start_time"] * audio_fs)
+            audio_annotation["end_sample"] = int(audio_annotation["end_time"] * audio_fs)
+            audio_annotations.append(audio_annotation)
+    elif type(video_annotations) is dict:
+        # event annotations
+        audio_annotations = defaultdict(dict)
+        for event, video_annotation in video_annotations.items():
+            audio_annotations[event]["time"] = video_annotation["time"] + audio_delay
+            audio_annotations[event]["sample"] = int(audio_annotations[event]["time"] * audio_fs)
+    else:
+        raise Exception("Unknown annotation format")
 
-    annotation_set["audio_file"] = audio_file
+    annotation_set["audio_file"] = os.path.basename(audio_file)
     annotation_set["audio_annotations"] = audio_annotations
 
     with open(annotation_file, 'w') as f:

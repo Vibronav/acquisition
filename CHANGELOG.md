@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.6.0]
+### Added
+- Synchronization for event annotations.
+
 ## [1.5.1]
 ### Fixed
 - Error handling for synchronization endpoint.
