@@ -33,8 +33,8 @@ export const lightTheme = createTheme({
     palette: {
         type: 'light',
         background: {
-            default: "#fff",
-            paper: "#ebebec"
+            default: "#fffeee",
+            paper: "#eeeddd"
         },
         primary: {
             main: '#568166',

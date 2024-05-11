@@ -14,12 +14,8 @@ import { selectStyles, stackStyles, formControlStyles } from '../themes.js'
 export default function VideoAudioSelect({
     selectedVideoDevices,
     setSelectedVideoDevices,
-    selectedAudioDevice,
-    setSelectedAudioDevice,
     videoDevices,
-    setVideoDevices,
-    audioDevices,
-    setAudioDevices
+    setVideoDevices
 }) {
 
     useEffect(() => {
@@ -27,9 +23,7 @@ export default function VideoAudioSelect({
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                const audioDevices = devices.filter(device => device.kind === 'audioinput');
                 setVideoDevices(videoDevices);
-                setAudioDevices(audioDevices);
             } catch (error) {
                 console.error('Error fetching media devices:', error);
             }
@@ -42,9 +36,6 @@ export default function VideoAudioSelect({
         setSelectedVideoDevices(event.target.value);
     };
 
-    const handleAudioDeviceChange = (event) => {
-        setSelectedAudioDevice(event.target.value);
-    };
 
     return (
         <div>
@@ -71,24 +62,7 @@ export default function VideoAudioSelect({
                         ))}
                     </Select>
                 </FormControl>
-                <FormControl
-                    sx={formControlStyles} >
-                    <InputLabel id="audio-device-label">Audio Device</InputLabel>
-                    <Select
-                        sx={selectStyles}
-                        labelId="audio-device-label"
-                        id="audio-device"
-                        value={selectedAudioDevice}
-                        onChange={handleAudioDeviceChange}
-                        label="Audio Device"
-                    >
-                        {audioDevices.map((device) => (
-                            <MenuItem key={device.label} value={device.label}>
-                                {device.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                
             </Stack>
         </div>
     );

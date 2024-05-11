@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Select, TextField, Stack, InputLabel, MenuItem, FormControl } from '@mui/material';
+import { Container, Select, Typography, Stack, InputLabel, MenuItem, FormControl } from '@mui/material';
 
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
@@ -7,7 +7,7 @@ import WebcamRenderer from '../components/WebcamRenderer.jsx';
 import { selectStyles, stackStyles, formControlStyles } from './../themes';
 
 
-const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
+const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) => {
     // State variables
     
 
@@ -20,7 +20,7 @@ const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
     return (
         <div>
                 <Stack sx={stackStyles}>
-
+                    <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
                     {/* Video and audio selection component */}
                     <VideoAudioSelect
                         selectedVideoDevices={selectedVideoDevices}
@@ -33,15 +33,8 @@ const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
                         setAudioDevices={setAudioDevices}
                     />
 
-                    {/* Stack for username, material, and speed selection */}
-                    <Stack
-                        sx={stackStyles} direction="row">
-                        <FormControl
-                            sx={formControlStyles} >
-                            <InputLabel >Username</InputLabel>
-                            <TextField id="username" labelId="usernameLabel" />
-                        </FormControl>
-
+                    {/* Stack for  material, and speed selection */}
+                    <Stack sx={stackStyles} direction="row">
                         <FormControl
                             sx={formControlStyles} >
                             <InputLabel >Material</InputLabel>
@@ -53,7 +46,7 @@ const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
 
                             >
                                 {/* Render material options */}
-                                {materials.map((material) => (
+                                {config.chosenMaterials.filter(value => value !== 0).map((material) => (
                                     <MenuItem key={material} value={material}>
                                         {material}
                                     </MenuItem>
@@ -71,7 +64,7 @@ const Acquisition = ({ setIsConfigChange, isConfigChange }) => {
                                 id="speed"
                             >
                                 {/* Render speed options */}
-                                {speeds.map((speeds) => (
+                                {config.chosenSpeeds.filter(value => value !== 0).map((speeds) => (
                                     <MenuItem key={speeds} value={speeds}>
                                         {speeds}
                                     </MenuItem>

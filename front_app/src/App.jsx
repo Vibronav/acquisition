@@ -25,8 +25,9 @@ function App() {
       "Ikea (plastic bag)",
       "African (silk)"
     ],
-    addedMaterials:[],
-    speeds: ["slow", "medium", "fast"],
+    chosenMaterials:[],
+    defaultSpeeds: ["slow", "medium", "fast"],
+    chosenSpeeds: [],
     local_dir: "c:\\vnav_acquisition",
     remote_dir: "vnav_acquisition"
 

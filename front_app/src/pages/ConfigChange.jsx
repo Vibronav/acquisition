@@ -10,22 +10,9 @@ import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
 export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
   const [activeStep, setActiveStep] = useState(0);
   const [incorrectUsername, setIncorrectUsername] = useState(false);
-  const [username, setUsername] = useState('');
 
   const steps = ['Username', 'Connection settings', 'Add materials and speeds', 'Saving directory selection'];
 
-  const handleUsernameInput = (event) => {
-    setUsername(event.target.value);
-  };
-
-  const handleUsernameCheck = () => {
-    if (username.indexOf("_") !== -1 || username.length === 0) {
-      setIncorrectUsername(true);
-    } else {
-      setIncorrectUsername(false);
-      setActiveStep(prevActiveStep => prevActiveStep + 1);
-    }
-  };
 
   const handleNext = () => {
     setActiveStep(prevActiveStep => prevActiveStep + 1);
@@ -39,6 +26,22 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
     setIsConfigChange(!isConfigChange);
   };
 
+  const handleUsernameInput = (event) => {
+    setConfig((prevConfig) => ({
+      ...prevConfig,
+      username: event.target.value
+    }));
+  };
+
+  const handleUsernameCheck = () => {
+    if (config.username.indexOf("_") !== -1 || config.username.length === 0) {
+      setIncorrectUsername(true);
+    } else {
+      setIncorrectUsername(false);
+      handleNext();
+    }
+  };
+
   const stepContent = [
     // Content for step 0 (Username)
     <Stack gap={2}>
@@ -47,14 +50,28 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
           label="Username"
           error={incorrectUsername}
           helperText={incorrectUsername ? "Incorrect entry." : ""}
-          value={username}
+          value={config.username}
           onChange={handleUsernameInput}
         />
       </FormControl>
     </Stack>,
 
     // Content for step 1 (Connection settings)
-    <div></div>,
+
+    <Stack gap={2}>
+      <FormControl>
+        <TextField label="Device" defaultValue={config.connection[0]}/>
+      </FormControl>
+      <FormControl>
+        <TextField label="Port" defaultValue="22" />
+      </FormControl>
+      <FormControl>
+        <TextField label="?" defaultValue="pi" />
+      </FormControl>
+      <FormControl>
+        <TextField label="?" defaultValue="VibroNav" />
+      </FormControl>
+    </Stack>,
 
     // Content for step 2 (Add materials and speeds)
     
@@ -64,10 +81,10 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
     // Content for step 3 (Saving directory selection)
     <Stack gap={2}>
       <FormControl>
-        <TextField label="Local Dir" defaultValue="c:\\vnav_acquisition" />
+        <TextField label="Local Dir" defaultValue={config.local_dir} />
       </FormControl>
       <FormControl>
-        <TextField label="Remote Dir" defaultValue="vnav_acquisition" />
+        <TextField label="Remote Dir" defaultValue={config.remote_dir}  />
       </FormControl>
     </Stack>,
   ];
