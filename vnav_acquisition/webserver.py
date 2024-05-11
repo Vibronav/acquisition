@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from robot import RunPoint, WaitArrive, ConnectRobot
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
 from vnav_acquisition.config import config
@@ -9,6 +10,10 @@ import argparse
 import json
 
 app = Flask(__name__)
+dashboard, move, feed = ConnectRobot()
+
+# Flag to indicate whether the robot is enabled or disabled
+robot_enabled = True
 
 
 @app.route("/", methods=['GET'])
@@ -39,6 +44,53 @@ def delete_last():
     return jsonify(deleted_files)
 
 
+# Robot Controls
+
+@app.route('/move', methods=['POST'])
+def move_robot():
+    global robot_enabled
+    if robot_enabled:
+        data = request.get_json()
+        position = data['position']
+
+        # Extracting only x and z coordinates, keeping y and r constant
+        x, _, z, _ = position
+        new_position = [x, 0, z, 78]  # Keeping y=0 and r=78
+
+        RunPoint(move, new_position)
+
+        # Wait for the robot to arrive at the specified position
+        WaitArrive(new_position)
+
+        return jsonify({'message': 'Robot arrived at position {}'.format(new_position)})
+    else:
+        return jsonify({'message': 'Robot is disabled. Cannot move.'}), 400
+
+
+@app.route('/enable', methods=['POST'])
+def enable_robot():
+    global robot_enabled
+    data = request.get_json()
+    enable = data['enable']
+    if enable:
+        dashboard.EnableRobot()
+        robot_enabled = True
+        message = 'Robot enabled'
+    else:
+        dashboard.DisableRobot()
+        robot_enabled = False
+        message = 'Robot disabled'
+    return jsonify({'message': message})
+
+
+@app.route('/disable', methods=['POST'])
+def disable_robot():
+    global robot_enabled
+    robot_enabled = False
+    dashboard.DisableRobot()
+    return jsonify({'message': 'Robot disabled'})
+
+
 def main():
     parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
                                                  "(from rasberry_pi/banana_pi devboard) and video from webcam")
@@ -51,7 +103,7 @@ def main():
 
     port = 5000 + random.randint(0, 999)
     url = "http://127.0.0.1:{0}".format(port)
-    threading.Timer(1.25, lambda: webbrowser.open(url) ).start()
+    threading.Timer(1.25, lambda: webbrowser.open(url)).start()
     app.run(port=port, debug=False)
 
 
