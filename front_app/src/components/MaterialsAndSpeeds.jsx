@@ -105,9 +105,9 @@ export default function MaterialsAndSpeeds({ config, setConfig }) {
   };
 
   return (
-    <Stack direction="row" gap={10} >
-      <Stack sx={{ width: "100%", gap: 3 }}>
-        <Typography variant="h5">Materials</Typography>
+    <Stack direction="row" gap={4} sx={{ width: "100%" }} >
+      <Stack sx={{ width: "100%", gap: 2 }}>
+        <Typography variant="h6">Materials</Typography>
         <FormControl >
           <InputLabel>Add Material</InputLabel>
           <OutlinedInput
@@ -191,8 +191,8 @@ export default function MaterialsAndSpeeds({ config, setConfig }) {
 
 
 
-      <Stack sx={{ width: "100%", gap: 3 }}>
-        <Typography variant="h5">Speeds</Typography>
+      <Stack sx={{ width: "100%", gap: 2 }}>
+        <Typography variant="h6">Speeds</Typography>
         <FormControl >
           <InputLabel>Add Speed</InputLabel>
           <OutlinedInput

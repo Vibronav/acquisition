@@ -1,30 +1,21 @@
 import React, { useState } from 'react';
-import Box from '@mui/material/Box';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
-import Button from '@mui/material/Button';
-import { TextField, FormControl, Stack } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Stack,
+  IconButton,
+  OutlinedInput,
+  InputAdornment,
+  Typography,
+  Button
+} from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
 
 export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
-  const [activeStep, setActiveStep] = useState(0);
   const [incorrectUsername, setIncorrectUsername] = useState(false);
-
-  const steps = ['Username', 'Connection settings', 'Add materials and speeds', 'Saving directory selection'];
-
-
-  const handleNext = () => {
-    setActiveStep(prevActiveStep => prevActiveStep + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep(prevActiveStep => prevActiveStep - 1);
-  };
-
-  const handleFinish = () => {
-    setIsConfigChange(!isConfigChange);
-  };
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleUsernameInput = (event) => {
     setConfig((prevConfig) => ({
@@ -33,92 +24,80 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
     }));
   };
 
-  const handleUsernameCheck = () => {
-    if (config.username.indexOf("_") !== -1 || config.username.length === 0) {
-      setIncorrectUsername(true);
-    } else {
-      setIncorrectUsername(false);
-      handleNext();
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
+
+  const handleSave = () => {
+    const isUsernameIncorrect = config.username.indexOf("_") !== -1
+      || config.username.length === 0
+      || config.username.indexOf(" ") !== -1;
+
+    setIncorrectUsername(isUsernameIncorrect);
+
+    if (!isUsernameIncorrect) {
+      setIsConfigChange(!isConfigChange);
     }
   };
 
-  const stepContent = [
-    // Content for step 0 (Username)
-    <Stack gap={2}>
-      <FormControl>
-        <TextField
-          label="Username"
-          error={incorrectUsername}
-          helperText={incorrectUsername ? "Incorrect entry." : ""}
-          value={config.username}
-          onChange={handleUsernameInput}
-        />
-      </FormControl>
-    </Stack>,
-
-    // Content for step 1 (Connection settings)
-
-    <Stack gap={2}>
-      <FormControl>
-        <TextField label="Device" defaultValue={config.connection[0]}/>
-      </FormControl>
-      <FormControl>
-        <TextField label="Port" defaultValue="22" />
-      </FormControl>
-      <FormControl>
-        <TextField label="?" defaultValue="pi" />
-      </FormControl>
-      <FormControl>
-        <TextField label="?" defaultValue="VibroNav" />
-      </FormControl>
-    </Stack>,
-
-    // Content for step 2 (Add materials and speeds)
-    
-      <MaterialsAndSpeeds config={config} setConfig={setConfig} />
-    ,
-
-    // Content for step 3 (Saving directory selection)
-    <Stack gap={2}>
-      <FormControl>
-        <TextField label="Local Dir" defaultValue={config.local_dir} />
-      </FormControl>
-      <FormControl>
-        <TextField label="Remote Dir" defaultValue={config.remote_dir}  />
-      </FormControl>
-    </Stack>,
-  ];
-
   return (
-    <Box sx={{ width: '100%' }}>
-      <Stepper activeStep={activeStep} sx={{ paddingBottom: 5 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+    <Box >
+      <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
 
-      {stepContent[activeStep]}
+        <Stack direction="row" gap={4} sx={{ width: "100%" }}>
+          <Stack gap={2} sx={{ width: "100%" }} >
+            <Stack gap={2}>
+              <Typography variant="h6">Username</Typography>
+              <TextField
+                error={incorrectUsername}
+                helperText={incorrectUsername ? "Incorrect entry." : ""}
+                value={config.username}
+                onChange={handleUsernameInput}
+              />
+            </Stack>
+            <Stack gap={2} sx={{ width: "100%" }}>
+              <Typography variant="h6">Saving Directory</Typography>
+              <TextField label="Local Dir" defaultValue={config.local_dir} />
+              <TextField label="Remote Dir" defaultValue={config.remote_dir} />
+            </Stack>
+          </Stack>
 
-      <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
-        <Button
-          color="inherit"
-          disabled={activeStep === 0}
-          onClick={handleBack}
-          sx={{ mr: 1 }}
-        >
-          Back
+          <Stack gap={2} sx={{ width: "100%" }}>
+            <Typography variant="h6">Connection</Typography>
+            <TextField label="Device" defaultValue={config.connection[0]} />
+            <TextField label="Port" defaultValue={config.connection[1]} />
+            <TextField label="Username" defaultValue={config.connection[2]} />
+            <OutlinedInput
+              id="outlined-adornment-password"
+              type={showPassword ? 'text' : 'password'}
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Password"
+              defaultValue={config.connection[3]}
+            />
+          </Stack>
+        </Stack>
+
+        <MaterialsAndSpeeds config={config} setConfig={setConfig} />
+      </Stack>
+
+      <Stack sx={{ width: "100%", alignItems: "end", marginTop: 7 }}>
+        <Button onClick={handleSave} variant="contained">
+          Save
         </Button>
-        <Box sx={{ flex: '1 1 auto' }} />
-        {activeStep === steps.length - 1 ? (
-          <Button onClick={handleFinish}>Finish</Button>
-        ) : (
-          <Button onClick={activeStep === 0 ? handleUsernameCheck : handleNext}>
-            Next
-          </Button>
-        )}
-      </Box>
+      </Stack>
     </Box>
   );
 }

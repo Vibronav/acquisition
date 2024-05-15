@@ -25,7 +25,7 @@ function App() {
       "Ikea (plastic bag)",
       "African (silk)"
     ],
-    chosenMaterials:[],
+    chosenMaterials: [],
     defaultSpeeds: ["slow", "medium", "fast"],
     chosenSpeeds: [],
     local_dir: "c:\\vnav_acquisition",
@@ -53,22 +53,22 @@ function App() {
 
 
         <Container maxWidth="lg" style={{ marginTop: '20px' }}>
-          <Stack spacing={10}>
-            {configChange ?
-                <ConfigChange 
-                setIsConfigChange={setConfigChange} 
-                isConfigChange={configChange} 
-                config={config} 
-                setConfig={setConfig}/> 
-              :
-                <Acquisition 
-                  setIsConfigChange={setConfigChange} 
-                  isConfigChange={configChange} 
-                  config={config} 
-                  setConfig={setConfig}
-                  /> 
-              }
-          </Stack>
+
+          {configChange ?
+            <ConfigChange
+              setIsConfigChange={setConfigChange}
+              isConfigChange={configChange}
+              config={config}
+              setConfig={setConfig} />
+            :
+            <Acquisition
+              setIsConfigChange={setConfigChange}
+              isConfigChange={configChange}
+              config={config}
+              setConfig={setConfig}
+            />
+          }
+
         </Container>
       </ThemeProvider>
     </React.Fragment>

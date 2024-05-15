@@ -40,7 +40,7 @@ export default function VideoAudioSelect({
     return (
         <div>
             <Stack
-                sx={stackStyles} direction="row" >
+                sx={stackStyles} direction="row"  >
                 <FormControl
                     sx={formControlStyles} >
                     <InputLabel id="video-devices-label">Video Devices</InputLabel>
