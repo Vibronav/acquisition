@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 
 
-export default function MaterialsAndSpeeds({ config, setConfig }) {
+export default function MaterialsAndSpeeds({ config, setConfig}) {
   const [newMaterial, setNewMaterial] = React.useState('');
   const [newSpeed, setNewSpeed] = React.useState('');
   const [checkedMaterial, setCheckedMaterial] = React.useState([0]);

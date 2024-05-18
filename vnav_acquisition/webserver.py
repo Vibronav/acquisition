@@ -26,10 +26,18 @@ def stop():
 
 @app.route("/api/start", methods=['POST'])
 def start():
-    params = json.loads(request.data.decode('utf-8'))  # Get the request data as a string
+     # Parse the incoming JSON data
+    data = request.get_json()
+
+    # Extract the parameters as an array of strings
+    params = [
+        data.get('username', ''),
+        data.get('material', ''),
+        data.get('speed', '')
+    ]
     print("Received start/POST request data:")
-    print(params)
-    file_name = on_rec_start(config['connection'], **params)
+    print( params)
+    file_name = on_rec_start(config['connection'], *params)
     return jsonify(file_name)
 
 

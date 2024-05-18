@@ -13,10 +13,18 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
 
 
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
-    const [selectedAudioDevice, setSelectedAudioDevice] = useState(''); // Selected audio device state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
-    const [audioDevices, setAudioDevices] = useState([]); // Audio devices state
 
+    const [selectedMaterial, setSelectedMaterial] = useState("");
+    const [selectedSpeed, setSelectedSpeed] = useState("");
+
+    const handleMaterialChange = (event) =>{
+        setSelectedMaterial(event.target.value)
+    }
+
+    const handleSpeedChange = (event) =>{
+        setSelectedSpeed(event.target.value)
+    }
 
     return (
         <div>
@@ -27,12 +35,9 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
                 <VideoAudioSelect
                     selectedVideoDevices={selectedVideoDevices}
                     setSelectedVideoDevices={setSelectedVideoDevices}
-                    selectedAudioDevice={selectedAudioDevice}
-                    setSelectedAudioDevice={setSelectedAudioDevice}
                     videoDevices={videoDevices}
                     setVideoDevices={setVideoDevices}
-                    audioDevices={audioDevices}
-                    setAudioDevices={setAudioDevices}
+                    
                 />
 
                 {/* Stack for  material, and speed selection */}
@@ -46,6 +51,8 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
                             labelId="materialSelect"
                             label="Material"
                             id="material"
+                            value={selectedMaterial}
+                            onChange={handleMaterialChange}
 
                         >
                             {/* Render material options */}
@@ -65,6 +72,8 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
                             labelId="materialSelect"
                             label="Speed"
                             id="speed"
+                            value={selectedSpeed}
+                            onChange={handleSpeedChange}
                         >
                             {/* Render speed options */}
                             {config.chosenSpeeds.filter(value => value !== 0).map((speeds) => (
@@ -81,7 +90,7 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
                 <Stack
                     sx={stackStyles} mt={3} spacing={2} >
 
-                    <RecordingButtons />
+                    <RecordingButtons username={config.username} material={selectedMaterial} speed={selectedSpeed}/>
                     {/* Component for rendering webcams */}
                     <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} />
                 </Stack>
