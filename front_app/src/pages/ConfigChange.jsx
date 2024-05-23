@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   TextField,
@@ -12,6 +12,14 @@ import {
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
+import PropTypes from 'prop-types';
+
+ConfigChange.propTypes = {
+  setIsConfigChange: PropTypes.func.isRequired,
+  isConfigChange: PropTypes.bool.isRequired,
+  config: PropTypes.object.isRequired,
+  setConfig: PropTypes.func.isRequired,
+};
 
 export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);

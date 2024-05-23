@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../node_modules/@mui/base/useDropdown/DropdownContext.js", "../../node_modules/@mui/base/useDropdown/useDropdown.types.js"],
+  "sourcesContent": ["import * as React from 'react';\nconst DropdownContext = /*#__PURE__*/React.createContext(null);\nif (process.env.NODE_ENV !== 'production') {\n  DropdownContext.displayName = 'DropdownContext';\n}\nexport { DropdownContext };", "export const DropdownActionTypes = {\n  blur: 'dropdown:blur',\n  escapeKeyDown: 'dropdown:escapeKeyDown',\n  toggle: 'dropdown:toggle',\n  open: 'dropdown:open',\n  close: 'dropdown:close'\n};"],
+  "mappings": ";;;;;;;;AAAA,YAAuB;AACvB,IAAM,kBAAqC,oBAAc,IAAI;AAC7D,IAAI,MAAuC;AACzC,kBAAgB,cAAc;AAChC;;;ACJO,IAAM,sBAAsB;AAAA,EACjC,MAAM;AAAA,EACN,eAAe;AAAA,EACf,QAAQ;AAAA,EACR,MAAM;AAAA,EACN,OAAO;AACT;",
+  "names": []
+}

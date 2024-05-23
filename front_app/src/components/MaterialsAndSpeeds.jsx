@@ -16,9 +16,10 @@ import {
   InputAdornment,
   InputLabel
 } from '@mui/material';
-
+import PropTypes from 'prop-types';
 
 export default function MaterialsAndSpeeds({ config, setConfig}) {
+
   const [newMaterial, setNewMaterial] = React.useState('');
   const [newSpeed, setNewSpeed] = React.useState('');
   const [checkedMaterial, setCheckedMaterial] = React.useState([0]);
@@ -277,3 +278,8 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
   );
 
 }
+
+MaterialsAndSpeeds.propTypes = {
+  config: PropTypes.object.isRequired,
+  setConfig: PropTypes.func.isRequired,
+};

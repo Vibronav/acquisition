@@ -7,8 +7,7 @@ import Select from '@mui/material/Select';
 import Checkbox from '@mui/material/Checkbox';
 import Stack from '@mui/material/Stack';
 import { selectStyles, stackStyles, formControlStyles } from '../themes.js'
-
-
+import PropTypes from 'prop-types';
 
 
 export default function VideoAudioSelect({
@@ -66,4 +65,11 @@ export default function VideoAudioSelect({
             </Stack>
         </div>
     );
+}
+
+VideoAudioSelect.propTypes = {
+    selectedVideoDevices: PropTypes.array.isRequired,
+    setSelectedVideoDevices: PropTypes.func.isRequired,
+    videoDevices: PropTypes.array.isRequired,
+    setVideoDevices: PropTypes.func.isRequired
 }
