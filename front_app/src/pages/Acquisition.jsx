@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {  Select, Typography, Stack, InputLabel, MenuItem, FormControl } from '@mui/material';
-import MenuIntroduction from '../components/CheckList.jsx';
+import LabChecklist from '../components/LabCheckList.jsx';
 
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
@@ -29,7 +29,7 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
     return (
         <div>
             <Stack sx={stackStyles}>
-                <MenuIntroduction/>
+                <LabChecklist/>
                 <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
                 {/* Video and audio selection component */}
                 <VideoAudioSelect

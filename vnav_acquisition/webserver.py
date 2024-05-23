@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from vnav_acquisition.interface import get_html
-from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
-from vnav_acquisition.config import config
+from interface import get_html
+from comm import on_rec_stop, on_rec_start, delete_last_recording
+from config import config
 import threading
 import webbrowser
 import argparse
