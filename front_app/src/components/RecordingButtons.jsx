@@ -4,12 +4,13 @@ import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 
+export default function RecordingButtons({username, material, speed}) {
 
-export default function RecordingButtons(username, material, speed) {
   const [loading, setLoading] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
   const [isDeleteLastPossible, setDeleteLastPossible] = React.useState(false);
-{}
+
+
   const handleClick = async () => {
     setLoading(true); // Set loading state while API call is in progress
     try {
@@ -21,9 +22,9 @@ export default function RecordingButtons(username, material, speed) {
       } else {
         // Handle start recording logic
         const response = await axiosInstance.post('/start', {
-            username: {username},
-            material: {material},
-            speed: {speed}
+            username,
+            material,
+            speed,
           }
         );
         console.log('Start recording', response.data);
@@ -58,7 +59,7 @@ export default function RecordingButtons(username, material, speed) {
         onClick={handleClick}
         variant="contained"
         startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
-        disabled={loading}
+        disabled={loading || speed == undefined || material == undefined}
       >
         {recording ? 'Stop Recording' : 'Start Recording'}
       </Button>
