@@ -1,108 +1,74 @@
-import * as React from 'react';
-import { Fragment } from 'react';
-import { Container, Grid, Select, TextField, Typography, Button, CssBaseline, Stack, InputLabel } from '@mui/material';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import ThemeSwitchButton from './ThemeSwitchButton.jsx'
-import VideoAudioSelect from './VideoAudioSelect.jsx'
-import RecordingButtons from './RecordingButtons.jsx';
-import Webcam from 'react-webcam';
-import './App.css'; // Import global CSS file
+// Filename - App.js
 
-const App = () => {
-  const [light, setLight] = React.useState(false);
-  const [recording, setRecording] = React.useState(false); // State to track recording status
+import React, { useState } from 'react';
+import { darkTheme, lightTheme } from './themes';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, Container, Stack } from '@mui/material';
+import NavBar from './components/NavBar.jsx';
+import Acquisition from "./pages/Acquisition.jsx";
+import ConfigChange from "./pages/ConfigChange.jsx";
 
+
+function App() {
+
+  const [configChange, setConfigChange] = useState(true);
+  const [light, setLight] = useState(false); // Theme state
+  const [config, setConfig] = useState({
+    username: "",
+    connection: ["raspberrypi", 22, "pi", "VibroNav"],
+    defaultMaterials: [
+      "Slime",
+      "Silicone",
+      "PU",
+      "Plato (play dough)",
+      "Plastic",
+      "Ikea (plastic bag)",
+      "African (silk)"
+    ],
+    chosenMaterials: [],
+    defaultSpeeds: ["slow", "medium", "fast"],
+    chosenSpeeds: [],
+    local_dir: "c:\\vnav_acquisition",
+    remote_dir: "vnav_acquisition"
+
+  });
+
+  // Toggle between light and dark themes
   const toggleTheme = () => {
-    setLight((prevTheme) => !prevTheme); // Toggle the theme based on the current state
+    setLight((prevTheme) => !prevTheme);
   };
 
-  const darkTheme = createTheme({
-    palette: {
-      type: 'dark',
-      background: {
-        default: "#404045",
-        paper: "#424242"
-      },
-      primary: {
-        main: '#568166',
-        contrastText: "#fff"
-      },
-      secondary: {
-        main: '#fb8c00',
-        contrastText: "rgba(0, 0, 0, 0.87)"
-      },
-      text: {
-        primary: '#fff',
-        secondary: "rgba(255, 255, 255, 0.7)",
-        disabled: "rgba(255, 255, 255, 0.5)",
-        hint: "rgba(255, 255, 255, 0.5)"
-      },
-      divider: "rgba(255, 255, 255, 0.12)",
-
-
-    },
-
-
-
-  });
-
-  const lightTheme = createTheme({
-    palette: {
-      type: 'light',
-      primary: {
-        main: '#568166',
-      },
-      secondary: {
-        main: '#fb8c00',
-      },
-    },
-  });
-
-
   return (
-    <React.Fragment className="content-wrapper">
+    <React.Fragment>
       <ThemeProvider theme={light ? lightTheme : darkTheme}>
-        <CssBaseline />
-        <Container maxWidth="lg" >
-          <Stack spacing={5}>
-            <ThemeSwitchButton currentTheme={light} onChange={toggleTheme} />
-            
-            <VideoAudioSelect />
-            
-            <Stack direction="row">
-              <Stack className="username">
-                <InputLabel variant="usernameLabel">Username</InputLabel>
-                <TextField id="username" variant="outlined" className="fullWidth" labelId="usernameLabel" />
-              </Stack>
-              <Stack className="material">
-                <InputLabel variant="materialSelect">Material</InputLabel>
-                <Select
-                  labelId="materialSelect"
-                  className="fullWidth"
-                  label="Material"
-                  id="material"
-                ></Select>
-              </Stack>
-              <Stack className="speed">
-                <InputLabel variant="speedSelect">Speed</InputLabel>
-                <Select
-                  labelId="materialSelect"
-                  className="fullWidth"
-                  label="Speed"
-                  id="speed"></Select>
-              </Stack>
-            </Stack>
+        <CssBaseline /> {/* Apply CSS baseline */}
 
-            <Stack className="video" spacing={4}>
-              <Stack direction="row" id="controls">
-                <RecordingButtons />
-              </Stack>
-              <Fragment>
-                <Webcam audio={false} />
-              </Fragment>
-            </Stack>
+        <NavBar
+          currentTheme={light}
+          onChangeTheme={toggleTheme}
+          setIsConfigChange={setConfigChange}
+          isConfigChange={configChange}
+        />
 
-          </Stack>
+
+
+        <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+
+          {configChange ?
+            <ConfigChange
+              setIsConfigChange={setConfigChange}
+              isConfigChange={configChange}
+              config={config}
+              setConfig={setConfig} />
+            :
+            <Acquisition
+              setIsConfigChange={setConfigChange}
+              isConfigChange={configChange}
+              config={config}
+              setConfig={setConfig}
+            />
+          }
+
         </Container>
       </ThemeProvider>
     </React.Fragment>

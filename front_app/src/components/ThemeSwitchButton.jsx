@@ -12,13 +12,18 @@ export default function ThemeSwitchButton({ currentTheme, onChange }) {
   };
 
   return (
-    <FormControl component="fieldset" variant="standard">
+    <FormControl component="fieldset" variant="standard" >
       <FormGroup>
         <FormControlLabel
           control={
-            <Switch checked={currentTheme} onChange={handleChange} name="themeChange"/>
+            <Switch 
+            checked={currentTheme} 
+            onChange={handleChange} 
+            name="themeChange" 
+            size="small" 
+            sx={{backgroundColor: 'rgb(255,255,255,0.5)', borderRadius:20}}/>
           }
-          label={currentTheme ?   <LightModeIcon /> : <DarkModeIcon />} // Render DarkModeIcon for dark theme and LightModeIcon for light theme
+          label={currentTheme ?   <LightModeIcon fontSize="small"/> : <DarkModeIcon fontSize="small"/>} // Render DarkModeIcon for dark theme and LightModeIcon for light theme
         />
       </FormGroup>
     </FormControl>

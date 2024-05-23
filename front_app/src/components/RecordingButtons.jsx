@@ -2,26 +2,31 @@ import * as React from 'react';
 import { Stack, Button } from '@mui/material';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 
-export default function RecordingButtons() {
+
+export default function RecordingButtons(username, material, speed) {
   const [loading, setLoading] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
   const [isDeleteLastPossible, setDeleteLastPossible] = React.useState(false);
-
+{}
   const handleClick = async () => {
     setLoading(true); // Set loading state while API call is in progress
     try {
       if (recording) {
         // Handle stop recording logic
-        // Simulate API call delay
-        //await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log('Stop recording');
+        const response = await axiosInstance.get('/stop');
+        console.log('Stop recording', response.data);
         setDeleteLastPossible(true);
       } else {
         // Handle start recording logic
-        // Simulate API call delay
-        //await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log('Start recording');
+        const response = await axiosInstance.post('/start', {
+            username: {username},
+            material: {material},
+            speed: {speed}
+          }
+        );
+        console.log('Start recording', response.data);
         setDeleteLastPossible(false);
       }
       // Toggle recording state after API call
@@ -37,9 +42,8 @@ export default function RecordingButtons() {
     setLoading(true); // Set loading state while API call is in progress
     try {
       // Handle delete last recording logic
-      // Simulate API call delay
-      //await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('Delete last recording');
+      const response = await axiosInstance.get('/delete_last');
+      console.log('Delete last recording', response.data);
       setDeleteLastPossible(false);
     } catch (error) {
       console.error('There was a problem with the fetch operation:', error);
@@ -53,7 +57,6 @@ export default function RecordingButtons() {
       <Button
         onClick={handleClick}
         variant="contained"
-        size="small"
         startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
         disabled={loading}
       >
@@ -63,9 +66,8 @@ export default function RecordingButtons() {
         <Button
           onClick={handleDeleteLastRecording}
           variant="contained"
-          size="small"
           disabled={loading}
-          startIcon={<DeleteOutlineIcon/>}
+          startIcon={<DeleteOutlineIcon />}
         >
           Delete Last Recording
         </Button>
