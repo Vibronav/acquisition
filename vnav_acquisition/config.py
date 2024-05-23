@@ -4,7 +4,7 @@ from flask import jsonify
 
 class Configurator:
     _DEFAULT_CONFIG = {
-        'connection': ["raspberrypi", 22, "pi", "VibroNav"],
+        'connection': ["raspberrypi.local", 22, "pi", "VibroNav"],
         'materials': ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
                       "African (silk)"],
         'speeds': ["slow", "medium", "fast"],
