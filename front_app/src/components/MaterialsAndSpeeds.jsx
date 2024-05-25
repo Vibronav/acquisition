@@ -24,8 +24,8 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
   const [newSpeed, setNewSpeed] = React.useState('');
   const [checkedMaterial, setCheckedMaterial] = React.useState(config.chosenMaterials);
   const [checkedSpeed, setCheckedSpeed] = React.useState(config.chosenSpeeds);
-  const [addedMaterials, setAddedMaterials] = React.useState([]);
-  const [addedSpeeds, setAddedSpeeds] = React.useState([]);
+  const [addedMaterials, setAddedMaterials] = React.useState(config.newMaterials);
+  const [addedSpeeds, setAddedSpeeds] = React.useState(config.newSpeeds);
 
   const handleChooseMaterial = (value) => () => {
     const currentIndex = checkedMaterial.indexOf(value);
@@ -36,7 +36,8 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
     } else {
       newCheckedMaterial.splice(currentIndex, 1);
     }
-
+    console.log(checkedMaterial);
+    console.log(newCheckedMaterial);
     setCheckedMaterial(newCheckedMaterial); // Update checkedMaterial state with new value
 
     // Update chosenMaterials based on newCheckedMaterial
@@ -57,6 +58,10 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
         ...prevAddedMaterials,
         newMaterial
       ]);
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        newMaterials: [...prevConfig.newMaterials, newMaterial]
+      }));
     }
   };
 
@@ -64,6 +69,11 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
     setAddedMaterials(prevAddedMaterials =>
       prevAddedMaterials.filter(item => item !== material)
     );
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      newMaterials: prevConfig.newMaterials.filter(item => item !== material),
+      chosenMaterials: prevConfig.chosenMaterials.filter(item => item !== material),
+    }));
   };
 
 
@@ -96,6 +106,10 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
         ...prevAddedSpeed,
         newSpeed
       ]);
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        newSpeeds: [...prevConfig.newSpeeds, newSpeed]
+      }));
     }
   };
 
@@ -103,6 +117,11 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
     setAddedSpeeds(prevAddedSpeeds =>
       prevAddedSpeeds.filter(item => item !== speed)
     );
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      newSpeeds: prevConfig.newSpeeds.filter(item => item !== speed),
+      chosenSpeeds: prevConfig.chosenSpeeds.filter(item => item !== speed),
+    }));
   };
 
   return (
