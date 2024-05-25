@@ -78,6 +78,8 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
 def add_audio_annotations(video_file, audio_file, annotation_file):
     with open(annotation_file) as f:
         annotation_set = json.load(f)
+    if "audio_annotations" in annotation_set:
+        return f"'audio_annotations' already present in : {annotation_file}"
 
     audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file)
 
