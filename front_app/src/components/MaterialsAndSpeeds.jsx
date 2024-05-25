@@ -22,8 +22,8 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
 
   const [newMaterial, setNewMaterial] = React.useState('');
   const [newSpeed, setNewSpeed] = React.useState('');
-  const [checkedMaterial, setCheckedMaterial] = React.useState([0]);
-  const [checkedSpeed, setCheckedSpeed] = React.useState([0]);
+  const [checkedMaterial, setCheckedMaterial] = React.useState(config.chosenMaterials);
+  const [checkedSpeed, setCheckedSpeed] = React.useState(config.chosenSpeeds);
   const [addedMaterials, setAddedMaterials] = React.useState([]);
   const [addedSpeeds, setAddedSpeeds] = React.useState([]);
 

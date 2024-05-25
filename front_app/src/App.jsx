@@ -1,6 +1,6 @@
 // Filename - App.js
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { darkTheme, lightTheme } from './themes';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Container } from '@mui/material';
@@ -9,34 +9,45 @@ import Acquisition from "./pages/Acquisition.jsx";
 import ConfigChange from "./pages/ConfigChange.jsx";
 
 
+const defaultConfig = {
+  username: "",
+  connection: ["raspberrypi", 22, "pi", "VibroNav"],
+  defaultMaterials: [
+    "Slime",
+    "Silicone",
+    "PU",
+    "Plato (play dough)",
+    "Plastic",
+    "Ikea (plastic bag)",
+    "African (silk)"
+  ],
+  chosenMaterials: [],
+  newMaterials: [],
+  defaultSpeeds: ["slow", "medium", "fast"],
+  chosenSpeeds: [],
+  newSpeeds: [],
+  local_dir: "c:\\vnav_acquisition",
+  remote_dir: "vnav_acquisition"
+
+}
+
 function App() {
 
   const [configChange, setConfigChange] = useState(true);
   const [light, setLight] = useState(false); // Theme state
-  const [config, setConfig] = useState({
-    username: "",
-    connection: ["raspberrypi", 22, "pi", "VibroNav"],
-    defaultMaterials: [
-      "Slime",
-      "Silicone",
-      "PU",
-      "Plato (play dough)",
-      "Plastic",
-      "Ikea (plastic bag)",
-      "African (silk)"
-    ],
-    chosenMaterials: [],
-    defaultSpeeds: ["slow", "medium", "fast"],
-    chosenSpeeds: [],
-    local_dir: "c:\\vnav_acquisition",
-    remote_dir: "vnav_acquisition"
+  const storedConfig = JSON.parse(localStorage.getItem("config"));
 
-  });
+  const initialConfig = storedConfig || defaultConfig;
+  const [config, setConfig] = useState(initialConfig);
 
   // Toggle between light and dark themes
   const toggleTheme = () => {
     setLight((prevTheme) => !prevTheme);
   };
+
+  useEffect(()=>{
+    localStorage.setItem("config",JSON.stringify(config))
+  },[config])
 
   return (
     <React.Fragment>
@@ -49,8 +60,6 @@ function App() {
           setIsConfigChange={setConfigChange}
           isConfigChange={configChange}
         />
-
-
 
         <Container maxWidth="lg" style={{ marginTop: '20px' }}>
 

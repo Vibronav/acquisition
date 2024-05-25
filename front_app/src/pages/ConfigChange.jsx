@@ -49,7 +49,7 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
       setIsConfigChange(!isConfigChange);
     }
   };
-
+  
   return (
     <Box >
       <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
