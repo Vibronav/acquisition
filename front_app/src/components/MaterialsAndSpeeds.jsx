@@ -1,22 +1,22 @@
-import * as React from 'react';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
+  Checkbox,
   FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Checkbox,
-  IconButton,
   OutlinedInput,
-  Typography,
   Stack,
-  InputAdornment,
-  InputLabel
+  Typography
 } from '@mui/material';
 import PropTypes from 'prop-types';
+import * as React from 'react';
 
 export default function MaterialsAndSpeeds({ config, setConfig}) {
 
@@ -33,11 +33,9 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
 
     if (currentIndex === -1) {
       newCheckedMaterial.push(value);
-    } else {
+    } else { 
       newCheckedMaterial.splice(currentIndex, 1);
     }
-    console.log(checkedMaterial);
-    console.log(newCheckedMaterial);
     setCheckedMaterial(newCheckedMaterial); // Update checkedMaterial state with new value
 
     // Update chosenMaterials based on newCheckedMaterial
@@ -74,7 +72,21 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
       newMaterials: prevConfig.newMaterials.filter(item => item !== material),
       chosenMaterials: prevConfig.chosenMaterials.filter(item => item !== material),
     }));
+    if (checkedMaterial.includes(material)){
+      setCheckedMaterial(prevCheckedMaterials =>
+        prevCheckedMaterials.filter(item => item !== material)
+      );
+    }
   };
+
+  React.useEffect(() => {
+    setCheckedMaterial(config.chosenMaterials);
+    setCheckedSpeed(config.chosenSpeeds);
+    setAddedMaterials(config.newMaterials);
+    setAddedSpeeds(config.newSpeeds);
+    setNewMaterial('');
+    setNewSpeed('');
+  }, [config]);
 
 
   const handleChooseSpeed = (value) => () => {
@@ -122,6 +134,11 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
       newSpeeds: prevConfig.newSpeeds.filter(item => item !== speed),
       chosenSpeeds: prevConfig.chosenSpeeds.filter(item => item !== speed),
     }));
+    if (checkedSpeed.includes(speed)){
+      setCheckedSpeed(prevCheckedSpeeds =>
+        prevCheckedSpeeds.filter(item => item !== speed)
+      );
+    }
   };
 
   return (
