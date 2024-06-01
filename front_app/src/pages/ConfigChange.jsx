@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Stack,
-  IconButton,
-  OutlinedInput,
-  InputAdornment,
-  Typography,
-  Button
-} from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import {
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  OutlinedInput,
+  Stack,
+  TextField,
+  Typography
+} from '@mui/material';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
 import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
+import defaultConfig from '../defaultConfig';
+
+ConfigChange.propTypes = {
+  setIsConfigChange: PropTypes.func.isRequired,
+  isConfigChange: PropTypes.bool.isRequired,
+  config: PropTypes.object.isRequired,
+  setConfig: PropTypes.func.isRequired,
+};
 
 export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);
@@ -40,8 +49,38 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
     if (!isUsernameIncorrect) {
       setIsConfigChange(!isConfigChange);
     }
+    
   };
 
+  const handleReset = () => {
+    setConfig(defaultConfig);
+  }
+
+  const handleChangeLocalDir = (event) => {
+    const newLocalDir = event.target.value;
+    setConfig((prevConfig) => ({
+      ...prevConfig,
+      local_dir: newLocalDir,
+    }));
+  };
+
+  const handleChangeRemoteDir = (event) => {
+    const newLocalDir = event.target.value;
+    setConfig((prevConfig) => ({
+      ...prevConfig,
+      remote_dir: newLocalDir,
+    }));
+  };
+
+  const handleChangeConnection = (index, value) => {
+    const newConnection = [...config.connection];
+    newConnection[index] = value;
+    setConfig((prevConfig) => ({
+      ...prevConfig,
+      connection: newConnection,
+    }));
+  };
+  
   return (
     <Box >
       <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
@@ -59,16 +98,16 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
             </Stack>
             <Stack gap={2} sx={{ width: "100%" }}>
               <Typography variant="h6">Saving Directory</Typography>
-              <TextField label="Local Dir" defaultValue={config.local_dir} />
-              <TextField label="Remote Dir" defaultValue={config.remote_dir} />
+              <TextField label="Local Dir" value={config.local_dir} onChange={handleChangeLocalDir}/>
+              <TextField label="Remote Dir" value={config.remote_dir} onChange={handleChangeRemoteDir}/>
             </Stack>
           </Stack>
 
           <Stack gap={2} sx={{ width: "100%" }}>
             <Typography variant="h6">Connection</Typography>
-            <TextField label="Device" defaultValue={config.connection[0]} />
-            <TextField label="Port" defaultValue={config.connection[1]} />
-            <TextField label="Username" defaultValue={config.connection[2]} />
+            <TextField label="Device" value={config.connection[0]} onChange={(e) => handleChangeConnection(0, e.target.value)}/>
+            <TextField label="Port" value={config.connection[1]} onChange={(e) => handleChangeConnection(1, e.target.value)}/>
+            <TextField label="Username" value={config.connection[2]}onChange={(e) => handleChangeConnection(2, e.target.value)} />
             <OutlinedInput
               id="outlined-adornment-password"
               type={showPassword ? 'text' : 'password'}
@@ -85,7 +124,8 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
                 </InputAdornment>
               }
               label="Password"
-              defaultValue={config.connection[3]}
+              value={config.connection[3]}
+              onChange={(e) => handleChangeConnection(3, e.target.value)}
             />
           </Stack>
         </Stack>
@@ -93,9 +133,12 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
         <MaterialsAndSpeeds config={config} setConfig={setConfig} />
       </Stack>
 
-      <Stack sx={{ width: "100%", alignItems: "end", marginTop: 7 }}>
+      <Stack sx={{ width: "100%", alignItems: "end", marginTop: 7, gap: 1 }}>
         <Button onClick={handleSave} variant="contained">
           Save
+        </Button>
+        <Button onClick={handleReset} variant="contained">
+          Reset
         </Button>
       </Stack>
     </Box>

@@ -1,8 +1,11 @@
-import React from 'react';
 import Webcam from 'react-webcam';
 import { Stack, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 
 const WebcamRenderer = ({ selectedVideoDevices, videoDevices }) => {
+
+  const device = videoDevices.find(device => device.label === selectedVideoDevices[0]);
+  
   switch (selectedVideoDevices.length) {
     case 0:
       return (
@@ -11,7 +14,6 @@ const WebcamRenderer = ({ selectedVideoDevices, videoDevices }) => {
         </div>
       );
     case 1:
-      const device = videoDevices.find(device => device.label === selectedVideoDevices[0]);
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: "20px" }}>
           {device && (
@@ -51,5 +53,10 @@ const WebcamRenderer = ({ selectedVideoDevices, videoDevices }) => {
       );
   }
 };
+
+WebcamRenderer.propTypes = {
+  selectedVideoDevices: PropTypes.array.isRequired,
+  videoDevices: PropTypes.array.isRequired,
+}
 
 export default WebcamRenderer;
