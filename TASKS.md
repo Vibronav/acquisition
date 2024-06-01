@@ -19,6 +19,7 @@
 - [x] Dodanie możliwości resetu (bezpiecznego)
 - [x] Finetuning Configuration Change: speeds -> change to „właściwości” (walidacja materiały prędkości -> przynajmniej jeden materiał, username -> musi być nazwoplikowy, kamerka -> musi być wybrana)
 - [x] Refactoring (JS)
+- [x] Session in JS/ routing
       
 ## Unassigned:
 
