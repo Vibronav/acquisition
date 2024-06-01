@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { darkTheme, lightTheme } from './themes';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Container, Stack } from '@mui/material';
+import { CssBaseline, Container } from '@mui/material';
 import NavBar from './components/NavBar.jsx';
 import Acquisition from "./pages/Acquisition.jsx";
 import ConfigChange from "./pages/ConfigChange.jsx";

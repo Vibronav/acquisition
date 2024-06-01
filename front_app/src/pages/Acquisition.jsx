@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {  Select, Typography, Stack, InputLabel, MenuItem, FormControl } from '@mui/material';
 import LabChecklist from '../components/LabCheckList.jsx';
-
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import WebcamRenderer from '../components/WebcamRenderer.jsx';
@@ -15,8 +14,8 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
 
-    const [selectedMaterial, setSelectedMaterial] = useState("");
-    const [selectedSpeed, setSelectedSpeed] = useState("");
+    const [selectedMaterial, setSelectedMaterial] = useState(null);
+    const [selectedSpeed, setSelectedSpeed] = useState(null);
 
     const handleMaterialChange = (event) =>{
         setSelectedMaterial(event.target.value)
