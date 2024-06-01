@@ -8,19 +8,24 @@
 - [x] Kontakt ze studentem który robi sterowanie robotem. Maksym Bodnar
 - [x] Ensure no _ in username (JS)
 - [x] Second Camera Integration: Utilize a secondary camera for top-down recording to provide additional perspectives during measurements.
-- [ ] Keyboard Shortcuts: Implement keyboard shortcuts for commonly used functions like start, stop, etc., to enhance user convenience and efficiency.
+- [x] **Keyboard Shortcuts: Implement keyboard shortcuts for commonly used functions like start, stop, etc., to enhance user convenience and efficiency.**
 - [ ] Add Help in Nav Bar containing keyboard shortcuts info (and additionally general interface info)
-- [ ] Display of recorded wave (matplotlib@Python + JS)
-      
+- [ ] Display of recorded wave (matplotlib@Python + JS) / audio streaming and display
+- [x] Add info when raspberrypi is not connected.
+   
 ## Adam:
 - [x] Do sprawdzenia instalacja node.js -> wszystko powinno być instalowane przez pip jako pakiet / GitHub pages / serwer agh / docker
-- [ ] Recording to mp4 (JS or Python)
+- [ ] **Recording to mp4 (JS or Python)**
 - [ ] Automatic Video Saving-Deleting: Videos should automatically save upon pressing the stop button, like audio files. Additionally, include options to delete the last recorded audio and video files separately or simultaneously.
 - [x] Dodanie możliwości resetu (bezpiecznego)
 - [x] Finetuning Configuration Change: speeds -> change to „właściwości” (walidacja materiały prędkości -> przynajmniej jeden materiał, username -> musi być nazwoplikowy, kamerka -> musi być wybrana)
 - [x] Refactoring (JS)
 - [x] Session in JS/ routing
+- [ ] Move `front_app/src/defaultConfig.ts` to `setup.json` and fetch default config from endpoint instead of file.
+- [ ] Clean up and setup python packedge to work with react build. Setup the packedge so it only contains build files (html, css and js) and not all react-project files.
       
 ## Unassigned:
-
 - [ ] Voice commands (JS: Web Speech API)
+- [ ] Test python packedge
+- [ ] Create documentation on how to modify front end app and rebuild it if needed. 
+
