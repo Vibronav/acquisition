@@ -138,7 +138,9 @@ export default function ConfigChange({config, setConfig }) {
       </Stack>
 
       <Stack sx={{ width: "100%", alignItems: "end", marginTop: 7, gap: 1 }}>
-        <Button onClick={handleSave} variant="contained">
+        {console.log(config.chosenSpeeds.is)}
+        <Button onClick={handleSave} variant="contained" disabled={config.username == null || config.chosenMaterials.length == 0
+           || config.chosenSpeeds.length == 0}>
           Save
         </Button>
         <Button onClick={handleReset} variant="contained">

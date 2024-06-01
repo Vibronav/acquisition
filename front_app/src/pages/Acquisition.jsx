@@ -87,8 +87,7 @@ const Acquisition = ({ config }) => {
                 {/* Stack for video recording controls */}
                 <Stack
                     sx={stackStyles} mt={3} spacing={2} >
-
-                    <RecordingButtons username={config.username} material={selectedMaterial} speed={selectedSpeed}/>
+                    <RecordingButtons username={config.username} material={selectedMaterial} speed={selectedSpeed} isCamera={selectedVideoDevices.length == 0}/>
                     {/* Component for rendering webcams */}
                     <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} />
                 </Stack>

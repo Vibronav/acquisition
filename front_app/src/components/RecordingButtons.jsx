@@ -1,11 +1,11 @@
-import * as React from 'react';
-import { Stack, Button } from '@mui/material';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import { Button, Stack } from '@mui/material';
 import PropTypes from 'prop-types';
+import * as React from 'react';
+import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 
-export default function RecordingButtons({username, material, speed}) {
+export default function RecordingButtons({username, material, speed, isCamera}) {
 
   const [loading, setLoading] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
@@ -59,7 +59,7 @@ export default function RecordingButtons({username, material, speed}) {
         onClick={handleClick}
         variant="contained"
         startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
-        disabled={loading || speed == undefined || material == undefined}
+        disabled={loading || speed == undefined || material == undefined || isCamera}
       >
         {recording ? 'Stop Recording' : 'Start Recording'}
       </Button>
@@ -67,7 +67,6 @@ export default function RecordingButtons({username, material, speed}) {
         <Button
           onClick={handleDeleteLastRecording}
           variant="contained"
-          disabled={loading || speed==null || material==null}
           startIcon={<DeleteOutlineIcon />}
         >
           Delete Last Recording
@@ -80,5 +79,6 @@ export default function RecordingButtons({username, material, speed}) {
 RecordingButtons.propTypes = {
   username: PropTypes.string.isRequired,
   material: PropTypes.string,
-  speed: PropTypes.string
+  speed: PropTypes.string,
+  isCamera: PropTypes.bool.isRequired
 }
