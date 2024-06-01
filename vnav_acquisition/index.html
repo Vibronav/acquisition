@@ -31,6 +31,31 @@
             <p>Speed</p>
             $SPEED
         </div>
+
+        <br>
+
+<!--        Robot Controls Buttons-->
+
+        <h1>Robot Control Panel</h1>
+
+        <h2>Control Robot Movement</h2>
+        <label for="pointA">Point A:</label>
+        <input type="text" id="pointA" placeholder="X Z">
+        <button onclick="moveToPoint('A')">Move to Point A</button>
+
+        <label for="pointB">Point B:</label>
+        <input type="text" id="pointB" placeholder="X Z">
+        <button onclick="moveToPoint('B')">Move to Point B</button>
+
+        <h2>Enable/Disable Robot</h2>
+        <button onclick="enableRobot()">Enable Robot</button>
+        <button onclick="disableRobot()">Disable Robot</button>
+
+        <!--        Robot Controls Buttons-->
+
+        <br>
+        <br>
+
         <div class="video">
             <div id="controls">
                 <button id="rec" onclick="onBtnRecordClicked()">Record</button>

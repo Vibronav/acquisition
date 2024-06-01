@@ -360,6 +360,66 @@ SoundMeter.prototype.stop = function() {
 };
 
 
+
+//Robot-Control-Buttons
+function moveToPoint(point) {
+	var coordinates;
+	if (point === 'A') {
+		coordinates = document.getElementById('pointA').value;
+	} else {
+		coordinates = document.getElementById('pointB').value;
+	}
+
+	// Parse coordinates into an array
+	var position = coordinates.split(' ').map(Number);
+
+	fetch('/move', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ position: position })
+	})
+		.then(response => {
+			if (response.ok) {
+				console.log('Robot moving successfully');
+			} else {
+				console.error('Error moving robot:', response.statusText);
+			}
+		})
+		.catch(error => console.error('Error:', error));
+}
+function enableRobot() {
+	fetch('/enable', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ enable: true })
+	})
+		.then(response => {
+			if (response.ok) {
+				console.log('Robot enabled successfully');
+			} else {
+				console.error('Error enabling robot:', response.statusText);
+			}
+		})
+		.catch(error => console.error('Error:', error));
+}
+function disableRobot() {
+	fetch('/disable', {
+		method: 'POST'
+	})
+		.then(response => {
+			if (response.ok) {
+				console.log('Robot disabled successfully');
+			} else {
+				console.error('Error disabling robot:', response.statusText);
+			}
+		})
+		.catch(error => console.error('Error:', error));
+}
+
 //browser ID
 function getBrowser(){
 	var nVer = navigator.appVersion;
