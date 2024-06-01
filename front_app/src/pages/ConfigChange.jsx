@@ -12,8 +12,10 @@ import {
 } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
 import defaultConfig from '../defaultConfig';
+import { routes } from '../paths';
 
 ConfigChange.propTypes = {
   setIsConfigChange: PropTypes.func.isRequired,
@@ -22,9 +24,11 @@ ConfigChange.propTypes = {
   setConfig: PropTypes.func.isRequired,
 };
 
-export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
+export default function ConfigChange({config, setConfig }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+
 
   const handleUsernameInput = (event) => {
     setConfig((prevConfig) => ({
@@ -47,7 +51,7 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
     setIncorrectUsername(isUsernameIncorrect);
 
     if (!isUsernameIncorrect) {
-      setIsConfigChange(!isConfigChange);
+      navigate(routes['Camera']);
     }
     
   };

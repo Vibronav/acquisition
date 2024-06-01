@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import {  Select, Typography, Stack, InputLabel, MenuItem, FormControl } from '@mui/material';
-import MenuIntroduction from '../components/CheckList.jsx';
-import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
-import RecordingButtons from '../components/RecordingButtons.jsx';
-import WebcamRenderer from '../components/WebcamRenderer.jsx';
-import { selectStyles, stackStyles, formControlStyles } from './../themes';
+import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
+import { useState } from 'react';
+import MenuIntroduction from '../components/CheckList.jsx';
+import RecordingButtons from '../components/RecordingButtons.jsx';
+import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
+import WebcamRenderer from '../components/WebcamRenderer.jsx';
+import { formControlStyles, selectStyles, stackStyles } from './../themes';
 
 
-const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) => {
+const Acquisition = ({ config }) => {
     // State variables
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
