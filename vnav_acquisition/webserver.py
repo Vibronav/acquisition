@@ -10,23 +10,28 @@ import json
 
 app = Flask(__name__)
 # Configure CORS using Flask-CORS (adjust origins as needed)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173"]}})  # Replace with your React app origin
+# Replace with your React app origin
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173"]}})
+
 
 @app.route("/api/parse_config", methods=['GET'])
 def parse_config():
     print("Received parse_config/GET request")
-    return jsonify(config._DEFAULT_CONFIG) #TODO config._config is not working for some reason
+    # TODO config._config is not working for some reason
+    return jsonify(config._DEFAULT_CONFIG)
+
 
 @app.route("/api/stop", methods=['GET'])
 def stop():
     recording_status = on_rec_stop()
     print("Received stop/GET request")
+    print(recording_status)
     return jsonify(recording_status)
 
 
 @app.route("/api/start", methods=['POST'])
 def start():
-     # Parse the incoming JSON data
+    # Parse the incoming JSON data
     data = request.get_json()
 
     # Extract the parameters as an array of strings
@@ -36,7 +41,7 @@ def start():
         data.get('speed', '')
     ]
     print("Received start/POST request data:")
-    print( params)
+    print(params)
     file_name = on_rec_start(config['connection'], *params)
     return jsonify(file_name)
 
