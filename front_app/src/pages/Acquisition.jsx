@@ -5,12 +5,11 @@ import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import WebcamRenderer from '../components/WebcamRenderer.jsx';
 import { selectStyles, stackStyles, formControlStyles } from './../themes';
+import PropTypes from 'prop-types';
 
 
 const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) => {
     // State variables
-
-
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
 
@@ -100,5 +99,12 @@ const Acquisition = ({ setIsConfigChange, isConfigChange, config, setConfig }) =
         </div >
     );
 }
+
+Acquisition.propTypes = {
+    setIsConfigChange: PropTypes.func.isRequired,
+    isConfigChange: PropTypes.bool.isRequired,
+    config: PropTypes.object.isRequired,
+    setConfig: PropTypes.func.isRequired,
+};
 
 export default Acquisition;

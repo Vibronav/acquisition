@@ -1,10 +1,10 @@
-import React from 'react';
 import FormControl from '@mui/material/FormControl';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import PropTypes from 'prop-types';
 
 export default function ThemeSwitchButton({ currentTheme, onChange }) {
   const handleChange = () => {
@@ -28,4 +28,8 @@ export default function ThemeSwitchButton({ currentTheme, onChange }) {
       </FormGroup>
     </FormControl>
   );
+}
+ThemeSwitchButton.propTypes = {
+  currentTheme: PropTypes.boolean,
+  onChange: PropTypes.func.isRequired,
 }

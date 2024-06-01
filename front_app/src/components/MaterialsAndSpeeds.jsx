@@ -1,30 +1,31 @@
-import * as React from 'react';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
+  Checkbox,
   FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Checkbox,
-  IconButton,
   OutlinedInput,
-  Typography,
   Stack,
-  InputAdornment,
-  InputLabel
+  Typography
 } from '@mui/material';
-
+import PropTypes from 'prop-types';
+import * as React from 'react';
 
 export default function MaterialsAndSpeeds({ config, setConfig}) {
+
   const [newMaterial, setNewMaterial] = React.useState('');
   const [newSpeed, setNewSpeed] = React.useState('');
-  const [checkedMaterial, setCheckedMaterial] = React.useState([0]);
-  const [checkedSpeed, setCheckedSpeed] = React.useState([0]);
-  const [addedMaterials, setAddedMaterials] = React.useState([]);
-  const [addedSpeeds, setAddedSpeeds] = React.useState([]);
+  const [checkedMaterial, setCheckedMaterial] = React.useState(config.chosenMaterials);
+  const [checkedSpeed, setCheckedSpeed] = React.useState(config.chosenSpeeds);
+  const [addedMaterials, setAddedMaterials] = React.useState(config.newMaterials);
+  const [addedSpeeds, setAddedSpeeds] = React.useState(config.newSpeeds);
 
   const handleChooseMaterial = (value) => () => {
     const currentIndex = checkedMaterial.indexOf(value);
@@ -32,10 +33,9 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
 
     if (currentIndex === -1) {
       newCheckedMaterial.push(value);
-    } else {
+    } else { 
       newCheckedMaterial.splice(currentIndex, 1);
     }
-
     setCheckedMaterial(newCheckedMaterial); // Update checkedMaterial state with new value
 
     // Update chosenMaterials based on newCheckedMaterial
@@ -56,6 +56,10 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
         ...prevAddedMaterials,
         newMaterial
       ]);
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        newMaterials: [...prevConfig.newMaterials, newMaterial]
+      }));
     }
   };
 
@@ -63,7 +67,26 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
     setAddedMaterials(prevAddedMaterials =>
       prevAddedMaterials.filter(item => item !== material)
     );
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      newMaterials: prevConfig.newMaterials.filter(item => item !== material),
+      chosenMaterials: prevConfig.chosenMaterials.filter(item => item !== material),
+    }));
+    if (checkedMaterial.includes(material)){
+      setCheckedMaterial(prevCheckedMaterials =>
+        prevCheckedMaterials.filter(item => item !== material)
+      );
+    }
   };
+
+  React.useEffect(() => {
+    setCheckedMaterial(config.chosenMaterials);
+    setCheckedSpeed(config.chosenSpeeds);
+    setAddedMaterials(config.newMaterials);
+    setAddedSpeeds(config.newSpeeds);
+    setNewMaterial('');
+    setNewSpeed('');
+  }, [config]);
 
 
   const handleChooseSpeed = (value) => () => {
@@ -95,6 +118,10 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
         ...prevAddedSpeed,
         newSpeed
       ]);
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        newSpeeds: [...prevConfig.newSpeeds, newSpeed]
+      }));
     }
   };
 
@@ -102,6 +129,16 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
     setAddedSpeeds(prevAddedSpeeds =>
       prevAddedSpeeds.filter(item => item !== speed)
     );
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      newSpeeds: prevConfig.newSpeeds.filter(item => item !== speed),
+      chosenSpeeds: prevConfig.chosenSpeeds.filter(item => item !== speed),
+    }));
+    if (checkedSpeed.includes(speed)){
+      setCheckedSpeed(prevCheckedSpeeds =>
+        prevCheckedSpeeds.filter(item => item !== speed)
+      );
+    }
   };
 
   return (
@@ -277,3 +314,8 @@ export default function MaterialsAndSpeeds({ config, setConfig}) {
   );
 
 }
+
+MaterialsAndSpeeds.propTypes = {
+  config: PropTypes.object.isRequired,
+  setConfig: PropTypes.func.isRequired,
+};
