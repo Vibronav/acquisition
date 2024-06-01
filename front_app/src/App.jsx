@@ -3,17 +3,18 @@
 import { Container, CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import React, { useEffect, useState } from 'react';
+import { HashRouter, Route, Routes } from "react-router-dom";
 import NavBar from './components/NavBar.jsx';
 import defaultConfig from './defaultConfig';
 import Acquisition from "./pages/Acquisition.jsx";
 import ConfigChange from "./pages/ConfigChange.jsx";
+import { routes } from './paths';
 import { darkTheme, lightTheme } from './themes';
 
 
 
 function App() {
 
-  const [configChange, setConfigChange] = useState(true);
   const [light, setLight] = useState(false); // Theme state
   const storedConfig = JSON.parse(sessionStorage.getItem("config"));
 
@@ -33,32 +34,34 @@ function App() {
     <React.Fragment>
       <ThemeProvider theme={light ? lightTheme : darkTheme}>
         <CssBaseline /> {/* Apply CSS baseline */}
-
-        <NavBar
-          currentTheme={light}
-          onChangeTheme={toggleTheme}
-          setIsConfigChange={setConfigChange}
-          isConfigChange={configChange}
-        />
-
-        <Container maxWidth="lg" style={{ marginTop: '20px' }}>
-
-          {configChange ?
-            <ConfigChange
-              setIsConfigChange={setConfigChange}
-              isConfigChange={configChange}
-              config={config}
-              setConfig={setConfig} />
-            :
-            <Acquisition
-              setIsConfigChange={setConfigChange}
-              isConfigChange={configChange}
-              config={config}
-              setConfig={setConfig}
+        <HashRouter>
+          <NavBar
+            currentTheme={light}
+            onChangeTheme={toggleTheme}
+          />
+          <Routes>
+            <Route
+              path={routes.Home}
+              element={
+                <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+                  <ConfigChange
+                  config={config}
+                  setConfig={setConfig} />
+                </Container>
+              }
             />
-          }
-
-        </Container>
+            <Route
+              path={routes.Camera}
+              element={
+                <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+                  <Acquisition
+                  config={config}
+                  />
+                </Container>
+              }
+            />
+          </Routes>
+        </HashRouter>
       </ThemeProvider>
     </React.Fragment>
   );
