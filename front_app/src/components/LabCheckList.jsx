@@ -8,52 +8,60 @@ import { styled } from '@mui/system';
 import { CssTransition } from '@mui/base/Transitions';
 import { PopupContext } from '@mui/base/Unstable_Popup';
 import { Container, Checkbox } from '@mui/material';
-import { darkTheme } from '../themes'; // Assuming you are importing the darkTheme correctly
+import CheckIcon from '@mui/icons-material/Check';
+import ErrorIcon from '@mui/icons-material/Error';
 
-export default function LabChecklist() {
-  const [checkedItems, setCheckedItems] = React.useState({
-    profile: false,
-    languageSettings: false,
-    logOut: false,
-  });
+export default function LabChecklist({ config }) {
+  const [tasks, setTasks] = React.useState(config.chosen_lab_checks);
 
-  const createHandleCheckboxChange = (item) => {
-    return (event) => {
-      setCheckedItems((prevState) => ({
-        ...prevState,
-        [item]: event.target.checked,
-      }));
-    };
+  React.useEffect(() => {
+    setTasks(config.chosen_lab_checks);
+  }, [config]);
+
+  const [checkedItems, setCheckedItems] = React.useState(() =>
+    (config.chosen_lab_checks || []).reduce((acc, task) => {
+      acc[task] = false;
+      return acc;
+    }, {})
+  );
+
+  const createHandleCheckboxChange = (item) => (event) => {
+    setCheckedItems((prevState) => ({
+      ...prevState,
+      [item]: event.target.checked,
+    }));
   };
 
-  const allChecked = Object.values(checkedItems).every(Boolean);
+  const allChecked = tasks.length > 0 && tasks.every(task => checkedItems[task]);
 
   return (
     <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
       <Dropdown>
-        <MenuButton sx={{ width: '30%' }} allChecked={allChecked}>
+        <MenuButton sx={{ width: '100%', display: "flex", alignItems: "center", justifyContent:"center", gap: 1 }} allChecked={allChecked}>
           Before Measurement Checklist
+          {allChecked ?
+            <CheckIcon /> :
+            <ErrorIcon />
+          }
         </MenuButton>
         <Menu slots={{ listbox: AnimatedListbox }}>
-          <MenuItem onClick={createHandleCheckboxChange('profile')}>
-            <Checkbox checked={checkedItems.profile} onChange={createHandleCheckboxChange('profile')} />
-            Quiet room/greyuce external noises
-          </MenuItem>
-          <MenuItem onClick={createHandleCheckboxChange('languageSettings')}>
-            <Checkbox checked={checkedItems.languageSettings} onChange={createHandleCheckboxChange('languageSettings')} />
-            Set background white screen
-          </MenuItem>
-          <MenuItem onClick={createHandleCheckboxChange('logOut')}>
-            <Checkbox checked={checkedItems.logOut} onChange={createHandleCheckboxChange('logOut')} />
-            Set camera angle
-          </MenuItem>
+          {tasks.map((task) => (
+            <MenuItem key={task} onClick={createHandleCheckboxChange(task)}>
+              <Checkbox checked={!!checkedItems[task]} onChange={createHandleCheckboxChange(task)} />
+              {task}
+            </MenuItem>
+          ))}
         </Menu>
       </Dropdown>
     </Container>
   );
 }
 
-const grey = '#111';
+LabChecklist.propTypes = {
+  config: PropTypes.shape({
+    chosen_lab_checks: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+};
 
 const Listbox = styled('ul')(
   ({ theme }) => `

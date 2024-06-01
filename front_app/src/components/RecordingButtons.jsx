@@ -5,7 +5,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 import PropTypes from 'prop-types';
 
-export default function RecordingButtons({username, material, speed}) {
+export default function RecordingButtons({username, material, speed, measurementCounter, setMeasurementCounter}) {
 
   const [loading, setLoading] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
@@ -18,6 +18,7 @@ export default function RecordingButtons({username, material, speed}) {
         // Handle stop recording logic
         const response = await axiosInstance.get('/stop');
         console.log('Stop recording', response.data);
+        setMeasurementCounter(measurementCounter + 1);
         setDeleteLastPossible(true);
       } else {
         // Handle start recording logic
@@ -45,6 +46,7 @@ export default function RecordingButtons({username, material, speed}) {
       // Handle delete last recording logic
       const response = await axiosInstance.get('/delete_last');
       console.log('Delete last recording', response.data);
+      setMeasurementCounter(measurementCounter - 1);
       setDeleteLastPossible(false);
     } catch (error) {
       console.error('There was a problem with the fetch operation:', error);
@@ -80,5 +82,7 @@ export default function RecordingButtons({username, material, speed}) {
 RecordingButtons.propTypes = {
   username: PropTypes.string.isRequired,
   material: PropTypes.string,
-  speed: PropTypes.string
+  speed: PropTypes.string,
+  measurementCounter: PropTypes.number.isRequired,
+  setMeasurementCounter: PropTypes.func.isRequired
 }
