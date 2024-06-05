@@ -1,11 +1,13 @@
-import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { Container, FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
-import MenuIntroduction from '../components/CheckList.jsx';
+import LabChecklist from '../components/LabChecklist.jsx';
+import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
-import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
 import WebcamRenderer from '../components/WebcamRenderer.jsx';
-import { formControlStyles, selectStyles, stackStyles } from './../themes';
+import AudioVisualizer from '../components/AudioVisualizer.jsx';
+import { selectStyles, stackStyles, formControlStyles } from './../themes';
+
 
 
 const Acquisition = ({ config }) => {
@@ -16,80 +18,110 @@ const Acquisition = ({ config }) => {
     const [selectedMaterial, setSelectedMaterial] = useState(null);
     const [selectedSpeed, setSelectedSpeed] = useState(null);
 
-    const handleMaterialChange = (event) =>{
+    const [measurementCounter, setMeasurementCounter] = useState(0);
+
+    const handleMaterialChange = (event) => {
         setSelectedMaterial(event.target.value)
     }
 
-    const handleSpeedChange = (event) =>{
+    const handleSpeedChange = (event) => {
         setSelectedSpeed(event.target.value)
     }
 
     return (
         <div>
-            <Stack sx={stackStyles}>
-                <MenuIntroduction/>
-                <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
-                {/* Video and audio selection component */}
-                <VideoAudioSelect
-                    selectedVideoDevices={selectedVideoDevices}
-                    setSelectedVideoDevices={setSelectedVideoDevices}
-                    videoDevices={videoDevices}
-                    setVideoDevices={setVideoDevices}
-                    
-                />
+            <Stack sx={{width: '100%', gap:10}} direction="row">
 
-                {/* Stack for  material, and speed selection */}
-                <Stack sx={stackStyles} direction="row">
+                <Stack sx={{gap: 3, width: '35%'}} >
 
-                    <FormControl
-                        sx={formControlStyles} >
-                        <InputLabel >Material</InputLabel>
-                        <Select
-                            sx={selectStyles}
-                            labelId="materialSelect"
-                            label="Material"
-                            id="material"
-                            value={selectedMaterial}
-                            onChange={handleMaterialChange}
+                    <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
 
-                        >
-                            {/* Render material options */}
-                            {config.chosenMaterials.filter(value => value !== 0).map((material) => (
-                                <MenuItem key={material} value={material}>
-                                    {material}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
 
-                    <FormControl
-                        sx={formControlStyles} >
-                        <InputLabel >Speed</InputLabel>
-                        <Select
-                            sx={selectStyles}
-                            labelId="materialSelect"
-                            label="Speed"
-                            id="speed"
-                            value={selectedSpeed}
-                            onChange={handleSpeedChange}
-                        >
-                            {/* Render speed options */}
-                            {config.chosenSpeeds.filter(value => value !== 0).map((speeds) => (
-                                <MenuItem key={speeds} value={speeds}>
-                                    {speeds}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    {/*Video device selection + material selection + speed selection */}
+                    <Stack sx={stackStyles}>
+                        {/* Video and audio selection component */}
+                        <VideoAudioSelect
+                            selectedVideoDevices={selectedVideoDevices}
+                            setSelectedVideoDevices={setSelectedVideoDevices}
+                            videoDevices={videoDevices}
+                            setVideoDevices={setVideoDevices}
 
+                        />
+
+                        {/* Stack for  material, and speed selection */}
+                        <Stack sx={stackStyles}>
+
+                            <FormControl
+                                sx={formControlStyles} >
+                                <InputLabel >Material</InputLabel>
+                                <Select
+                                    sx={selectStyles}
+                                    labelId="materialSelect"
+                                    label="Material"
+                                    id="material"
+                                    value={selectedMaterial}
+                                    onChange={handleMaterialChange}
+
+                                >
+                                    {/* Render material options */}
+                                    {config.chosenMaterials.filter(value => value !== 0).map((material) => (
+                                        <MenuItem key={material} value={material}>
+                                            {material}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            <FormControl
+                                sx={formControlStyles} >
+                                <InputLabel >Speed</InputLabel>
+                                <Select
+                                    sx={selectStyles}
+                                    labelId="materialSelect"
+                                    label="Speed"
+                                    id="speed"
+                                    value={selectedSpeed}
+                                    onChange={handleSpeedChange}
+                                >
+                                    {/* Render speed options */}
+                                    {config.chosenSpeeds.filter(value => value !== 0).map((speeds) => (
+                                        <MenuItem key={speeds} value={speeds}>
+                                            {speeds}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                        </Stack>
+
+                    </Stack>
+                    <Stack sx={{ width: '100%' }}>
+                        <LabChecklist config={config} />
+
+                    </Stack>
                 </Stack>
 
                 {/* Stack for video recording controls */}
                 <Stack
-                    sx={stackStyles} mt={3} spacing={2} >
-                    <RecordingButtons username={config.username} material={selectedMaterial} speed={selectedSpeed} isCamera={selectedVideoDevices.length == 0}/>
+                    sx={stackStyles} mt={1} spacing={2} >
+                    {/*Checklist of things to do in the Lab before measurement */}
+
+                    <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
+                        <Typography>Performed Measurements: {measurementCounter}</Typography>
+                    </Container>
+
+                    <RecordingButtons
+                        username={config.username}
+                        material={selectedMaterial}
+                        speed={selectedSpeed}
+                        measurementCounter={measurementCounter}
+                        setMeasurementCounter={setMeasurementCounter} />
+                    <Container>
+                        <AudioVisualizer />
+                    </Container>
                     {/* Component for rendering webcams */}
                     <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} />
+
                 </Stack>
 
             </Stack>

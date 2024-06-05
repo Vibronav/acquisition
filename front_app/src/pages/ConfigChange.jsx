@@ -1,5 +1,6 @@
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import {
   Box,
   Button,
@@ -13,9 +14,12 @@ import {
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MaterialsAndSpeeds from '../components/MaterialsAndSpeeds';
+import ModifyMaterials from '../components/ModifyMaterials';
+import ModifySpeeds from '../components/ModifySpeeds';
+import ModifyLabChecklist from '../components/ModifyLabChecklist';
 import defaultConfig from '../defaultConfig';
 import { routes } from '../paths';
+
 
 ConfigChange.propTypes = {
   setIsConfigChange: PropTypes.func.isRequired,
@@ -24,7 +28,7 @@ ConfigChange.propTypes = {
   setConfig: PropTypes.func.isRequired,
 };
 
-export default function ConfigChange({config, setConfig }) {
+export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -53,7 +57,7 @@ export default function ConfigChange({config, setConfig }) {
     if (!isUsernameIncorrect) {
       navigate(routes['Camera']);
     }
-    
+
   };
 
   const handleReset = () => {
@@ -83,35 +87,32 @@ export default function ConfigChange({config, setConfig }) {
       ...prevConfig,
       connection: newConnection,
     }));
-  };
-  
-  return (
-    <Box >
-      <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
+    setIsConfigChange(!isConfigChange);
+  }
 
-        <Stack direction="row" gap={4} sx={{ width: "100%" }}>
-          <Stack gap={2} sx={{ width: "100%" }} >
-            <Stack gap={2}>
-              <Typography variant="h6">Username</Typography>
-              <TextField
-                error={incorrectUsername}
-                helperText={incorrectUsername ? "Incorrect entry." : ""}
-                value={config.username}
-                onChange={handleUsernameInput}
-              />
-            </Stack>
-            <Stack gap={2} sx={{ width: "100%" }}>
-              <Typography variant="h6">Saving Directory</Typography>
-              <TextField label="Local Dir" value={config.local_dir} onChange={handleChangeLocalDir}/>
-              <TextField label="Remote Dir" value={config.remote_dir} onChange={handleChangeRemoteDir}/>
-            </Stack>
+
+
+return (
+  <Box >
+    <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
+
+      <Stack direction="row" gap={4} sx={{ width: "100%" }}>
+        <Stack gap={2} sx={{ width: "100%" }} >
+          <Stack gap={2}>
+            <Typography variant="h6">Username</Typography>
+            <TextField
+              error={incorrectUsername}
+              helperText={incorrectUsername ? "Incorrect entry." : ""}
+              value={config.username}
+              onChange={handleUsernameInput}
+            />
           </Stack>
 
           <Stack gap={2} sx={{ width: "100%" }}>
             <Typography variant="h6">Connection</Typography>
-            <TextField label="Device" value={config.connection[0]} onChange={(e) => handleChangeConnection(0, e.target.value)}/>
-            <TextField label="Port" value={config.connection[1]} onChange={(e) => handleChangeConnection(1, e.target.value)}/>
-            <TextField label="Username" value={config.connection[2]}onChange={(e) => handleChangeConnection(2, e.target.value)} />
+            <TextField label="Device" value={config.connection[0]} onChange={(e) => handleChangeConnection(0, e.target.value)} />
+            <TextField label="Port" value={config.connection[1]} onChange={(e) => handleChangeConnection(1, e.target.value)} />
+            <TextField label="Username" value={config.connection[2]} onChange={(e) => handleChangeConnection(2, e.target.value)} />
             <OutlinedInput
               id="outlined-adornment-password"
               type={showPassword ? 'text' : 'password'}
@@ -134,19 +135,44 @@ export default function ConfigChange({config, setConfig }) {
           </Stack>
         </Stack>
 
-        <MaterialsAndSpeeds config={config} setConfig={setConfig} />
+        <Stack gap={4} sx={{ width: "100%" }}>
+
+          <Stack gap={2} sx={{ width: "100%" }}>
+            <Typography variant="h6">Saving Directory</Typography>
+            <TextField label="Local Dir" value={config.local_dir} onChange={handleChangeLocalDir} />
+            <TextField label="Remote Dir" value={config.remote_dir} onChange={handleChangeRemoteDir} />
+          </Stack>
+          <ModifyLabChecklist config={config} setConfig={setConfig} />
+
+        </Stack>
+
+        <ModifyMaterials config={config} setConfig={setConfig} />
+        <ModifySpeeds config={config} setConfig={setConfig} />
       </Stack>
 
-      <Stack sx={{ width: "100%", alignItems: "end", marginTop: 7, gap: 1 }}>
-        {console.log(config.chosenSpeeds.is)}
-        <Button onClick={handleSave} variant="contained" disabled={config.username == null || config.chosenMaterials.length == 0
-           || config.chosenSpeeds.length == 0}>
-          Save
-        </Button>
-        <Button onClick={handleReset} variant="contained">
-          Reset
-        </Button>
-      </Stack>
-    </Box>
-  );
+    </Stack>
+
+    <Stack
+      sx={{
+        width: "100%",
+        alignItems: "end",
+        marginTop: 5,
+        gap: 1,
+        justifyContent: "flex-end"
+      }}
+      direction="row"
+    >
+      <Button onClick={handleReset} variant="contained">
+        <RestartAltIcon></RestartAltIcon>
+        Reset
+      </Button>
+      <Button onClick={handleSave} variant="contained" disabled={config.username == null || config.chosenMaterials.length == 0
+        || config.chosenSpeeds.length == 0}>
+        Save
+      </Button>
+
+    </Stack>
+
+  </Box>
+);
 }

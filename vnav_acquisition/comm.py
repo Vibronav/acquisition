@@ -1,9 +1,9 @@
 import os
 import time
 import paramiko
-from .sound import play_chirp_signal
-from .clean import clean_wav
-from .config import config
+from sound import play_chirp_signal
+from clean import clean_wav
+from config import config
 
 MIC_NAME = "dmic_sv"
 CHANNEL_FMT = "stereo"
@@ -37,9 +37,12 @@ def on_rec_start(connection, username, material, speed):
         ssh_connect(*connection)
         time.sleep(1)
     if ssh:
-        print("Recording started")
+        print("Recording started !!!")
         remote_path = f"{config['remote_dir']}/{file_name}"
         mkdir_commad = f"mkdir {os.path.dirname(remote_path)}"
+
+        print("R_path ", remote_path)
+        print("SSH",ssh)
         ssh.exec_command(mkdir_commad)
 
         setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \

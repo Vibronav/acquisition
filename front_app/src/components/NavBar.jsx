@@ -1,13 +1,18 @@
-import SettingsIcon from '@mui/icons-material/Settings';
+import * as React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Toolbar from '@mui/material/Toolbar';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Typography from '@mui/material/Typography';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { routes } from '../paths';
 import ThemeSwitchButton from './ThemeSwitchButton';
+import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
+
+
+
 export default function NavBar({ currentTheme, onChangeTheme }) {
   const navigate = useNavigate();
 
@@ -26,19 +31,19 @@ export default function NavBar({ currentTheme, onChangeTheme }) {
             aria-label="menu"
             sx={{ mr: 2 }}
           >
-
-
             <SettingsIcon onClick={handleConfigChange} />
           </IconButton>
           <Typography variant="h8" component="div" sx={{ flexGrow: 1 }}>
             Change Configuration
           </Typography>
+          <KeyboardShortcutsHelp></KeyboardShortcutsHelp>
           <ThemeSwitchButton currentTheme={currentTheme} onChange={onChangeTheme} />
         </Toolbar>
       </AppBar>
     </Box>
   );
 }
+
 NavBar.propTypes = {
   currentTheme: PropTypes.boolean,
   onChangeTheme: PropTypes.func.isRequired,
