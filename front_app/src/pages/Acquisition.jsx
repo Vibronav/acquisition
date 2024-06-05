@@ -4,6 +4,7 @@ import LabChecklist from '../components/LabChecklist.jsx';
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import WebcamRenderer from '../components/WebcamRenderer.jsx';
+import AudioVisualizer from '../components/AudioVisualizer.jsx';
 import { selectStyles, stackStyles, formControlStyles } from './../themes';
 import PropTypes from 'prop-types';
 
@@ -28,12 +29,13 @@ const Acquisition = ({ config }) => {
 
     return (
         <div>
-            <Stack sx={stackStyles}>
+            <Stack sx={{width: '100%', gap:10}} direction="row">
 
-                <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
+                <Stack sx={{gap: 3, width: '35%'}} >
+
+                    <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
 
 
-                <Stack sx={stackStyles} direction="row">
                     {/*Video device selection + material selection + speed selection */}
                     <Stack sx={stackStyles}>
                         {/* Video and audio selection component */}
@@ -46,7 +48,7 @@ const Acquisition = ({ config }) => {
                         />
 
                         {/* Stack for  material, and speed selection */}
-                        <Stack sx={stackStyles} direction="row">
+                        <Stack sx={stackStyles}>
 
                             <FormControl
                                 sx={formControlStyles} >
@@ -90,20 +92,22 @@ const Acquisition = ({ config }) => {
                             </FormControl>
 
                         </Stack>
-                    </Stack>
 
-                    {/*Checklist of things to do in the Lab before measurement */}
-                    <Stack sx={{ width: '40%', gap: 4 }}>
+                    </Stack>
+                    <Stack sx={{ width: '100%' }}>
                         <LabChecklist config={config} />
-                        <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
-                            <Typography>Performed Measurements: {measurementCounter}</Typography>
-                        </Container>
+
                     </Stack>
                 </Stack>
 
                 {/* Stack for video recording controls */}
                 <Stack
-                    sx={stackStyles} mt={3} spacing={2} >
+                    sx={stackStyles} mt={1} spacing={2} >
+                    {/*Checklist of things to do in the Lab before measurement */}
+
+                    <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
+                        <Typography>Performed Measurements: {measurementCounter}</Typography>
+                    </Container>
 
                     <RecordingButtons
                         username={config.username}
@@ -111,8 +115,12 @@ const Acquisition = ({ config }) => {
                         speed={selectedSpeed}
                         measurementCounter={measurementCounter}
                         setMeasurementCounter={setMeasurementCounter} />
+                    <Container>
+                        <AudioVisualizer />
+                    </Container>
                     {/* Component for rendering webcams */}
                     <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} />
+
                 </Stack>
 
             </Stack>

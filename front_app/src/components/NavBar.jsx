@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ThemeSwitchButton from './ThemeSwitchButton';
+import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import PropTypes from 'prop-types';
 
 export default function NavBar({ currentTheme, onChangeTheme, setIsConfigChange, isConfigChange }) {
@@ -39,6 +40,7 @@ export default function NavBar({ currentTheme, onChangeTheme, setIsConfigChange,
               </Typography>
             </>
           }
+          <KeyboardShortcutsHelp></KeyboardShortcutsHelp>
           <ThemeSwitchButton currentTheme={currentTheme} onChange={onChangeTheme} />
         </Toolbar>
       </AppBar>

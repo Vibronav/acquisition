@@ -65,6 +65,13 @@ export default function RecordingButtons({ username, material, speed, measuremen
 
   React.useEffect(() => {
     const handleKeyPress = (event) => {
+      if(loading 
+        || speed == undefined 
+        || material == undefined
+        || speed == null 
+        || material == null){
+          return
+      }
       if (event.ctrlKey && event.shiftKey && event.key === 'R') {
         handleClick();
       } else if (event.ctrlKey && event.shiftKey && event.key === 'D') {
@@ -85,7 +92,11 @@ export default function RecordingButtons({ username, material, speed, measuremen
           onClick={handleClick}
           variant="contained"
           startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
-          disabled={loading || speed === undefined || material === undefined}
+          disabled={loading 
+            || speed == undefined 
+            || material == undefined
+            || speed == null 
+            || material == null}
         >
           {recording ? 'Stop Recording' : 'Start Recording'}
         </Button>
@@ -93,7 +104,11 @@ export default function RecordingButtons({ username, material, speed, measuremen
           <Button
             onClick={handleDeleteLastRecording}
             variant="contained"
-            disabled={loading || speed == null || material == null}
+            disabled={loading 
+              || speed == undefined 
+              || material == undefined
+              || speed == null 
+              || material == null}
             startIcon={<DeleteOutlineIcon />}
           >
             Delete Last Recording

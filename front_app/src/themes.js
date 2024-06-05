@@ -38,6 +38,7 @@ export const lightTheme = createTheme({
         },
         primary: {
             main: '#568166',
+            contrastText: "#fff"
         },
         secondary: {
             main: '#fb8c00',
