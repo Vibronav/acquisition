@@ -1,6 +1,7 @@
-import React from 'react';
 import { Stack } from '@mui/material';
 import PropTypes from 'prop-types';
+import React from 'react';
+import { FormattedMessage } from 'react-intl';
 import ConfigurableList from './ConfigurableList';
 
 export default function ModifySpeeds({ config, setConfig }) {
@@ -24,8 +25,8 @@ export default function ModifySpeeds({ config, setConfig }) {
         <Stack sx={{ width: "100%" }}>
 
             <ConfigurableList
-                title="Speeds"
-                addPrompt="Add speed"
+                title={<FormattedMessage id="speed"></FormattedMessage>}
+                addPrompt={<FormattedMessage id="addSpeed"></FormattedMessage>}
                 defaultItems={config.defaultSpeeds}
                 addedItems={addedSpeeds}
                 setAddedItems={setAddedSpeeds}

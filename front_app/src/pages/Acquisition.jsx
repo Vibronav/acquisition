@@ -1,12 +1,12 @@
 import { Container, FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
-import LabChecklist from '../components/LabChecklist.jsx';
-import VideoAudioSelect from '../components/VideoAudioSelect.jsx'
-import RecordingButtons from '../components/RecordingButtons.jsx';
-import WebcamRenderer from '../components/WebcamRenderer.jsx';
+import { FormattedMessage } from 'react-intl';
 import AudioVisualizer from '../components/AudioVisualizer.jsx';
-import { selectStyles, stackStyles, formControlStyles } from './../themes';
+import LabChecklist from '../components/LabChecklist.jsx';
+import RecordingButtons from '../components/RecordingButtons.jsx';
+import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
+import { formControlStyles, selectStyles, stackStyles } from './../themes';
 
 
 
@@ -34,7 +34,8 @@ const Acquisition = ({ config }) => {
 
                 <Stack sx={{gap: 3, width: '35%'}} >
 
-                    <Typography id="username" labelId="usernameLabel" variant="h6" >User: {config.username}</Typography>
+                    <Typography id="username" labelId="usernameLabel" variant="h6" >
+                        <FormattedMessage id="username"/>: {config.username}</Typography>
 
 
                     {/*Video device selection + material selection + speed selection */}
@@ -53,7 +54,9 @@ const Acquisition = ({ config }) => {
 
                             <FormControl
                                 sx={formControlStyles} >
-                                <InputLabel >Material</InputLabel>
+                                <InputLabel>
+                                    {<FormattedMessage id="Material"/>}
+                                </InputLabel>
                                 <Select
                                     sx={selectStyles}
                                     labelId="materialSelect"
@@ -74,7 +77,9 @@ const Acquisition = ({ config }) => {
 
                             <FormControl
                                 sx={formControlStyles} >
-                                <InputLabel >Speed</InputLabel>
+                                <InputLabel>
+                                    <FormattedMessage id="speed"></FormattedMessage>
+                                </InputLabel>
                                 <Select
                                     sx={selectStyles}
                                     labelId="materialSelect"
@@ -107,7 +112,10 @@ const Acquisition = ({ config }) => {
                     {/*Checklist of things to do in the Lab before measurement */}
 
                     <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
-                        <Typography>Performed Measurements: {measurementCounter}</Typography>
+                        <Typography>
+                            <FormattedMessage id="performedMeasurements"/>
+                            : {measurementCounter}
+                        </Typography>
                     </Container>
 
                     <RecordingButtons
@@ -115,12 +123,12 @@ const Acquisition = ({ config }) => {
                         material={selectedMaterial}
                         speed={selectedSpeed}
                         measurementCounter={measurementCounter}
-                        setMeasurementCounter={setMeasurementCounter} />
+                        setMeasurementCounter={setMeasurementCounter}
+                        selectedVideoDevices={selectedVideoDevices}
+                        videoDevices={videoDevices} />
                     <Container>
                         <AudioVisualizer />
                     </Container>
-                    {/* Component for rendering webcams */}
-                    <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} />
 
                 </Stack>
 

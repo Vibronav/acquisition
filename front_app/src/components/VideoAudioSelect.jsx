@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import ListItemText from '@mui/material/ListItemText';
-import Select from '@mui/material/Select';
 import Checkbox from '@mui/material/Checkbox';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import ListItemText from '@mui/material/ListItemText';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
-import { selectStyles, stackStyles, formControlStyles } from '../themes.js'
 import PropTypes from 'prop-types';
+import { useEffect } from 'react';
+import { FormattedMessage } from 'react-intl';
+import { formControlStyles, selectStyles, stackStyles } from '../themes.js';
 
 
 export default function VideoAudioSelect({
@@ -42,7 +43,9 @@ export default function VideoAudioSelect({
                 sx={stackStyles} direction="row"  >
                 <FormControl
                     sx={formControlStyles} >
-                    <InputLabel id="video-devices-label">Video Devices</InputLabel>
+                    <InputLabel id="video-devices-label">
+                        {<FormattedMessage id="videoDevices"></FormattedMessage>}
+                    </InputLabel>
                     <Select
                         sx={selectStyles}
                         labelId="video-devices-label"
@@ -51,7 +54,7 @@ export default function VideoAudioSelect({
                         value={selectedVideoDevices}
                         onChange={handleVideoDeviceChange}
                         renderValue={(selected) => selected.join(', ')}
-                        label="Video Devices"
+                        label={<FormattedMessage id="videoDevices"></FormattedMessage>}
                     >
                         {videoDevices.map((device) => (
                             <MenuItem key={device.label} value={device.label}>

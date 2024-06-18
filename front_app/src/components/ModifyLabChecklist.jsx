@@ -1,6 +1,7 @@
-import React from 'react';
 import { Stack } from '@mui/material';
 import PropTypes from 'prop-types';
+import React from 'react';
+import { FormattedMessage } from 'react-intl';
 import ConfigurableList from './ConfigurableList';
 
 export default function ModifyLabChecklist({ config, setConfig }) {
@@ -24,8 +25,8 @@ export default function ModifyLabChecklist({ config, setConfig }) {
     return (
         <Stack sx={{ width: "100%" }}>
             <ConfigurableList
-                title="Before Measurement"
-                addPrompt="Add task"
+                title={<FormattedMessage id="beforeMessurments"></FormattedMessage>}
+                addPrompt={<FormattedMessage id="addTask"></FormattedMessage>}
                 defaultItems={config.lab_checks}
                 addedItems={addedItems}
                 setAddedItems={setAddedItems}

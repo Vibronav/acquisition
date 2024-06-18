@@ -1,6 +1,7 @@
-import React from 'react';
 import { Stack } from '@mui/material';
 import PropTypes from 'prop-types';
+import React from 'react';
+import { FormattedMessage } from 'react-intl';
 import ConfigurableList from './ConfigurableList';
 
 export default function ModifyMaterials({ config, setConfig }) {
@@ -23,8 +24,8 @@ export default function ModifyMaterials({ config, setConfig }) {
   return (
     <Stack sx={{ width: "100%" }}>
       <ConfigurableList
-        title="Materials"
-        addPrompt="Add material"
+        title={<FormattedMessage id="material"></FormattedMessage>}
+        addPrompt={<FormattedMessage id="addMaterial"></FormattedMessage>}
         defaultItems={config.defaultMaterials}
         addedItems={addedMaterials}
         setAddedItems={setAddedMaterials}

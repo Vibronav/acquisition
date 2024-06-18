@@ -1,7 +1,8 @@
-import * as React from 'react';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
-import { Typography, Button, Box } from '@mui/material';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import { Box, Button, Typography } from '@mui/material';
+import * as React from 'react';
+import { FormattedMessage } from 'react-intl';
 
 export default function KeyboardShortcutsHelp() {
     const [open, setOpen] = React.useState(false);
@@ -24,16 +25,16 @@ export default function KeyboardShortcutsHelp() {
             
                 >
                     <QuestionMarkIcon></QuestionMarkIcon>
-                    Keyboard Shortcuts
+                    {<FormattedMessage id="keyboardShortcuts"></FormattedMessage>}
 
                 </Button>
                 {open ? (
                     <Box sx={{position: 'absolute', backgroundColor: 'primary.main', padding: 3, borderRadius: 2, width: 'max-content'}}>
                         <Typography >
-                            <b>Ctrl + Shift + R</b>: Start / Stop Recording
+                            <b>Ctrl + Shift + R</b>: {<FormattedMessage id="keyboardShortcutsStart"></FormattedMessage>}
                         </Typography>
                         <Typography >
-                        <b>Ctrl + Shift + D</b>: Delete Last Recording
+                        <b>Ctrl + Shift + D</b>: {<FormattedMessage id="keyboardShortcutsDelete"></FormattedMessage>}
                         </Typography>
                     </Box>
                 ) : null}

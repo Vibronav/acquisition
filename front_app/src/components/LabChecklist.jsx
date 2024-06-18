@@ -1,10 +1,11 @@
-import * as React from 'react';
-import PropTypes from 'prop-types';
-import Box from '@mui/material/Box';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
-import { Checkbox, List, ListItem, ListItemButton, ListItemText, Button } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
+import { Button, Checkbox, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
+import Box from '@mui/material/Box';
+import PropTypes from 'prop-types';
+import * as React from 'react';
+import { FormattedMessage } from 'react-intl';
 
 export default function LabChecklist({ config }) {
     const [open, setOpen] = React.useState(false);
@@ -57,7 +58,7 @@ export default function LabChecklist({ config }) {
                     onClick={handleClick}
                     sx={buttonStyles}
                 >
-                    Before Measurement Checklist
+                    {<FormattedMessage id="beforeMessurmentsChecklist"></FormattedMessage>}
                     {allChecked ? <CheckIcon /> : <ErrorIcon />}
                 </Button>
                 {open ? (

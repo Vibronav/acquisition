@@ -1,6 +1,6 @@
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import {
   Box,
   Button,
@@ -13,10 +13,11 @@ import {
 } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
+import ModifyLabChecklist from '../components/ModifyLabChecklist';
 import ModifyMaterials from '../components/ModifyMaterials';
 import ModifySpeeds from '../components/ModifySpeeds';
-import ModifyLabChecklist from '../components/ModifyLabChecklist';
 import defaultConfig from '../defaultConfig';
 import { routes } from '../paths';
 
@@ -99,7 +100,9 @@ return (
       <Stack direction="row" gap={4} sx={{ width: "100%" }}>
         <Stack gap={2} sx={{ width: "100%" }} >
           <Stack gap={2}>
-            <Typography variant="h6">Username</Typography>
+            <Typography variant="h6">
+              {<FormattedMessage id="username"/>}
+            </Typography>
             <TextField
               error={incorrectUsername}
               helperText={incorrectUsername ? "Incorrect entry." : ""}
@@ -109,10 +112,12 @@ return (
           </Stack>
 
           <Stack gap={2} sx={{ width: "100%" }}>
-            <Typography variant="h6">Connection</Typography>
-            <TextField label="Device" value={config.connection[0]} onChange={(e) => handleChangeConnection(0, e.target.value)} />
-            <TextField label="Port" value={config.connection[1]} onChange={(e) => handleChangeConnection(1, e.target.value)} />
-            <TextField label="Username" value={config.connection[2]} onChange={(e) => handleChangeConnection(2, e.target.value)} />
+            <Typography variant="h6">
+              {<FormattedMessage id="connection"/>}
+            </Typography>
+            <TextField label={<FormattedMessage id="Device"/>} value={config.connection[0]} onChange={(e) => handleChangeConnection(0, e.target.value)} />
+            <TextField label={<FormattedMessage id="Port"/>} value={config.connection[1]} onChange={(e) => handleChangeConnection(1, e.target.value)} />
+            <TextField label={<FormattedMessage id="Device name"/>} value={config.connection[2]} onChange={(e) => handleChangeConnection(2, e.target.value)} />
             <OutlinedInput
               id="outlined-adornment-password"
               type={showPassword ? 'text' : 'password'}
@@ -138,9 +143,11 @@ return (
         <Stack gap={4} sx={{ width: "100%" }}>
 
           <Stack gap={2} sx={{ width: "100%" }}>
-            <Typography variant="h6">Saving Directory</Typography>
-            <TextField label="Local Dir" value={config.local_dir} onChange={handleChangeLocalDir} />
-            <TextField label="Remote Dir" value={config.remote_dir} onChange={handleChangeRemoteDir} />
+            <Typography variant="h6">
+              {<FormattedMessage id="saveDir"/>}
+            </Typography>
+            <TextField label={<FormattedMessage id="LocalDir"/>} value={config.local_dir} onChange={handleChangeLocalDir} />
+            <TextField label={<FormattedMessage id="RemoteDir"/>} value={config.remote_dir} onChange={handleChangeRemoteDir} />
           </Stack>
           <ModifyLabChecklist config={config} setConfig={setConfig} />
 
@@ -164,11 +171,11 @@ return (
     >
       <Button onClick={handleReset} variant="contained">
         <RestartAltIcon></RestartAltIcon>
-        Reset
+        {<FormattedMessage id="resetButton"/>}
       </Button>
       <Button onClick={handleSave} variant="contained" disabled={config.username == null || config.chosenMaterials.length == 0
         || config.chosenSpeeds.length == 0}>
-        Save
+        {<FormattedMessage id="saveButton"/>}
       </Button>
 
     </Stack>
