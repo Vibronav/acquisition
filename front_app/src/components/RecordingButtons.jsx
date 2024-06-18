@@ -104,38 +104,34 @@ export default function RecordingButtons({ username, material, speed, measuremen
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(mp4Url);
-
-      setDebugMessage("Recording downloaded.");
+      setDebugMessage(<FormattedMessage id="recordingDownloaded"/>);
     }
   };
 
-  const handleClick = React.useCallback(async () =>  {
+  const handleRecording = React.useCallback(async () =>  {
     setLoading(true); // Set loading state while API call is in progress
     try {
       if (recording) {
         // Handle stop recording logic
         const response = await axiosInstance.get('/stop');
-        setDebugMessage("Recording saved: "+ response.data)
-        console.log('Stop recording', response.data);
+        setDebugMessage(<FormattedMessage id="recordingSaved"/>+ response.data)
         setMeasurementCounter(measurementCounter + 1);
         setDeleteLastPossible(true);
       } else {
         // Handle start recording logic
-        setDebugMessage("Connecting to RaspberryPi with SSH...");
-        const response = await axiosInstance.post('/start', {
+        setDebugMessage(<FormattedMessage id="connectingToRaspberry"/>);
+        await axiosInstance.post('/start', {
           username,
           material,
           speed,
         });
-        setDebugMessage("Recording started.");
-        console.log("Recording started.", response.data);
+        setDebugMessage(<FormattedMessage id="recordingStarted"/>);
         setDeleteLastPossible(false);
       }
       // Toggle recording state after API call
       setRecording((prevRecording) => !prevRecording);
     } catch (error) {
-      setDebugMessage('❌ Connection to raspberrypi failed. ' + error);
-      console.log("Connection to raspberrypi failed.", error);
+      setDebugMessage(<FormattedMessage id="recordingConnectFailed"/> + error);
     } finally {
       setLoading(false); // Reset loading state after API call is completed
     }
@@ -146,13 +142,12 @@ export default function RecordingButtons({ username, material, speed, measuremen
     try {
       // Handle delete last recording logic
       const response = await axiosInstance.get('/delete_last');
-      setDebugMessage('Last recording deleted succesfully. ' + response.data);
+      setDebugMessage(<FormattedMessage id="recordingDeleteSuccess"/> + response.data);
       setMeasurementCounter(measurementCounter - 1 >= 0 ? measurementCounter - 1 : 0);
       setDeleteLastPossible(false);
       setRecordedChunks([])
     } catch (error) {
-      setDebugMessage('❌ There was a problem with the delete operation: ' + error);
-      console.log('There was a problem with the delete operation:', error);
+      setDebugMessage(<FormattedMessage id="recordingDeleteFailed"/> + error);
     } finally {
       setLoading(false); // Reset loading state after API call is completed
     }
@@ -168,7 +163,7 @@ export default function RecordingButtons({ username, material, speed, measuremen
           return
       }
       if (event.ctrlKey && event.shiftKey && event.key === 'R') {
-        handleClick();
+        handleRecording();
       } else if (event.ctrlKey && event.shiftKey && event.key === 'D') {
         handleDeleteLastRecording();
       }
@@ -178,13 +173,13 @@ export default function RecordingButtons({ username, material, speed, measuremen
     return () => {
       window.removeEventListener('keydown', handleKeyPress);
     };
-  }, [handleClick, handleDeleteLastRecording]);
+  }, [handleRecording, handleDeleteLastRecording]);
 
   return (
     <Stack spacing={2}>
       <Stack direction="row" spacing={2}>
         <Button
-          onClick={handleClick}
+          onClick={handleRecording}
           variant="contained"
           startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
           disabled={loading 

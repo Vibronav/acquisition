@@ -8,12 +8,11 @@ import Typography from '@mui/material/Typography';
 import PropTypes from 'prop-types';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
-import { setLocale } from '../main';
 import { routes } from '../paths';
 import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import ThemeSwitchButton from './ThemeSwitchButton';
 
-export default function NavBar({ currentTheme, onChangeTheme }) {
+export default function NavBar({ currentTheme, onChangeTheme, changeLanguage }) {
   const navigate = useNavigate();
 
 
@@ -22,10 +21,6 @@ export default function NavBar({ currentTheme, onChangeTheme }) {
   };
 
   const intl = useIntl();
-
-  const handleChange = (e) => {
-    setLocale(e.target.value)
-  };
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -47,7 +42,7 @@ export default function NavBar({ currentTheme, onChangeTheme }) {
           <ThemeSwitchButton currentTheme={currentTheme} onChange={onChangeTheme} />
           <Select
             value={intl.locale}
-            onChange={handleChange}
+            onChange={changeLanguage}
           >
             <MenuItem value="en"><FormattedMessage id="en"/></MenuItem>
             <MenuItem value="pl"><FormattedMessage id="pl"/></MenuItem>
@@ -62,5 +57,5 @@ NavBar.propTypes = {
   currentTheme: PropTypes.boolean,
   onChangeTheme: PropTypes.func.isRequired,
   setIsConfigChange: PropTypes.func.isRequired,
-  isConfigChange: PropTypes.boolean
+  changeLanguage: PropTypes.func.isRequired
 }
