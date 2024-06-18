@@ -117,7 +117,9 @@ const Acquisition = ({ config }) => {
                             : {measurementCounter}
                         </Typography>
                     </Container>
-
+                    <Container>
+                        <AudioVisualizer />
+                    </Container>
                     <RecordingButtons
                         username={config.username}
                         material={selectedMaterial}
@@ -125,11 +127,8 @@ const Acquisition = ({ config }) => {
                         measurementCounter={measurementCounter}
                         setMeasurementCounter={setMeasurementCounter}
                         selectedVideoDevices={selectedVideoDevices}
-                        videoDevices={videoDevices} />
-                    <Container>
-                        <AudioVisualizer />
-                    </Container>
-
+                        videoDevices={videoDevices} 
+                    />
                 </Stack>
 
             </Stack>
