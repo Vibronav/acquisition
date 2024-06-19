@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { IntlProvider } from "react-intl";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import messagesEn from "../src/languages/en.json";
+import messagesGer from "../src/languages/ger.json";
 import messagesPl from "../src/languages/pl.json";
 import NavBar from './components/NavBar.jsx';
 import defaultConfig from './defaultConfig';
@@ -17,6 +18,7 @@ import { darkTheme, lightTheme } from './themes';
 const messages = {
   'en': messagesEn,
   'pl': messagesPl,
+  'ger': messagesGer,
 }
 
 function App() {
