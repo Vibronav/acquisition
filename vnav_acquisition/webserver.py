@@ -1,6 +1,5 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
+from flask import Flask, request, jsonify, send_from_directory, url_for, send_from_directory, render_template_string
 from flask_cors import CORS
-from interface import get_html
 from comm import on_rec_stop, on_rec_start, delete_last_recording
 from config import config
 import threading
@@ -32,10 +31,22 @@ def parse_config():
 
 @app.route("/api/stop", methods=['GET'])
 def stop():
-    recording_status = on_rec_stop()
+    recorded_files = on_rec_stop()
     print("Received stop/GET request")
-    print(recording_status)
-    return jsonify(recording_status)
+    print(recorded_files)
+    
+    # Create URLs for each recorded file
+    recorded_files_with_urls = [
+        {"filename": filename, "url": url_for('get_audio_file', filename=filename, _external=True)}
+        for filename in recorded_files
+    ]
+    
+    return jsonify(recorded_files_with_urls)
+
+# will serve recorded files
+@app.route('/api/audio/<filename>', methods=['GET'])
+def get_audio_file(filename):
+    return send_from_directory(config["local_dir"], filename)
 
 
 @app.route("/api/start", methods=['POST'])
@@ -51,7 +62,7 @@ def start():
     ]
     print("Received start/POST request data:")
     print(params)
-    file_name = on_rec_start(config['connection'], *params)
+    file_name =  on_rec_start(config['connection'], *params)
     return jsonify(file_name)
 
 

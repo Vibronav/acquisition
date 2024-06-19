@@ -2,12 +2,11 @@ import { Container, FormControl, InputLabel, MenuItem, Select, Stack, Typography
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import AudioVisualizer from '../components/AudioVisualizer.jsx';
 import LabChecklist from '../components/LabChecklist.jsx';
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
 import { formControlStyles, selectStyles, stackStyles } from './../themes';
-
+import AudioPlayer from '../components/AudioPlayer.jsx';
 
 
 const Acquisition = ({ config }) => {
@@ -20,6 +19,8 @@ const Acquisition = ({ config }) => {
 
     const [measurementCounter, setMeasurementCounter] = useState(0);
 
+    const [audioFiles, setAudioFiles] = useState([]);  //audio files recorded 
+
     const handleMaterialChange = (event) => {
         setSelectedMaterial(event.target.value)
     }
@@ -30,16 +31,18 @@ const Acquisition = ({ config }) => {
 
     return (
         <div>
-            <Stack sx={{width: '100%', gap:10}} direction="row">
 
-                <Stack sx={{gap: 3, width: '35%'}} >
+
+            <Stack sx={{ width: '100%', gap: 10 }} direction="row">
+
+                <Stack sx={{ gap: 3, width: '35%' }} >
 
                     <Typography id="username" labelId="usernameLabel" variant="h6" >
-                        <FormattedMessage id="username"/>: {config.username}</Typography>
+                        <FormattedMessage id="username" />: {config.username}</Typography>
 
 
                     {/*Video device selection + material selection + speed selection */}
-                    <Stack sx={stackStyles}>
+                    <Stack sx={{ width: '100%', gap: 2 }}>
                         {/* Video and audio selection component */}
                         <VideoAudioSelect
                             selectedVideoDevices={selectedVideoDevices}
@@ -50,12 +53,12 @@ const Acquisition = ({ config }) => {
                         />
 
                         {/* Stack for  material, and speed selection */}
-                        <Stack sx={stackStyles}>
+                        <Stack sx={{ width: '100%', gap: 2 }}>
 
                             <FormControl
                                 sx={formControlStyles} >
                                 <InputLabel>
-                                    {<FormattedMessage id="Material"/>}
+                                    {<FormattedMessage id="Material" />}
                                 </InputLabel>
                                 <Select
                                     sx={selectStyles}
@@ -104,22 +107,22 @@ const Acquisition = ({ config }) => {
                         <LabChecklist config={config} />
 
                     </Stack>
+
+
+                    <Typography>
+                        <FormattedMessage id="performedMeasurements" />
+                        : {measurementCounter}
+                    </Typography>
                 </Stack>
 
                 {/* Stack for video recording controls */}
                 <Stack
                     sx={stackStyles} mt={1} spacing={2} >
-                    {/*Checklist of things to do in the Lab before measurement */}
 
-                    <Container sx={{ width: '100%', justifyContent: 'right', display: 'flex' }}>
-                        <Typography>
-                            <FormattedMessage id="performedMeasurements"/>
-                            : {measurementCounter}
-                        </Typography>
-                    </Container>
-                    <Container>
-                        <AudioVisualizer />
-                    </Container>
+                    {audioFiles.map((file, index) => (
+                        <AudioPlayer key={index} audioUrl={file.url} />
+                    ))}
+
                     <RecordingButtons
                         username={config.username}
                         material={selectedMaterial}
@@ -127,7 +130,9 @@ const Acquisition = ({ config }) => {
                         measurementCounter={measurementCounter}
                         setMeasurementCounter={setMeasurementCounter}
                         selectedVideoDevices={selectedVideoDevices}
-                        videoDevices={videoDevices} 
+                        videoDevices={videoDevices}
+                        audioFiles={audioFiles}
+                        setAudioFiles={setAudioFiles}
                     />
                 </Stack>
 

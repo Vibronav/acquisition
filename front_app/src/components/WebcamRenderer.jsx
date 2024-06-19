@@ -11,7 +11,7 @@ const WebcamRenderer = ({ selectedVideoDevices, videoDevices, webcamRef  }) => {
   switch (selectedVideoDevices.length) {
     case 0:
       return (
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400, border: '2px dashed black', borderRadius: 5 }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', height: 350, border: '2px dashed black', borderRadius: 5 }}>
           <p style={{ textAlign: 'center', fontSize: 24 }}>
             {<FormattedMessage id="videoDeviceSelect"></FormattedMessage>}
           </p>
@@ -31,7 +31,7 @@ const WebcamRenderer = ({ selectedVideoDevices, videoDevices, webcamRef  }) => {
               />
             </Stack>
           )}
-          <div style={{ width: '50%', height: 400, border: '2px dashed black', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5 }}>
+          <div style={{ width: '50%', height: 350, border: '2px dashed black', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5 }}>
             <p style={{ textAlign: 'center', fontSize: 24 }}>
             {<FormattedMessage id="videoDeviceSelect"></FormattedMessage>}
             </p>
@@ -49,7 +49,7 @@ const WebcamRenderer = ({ selectedVideoDevices, videoDevices, webcamRef  }) => {
                   <Typography>{device.label}</Typography>
                   <Webcam
                     videoConstraints={{ deviceId: device.deviceId }}
-                    style={{ width: '100%', height: 400, borderRadius: 5 }}
+                    style={{ width: '100%', height: 350, borderRadius: 5 }}
                     screenshotFormat="image/jpeg"
                   />
                 </Stack>

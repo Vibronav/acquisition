@@ -32,7 +32,7 @@ export default function ModifyLabChecklist({ config, setConfig }) {
                 setAddedItems={setAddedItems}
                 checkedItems={checkedItems}
                 setCheckedItems={setCheckedItems}
-                height={250}
+                height={220}
 
             />
         </Stack>

@@ -20,14 +20,24 @@ RecordingButtons.propTypes = {
   setMeasurementCounter: PropTypes.func.isRequired,
   isRecordingStarted: PropTypes.func.isRequired,
   selectedVideoDevices: PropTypes.array.isRequired,
-  videoDevices: PropTypes.array.isRequired
+  videoDevices: PropTypes.array.isRequired,
+  audioFiles: PropTypes.array.isRequired,
+  setAudioFiles: PropTypes.func.isRequired
 };
 
 //we use old ffmpeg because the new ones does not work 
 const ffmpeg = createFFmpeg();
 
-export default function RecordingButtons({ username, material, speed, measurementCounter, setMeasurementCounter
-  ,selectedVideoDevices,videoDevices
+export default function RecordingButtons({ 
+  username, 
+  material, 
+  speed, 
+  measurementCounter, 
+  setMeasurementCounter,
+  selectedVideoDevices,
+  videoDevices, 
+  audioFiles, 
+  setAudioFiles
  }) {
 
   //recording values
@@ -114,9 +124,14 @@ export default function RecordingButtons({ username, material, speed, measuremen
       if (recording) {
         // Handle stop recording logic
         const response = await axiosInstance.get('/stop');
-        setDebugMessage(<FormattedMessage id="recordingSaved"/>+ response.data)
+        // Extracting filenames from response.data
+        const filenames = response.data.map(file => file.filename);
+        console.log('Stop recording', response.data);
+        setDebugMessage(<FormattedMessage id="recordingSaved"/>+ filenames.join(', '))
         setMeasurementCounter(measurementCounter + 1);
         setDeleteLastPossible(true);
+        setAudioFiles(response.data);
+        
       } else {
         // Handle start recording logic
         setDebugMessage(<FormattedMessage id="connectingToRaspberry"/>);

@@ -31,7 +31,7 @@ export default function ModifyMaterials({ config, setConfig }) {
         setAddedItems={setAddedMaterials}
         checkedItems={checkedMaterial}
         setCheckedItems={setCheckedMaterial}
-        height={460}
+        height={430}
       />
     </Stack>
 
