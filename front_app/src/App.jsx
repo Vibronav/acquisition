@@ -9,11 +9,11 @@ import messagesEn from "../src/languages/en.json";
 import messagesGer from "../src/languages/ger.json";
 import messagesPl from "../src/languages/pl.json";
 import NavBar from './components/NavBar.jsx';
-import defaultConfig from './defaultConfig';
 import Acquisition from "./pages/Acquisition.jsx";
 import ConfigChange from "./pages/ConfigChange.jsx";
 import { routes } from './paths';
 import { darkTheme, lightTheme } from './themes';
+import defaultConfig from './defaultConfig.ts';
 
 const messages = {
   'en': messagesEn,
@@ -36,10 +36,36 @@ function App() {
   };
 
   const [light, setLight] = useState(false); // Theme state
-  const storedConfig = JSON.parse(sessionStorage.getItem("config"));
+  const [config, setConfig] = useState(null);
 
-  const initialConfig = storedConfig || defaultConfig;
-  const [config, setConfig] = useState(initialConfig);
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/parse_config'); // Adjust URL as per your Flask server endpoint
+        if (!response.ok) {
+          throw new Error('Failed to fetch config');
+        }
+        const configData = await response.json();
+        setConfig(configData);
+        sessionStorage.setItem("config", JSON.stringify(configData)); // Store fetched config in sessionStorage
+      } catch (error) {
+        console.error('Error fetching config:', error);
+        // Optionally handle errors, e.g., set a default config on failure
+        setConfig(JSON.parse(sessionStorage.getItem("config")) || defaultConfig); // Fallback to stored config or defaultConfig
+      }
+    };
+
+    // Check if there's already a stored config, use it first
+    const storedConfig = JSON.parse(sessionStorage.getItem("config"));
+    if (storedConfig) {
+      setConfig(storedConfig);
+    } else {
+      fetchConfig();
+    }
+  }, []); // Empty dependency array ensures this effect runs once
+
+
+
 
   // Toggle between light and dark themes
   const toggleTheme = () => {

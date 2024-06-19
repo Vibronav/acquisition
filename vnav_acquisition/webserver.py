@@ -1,12 +1,11 @@
+import threading
 from flask import Flask, request, jsonify, send_from_directory, url_for, send_from_directory, render_template_string
 from flask_cors import CORS
 from comm import on_rec_stop, on_rec_start, delete_last_recording
 from config import config
-import threading
-import webbrowser
 import argparse
-import json
 import os
+import webbrowser
 
 
 app = Flask(__name__, static_folder='../front_app/dist')
@@ -73,7 +72,9 @@ def delete_last():
     return jsonify(deleted_files)
 
 
+
 def main():
+  
     parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
                                                  "(from rasberry_pi/banana_pi devboard) and video from webcam")
     parser.add_argument("--setup", help="Path to setup JSON file (if not provided or some fields are missing, default "
@@ -83,7 +84,9 @@ def main():
     if args.setup:
         config.load_from_json(args.setup)
 
-    app.run(port=5000, debug=True)
+    url = "http://127.0.0.1:5000"
+    threading.Timer(1.25, lambda: webbrowser.open(url)).start()
+    app.run(port=5000, debug=False)
 
 
 if __name__ == '__main__':
