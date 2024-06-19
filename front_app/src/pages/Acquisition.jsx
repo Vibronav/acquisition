@@ -1,4 +1,4 @@
-import { Container, FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
+import {  FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
