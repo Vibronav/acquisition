@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, render_template_string
 from flask_cors import CORS
 from interface import get_html
 from comm import on_rec_stop, on_rec_start, delete_last_recording
@@ -7,12 +7,21 @@ import threading
 import webbrowser
 import argparse
 import json
+import os
 
-app = Flask(__name__)
+
+app = Flask(__name__, static_folder='../front_app/dist')
 # Configure CORS using Flask-CORS (adjust origins as needed)
 # Replace with your React app origin
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173"]}})
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 @app.route("/api/parse_config", methods=['GET'])
 def parse_config():
