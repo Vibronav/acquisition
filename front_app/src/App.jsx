@@ -14,6 +14,8 @@ import NavBar from './components/NavBar.jsx';
 import { routes } from './paths';
 import { darkTheme, lightTheme } from './themes';
 import { ErrorBoundary } from 'react-error-boundary';
+import Error from './components/Error.jsx';
+
 const ConfigChange = lazy(() => import("./pages/ConfigChange.jsx"))
 const Acquisition = lazy(() => import("./pages/Acquisition.jsx"))
 
@@ -84,7 +86,7 @@ function App() {
                   {config === null ? (
                     <LoadingBar/>
                   ) : (
-                    <ErrorBoundary fallback={<div>ups</div>}>
+                    <ErrorBoundary fallback={<Error config={'config'}/>}>
                       <Suspense fallback={<LoadingBar/>}>
                         <ConfigChange
                         config={config}
@@ -104,7 +106,7 @@ function App() {
                     {config === null ? (
                     <LoadingBar/>
                   ) : (
-                      <ErrorBoundary fallback={<div>ups</div>}>
+                      <ErrorBoundary fallback={<Error config={'config'}/>}>
                         <Suspense fallback={<LoadingBar/>}>
                           <Acquisition
                           config={config}

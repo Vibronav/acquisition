@@ -1,6 +1,4 @@
-import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import DownloadIcon from '@mui/icons-material/Download';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';import DownloadIcon from '@mui/icons-material/Download';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import { Button, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
@@ -24,8 +22,6 @@ RecordingButtons.propTypes = {
   setAudioFiles: PropTypes.func.isRequired,
   setRecordingStatus: PropTypes.string.isRequired
 };
-
-const ffmpeg = createFFmpeg();
 
 export default function RecordingButtons({ 
   username, 
@@ -91,29 +87,25 @@ export default function RecordingButtons({
     if (recordedChunks.length > 0) {
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
-
-      if (!ffmpeg.isLoaded()) {
-        await ffmpeg.load({
-          env: {
-            USE_SDL: false
-          },
-        });
-      }
-
-      ffmpeg.FS('writeFile', 'recording.webm', await fetchFile(url));
-      await ffmpeg.run('-i', 'recording.webm', 'recording.mp4');
-      const mp4Data = ffmpeg.FS('readFile', 'recording.mp4');
-      const mp4Blob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
-      const mp4Url = URL.createObjectURL(mp4Blob);
+      
+      let date = new Date();
+      let formattedDate = date.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).replace(/, /g, '_').replace(/:/g, '-');
+      const filename = username + '_' + material+ '_' +speed + '_' + formattedDate + '.mp4'
 
       const a = document.createElement('a');
       document.body.appendChild(a);
       a.style = 'display: none';
-      a.href = mp4Url;
-      a.download = 'recording.mp4';
+      a.href = url;
+      a.download = filename;
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(mp4Url);
+      window.URL.revokeObjectURL(url);
       setDebugMessage(intl.formatMessage({ id: 'recordingDownloaded' }));
     }
   };
