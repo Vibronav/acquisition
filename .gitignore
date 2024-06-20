@@ -1,2 +1,13 @@
 venv/
 *.pyc
+/front_app/logs/
+/front_app/*.log
+/front_app/npm-debug.log*
+/front_app/yarn-debug.log*
+/front_app/yarn-error.log*
+/front_app/pnpm-debug.log*
+/front_app/lerna-debug.log*
+
+/front_app/node_modules/
+/front_app/.vite/
+/front_app/*.local/
