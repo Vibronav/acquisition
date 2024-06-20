@@ -1,12 +1,12 @@
-import {  FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
+import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
+import AudioPlayer from '../components/AudioPlayer.jsx';
 import LabChecklist from '../components/LabChecklist.jsx';
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
 import { formControlStyles, selectStyles, stackStyles } from './../themes';
-import AudioPlayer from '../components/AudioPlayer.jsx';
 
 
 const Acquisition = ({ config }) => {
@@ -29,6 +29,7 @@ const Acquisition = ({ config }) => {
         setSelectedSpeed(event.target.value)
     }
 
+    console.log("Acq",config)
     return (
         <div>
 
@@ -144,10 +145,7 @@ const Acquisition = ({ config }) => {
 }
 
 Acquisition.propTypes = {
-    setIsConfigChange: PropTypes.func.isRequired,
-    isConfigChange: PropTypes.bool.isRequired,
-    config: PropTypes.object.isRequired,
-    setConfig: PropTypes.func.isRequired,
+    config: PropTypes.object.isRequired
 };
 
 export default Acquisition;

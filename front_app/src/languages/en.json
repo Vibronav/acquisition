@@ -1,7 +1,7 @@
 {
   "pl": "Polski",
   "en": "English",
-  "ger": "Deutsch",
+  "de": "Deutsch",
   "username": "Username",
   "connection": "Connection",
   "Device": "Device",
@@ -34,8 +34,8 @@
   "recordingDeleteFailed": "❌ There was a problem with the delete operation: ",
   "recordingDeleteSuccess": "Last recording deleted succesfully",
   "recordingStarted": "Recording started",
-  "recordingConnectFailed": "❌ Connection to raspberrypi failed",
-  "connectingToRaspberry": "Connecting to RaspberryPi with SSH...",
+  "recordingConnectFailed": "❌ Connection to raspberrypi failed: ",
+  "connectingToRaspberry": "Connecting to RaspberryPi with SSH... ",
   "recordingSaved": "Recording saved: ",
   "recordingDownloaded": "Recording downloaded"
 }

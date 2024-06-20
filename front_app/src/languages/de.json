@@ -1,7 +1,7 @@
 {
   "pl": "Polski",
   "en": "English",
-  "ger": "Deutsch",
+  "de": "Deutsch",
   "username": "Benutzername",
   "connection": "Verbindung",
   "Device": "Gerät",
@@ -34,7 +34,7 @@
   "recordingDeleteFailed": "❌ Es gab ein Problem beim Löschen der Aufnahme: ",
   "recordingDeleteSuccess": "Letzte Aufnahme erfolgreich gelöscht",
   "recordingStarted": "Aufnahme gestartet",
-  "recordingConnectFailed": "❌ Verbindung zum Raspberry Pi fehlgeschlagen",
+  "recordingConnectFailed": "❌ Verbindung zum Raspberry Pi fehlgeschlagen: ",
   "connectingToRaspberry": "Verbinden mit Raspberry Pi über SSH...",
   "recordingSaved": "Aufnahme gespeichert: ",
   "recordingDownloaded": "Aufnahme heruntergeladen"

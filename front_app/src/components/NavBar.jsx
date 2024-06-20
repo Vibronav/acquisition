@@ -46,7 +46,7 @@ export default function NavBar({ currentTheme, onChangeTheme, changeLanguage }) 
           >
             <MenuItem value="en"><FormattedMessage id="en"/></MenuItem>
             <MenuItem value="pl"><FormattedMessage id="pl"/></MenuItem>
-            <MenuItem value="ger"><FormattedMessage id="ger"/></MenuItem>
+            <MenuItem value="de"><FormattedMessage id="de"/></MenuItem>
           </Select>
         </Toolbar>
       </AppBar>

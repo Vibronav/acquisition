@@ -18,18 +18,15 @@ import { useNavigate } from 'react-router-dom';
 import ModifyLabChecklist from '../components/ModifyLabChecklist';
 import ModifyMaterials from '../components/ModifyMaterials';
 import ModifySpeeds from '../components/ModifySpeeds';
-import defaultConfig from '../defaultConfig';
 import { routes } from '../paths';
 
-
 ConfigChange.propTypes = {
-  setIsConfigChange: PropTypes.func.isRequired,
-  isConfigChange: PropTypes.bool.isRequired,
   config: PropTypes.object.isRequired,
   setConfig: PropTypes.func.isRequired,
+  handleReset: PropTypes.func.isRequired
 };
 
-export default function ConfigChange({ setIsConfigChange, isConfigChange, config, setConfig }) {
+export default function ConfigChange({config, setConfig, handleReset }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -61,10 +58,6 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
 
   };
 
-  const handleReset = () => {
-    setConfig(defaultConfig);
-  }
-
   const handleChangeLocalDir = (event) => {
     const newLocalDir = event.target.value;
     setConfig((prevConfig) => ({
@@ -88,10 +81,7 @@ export default function ConfigChange({ setIsConfigChange, isConfigChange, config
       ...prevConfig,
       connection: newConnection,
     }));
-    setIsConfigChange(!isConfigChange);
   }
-
-
 
 return (
   <Box >

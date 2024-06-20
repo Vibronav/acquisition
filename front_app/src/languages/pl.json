@@ -1,7 +1,7 @@
 {
   "pl": "Polski",
   "en": "English",
-  "ger": "Deutsch",
+  "de": "Deutsch",
   "username": "Nazwa użytkownika",
   "connection": "Połączenie",
   "Device": "Urządzenie",
@@ -33,9 +33,9 @@
   "performedMeasurements": "Ilość wykoananych pomiarów",
   "recordingDeleteFailed": "❌ Wystąpił problem z usunięciem nagrania: ",
   "recordingDeleteSuccess": "Ostatnie nagranie zostało pomyślnie usunięte",
-  "recordingStarted": "Nagrywanie rozpoczęte",
-  "recordingConnectFailed": "❌ Połączenie z Raspberry Pi nie powiodło się",
-  "connectingToRaspberry": "Łączenie z Raspberry Pi przez SSH...",
+  "recordingStarted": "Nagrywanie rozpoczęte ",
+  "recordingConnectFailed": "❌ Połączenie z Raspberry Pi nie powiodło się: ",
+  "connectingToRaspberry": "Łączenie z Raspberry Pi przez SSH... ",
   "recordingSaved": "Nagranie zapisane: ",
-  "recordingDownloaded": "Nagranie pobrane"
+  "recordingDownloaded": "Nagranie pobrane "
 }

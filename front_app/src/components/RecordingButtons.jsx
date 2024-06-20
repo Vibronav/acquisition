@@ -6,7 +6,7 @@ import { Button, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { useIntl } from 'react-intl'; // Import useIntl hook
 import RecordRTC from 'recordrtc';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 import WebcamRenderer from './WebcamRenderer';
@@ -25,7 +25,6 @@ RecordingButtons.propTypes = {
   setAudioFiles: PropTypes.func.isRequired
 };
 
-//we use old ffmpeg because the new ones does not work 
 const ffmpeg = createFFmpeg();
 
 export default function RecordingButtons({ 
@@ -36,32 +35,32 @@ export default function RecordingButtons({
   setMeasurementCounter,
   selectedVideoDevices,
   videoDevices, 
-  audioFiles, 
   setAudioFiles
  }) {
+  
+  const intl = useIntl(); // Initialize useIntl hook to access formatMessage function
 
-  //recording values
   const webcamRef = useRef(null);
   const mediaRecordedRef = useRef(null);
   const downloadRef = useRef(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
 
   const handleDataAvailable = useCallback(
-    ({data}) => {
-      if (data.size > 0){
-        setRecordedChunks(prev => prev.concat(data))
+    ({ data }) => {
+      if (data.size > 0) {
+        setRecordedChunks(prev => prev.concat(data));
       }
-    },[setRecordedChunks]
+    },
+    [setRecordedChunks]
   );
 
-  const [loading, setLoading] = React.useState(false);
-  const [recording, setRecording] = React.useState(false);
-  const [isDeleteLastPossible, setDeleteLastPossible] = React.useState(false);
-  const [debugMessage, setDebugMessage] = React.useState("");
+  const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [isDeleteLastPossible, setDeleteLastPossible] = useState(false);
+  const [debugMessage, setDebugMessage] = useState("");
 
   const startRecording = () => {
     if (webcamRef.current && webcamRef.current.stream) {
-      
       mediaRecordedRef.current = new RecordRTC(webcamRef.current.stream, {
         mimeType: 'video/webm'
       });
@@ -85,21 +84,21 @@ export default function RecordingButtons({
     } else {
       stopRecording();
     }
-  }, [recording]);  
+  }, [recording]);
 
   const handleDownloadingRecording = async () => {
     if (recordedChunks.length > 0) {
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
-      
-      if (!ffmpeg.isLoaded()){
+
+      if (!ffmpeg.isLoaded()) {
         await ffmpeg.load({
           env: {
             USE_SDL: false
           },
         });
       }
-      
+
       ffmpeg.FS('writeFile', 'recording.webm', await fetchFile(url));
       await ffmpeg.run('-i', 'recording.webm', 'recording.mp4');
       const mp4Data = ffmpeg.FS('readFile', 'recording.mp4');
@@ -114,68 +113,58 @@ export default function RecordingButtons({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(mp4Url);
-      setDebugMessage(<FormattedMessage id="recordingDownloaded"/>);
+      setDebugMessage(intl.formatMessage({ id: 'recordingDownloaded' }));
     }
   };
 
-  const handleRecording = React.useCallback(async () =>  {
+  const handleRecording = useCallback(async () => {
     setLoading(true); // Set loading state while API call is in progress
     try {
       if (recording) {
-        // Handle stop recording logic
         const response = await axiosInstance.get('/stop');
-        // Extracting filenames from response.data
         const filenames = response.data.map(file => file.filename);
-        console.log('Stop recording', response.data);
-        setDebugMessage(<FormattedMessage id="recordingSaved"/>+ filenames.join(', '))
+        setDebugMessage(intl.formatMessage({ id: 'recordingSaved' }) + filenames.join(', '));
         setMeasurementCounter(measurementCounter + 1);
         setDeleteLastPossible(true);
         setAudioFiles(response.data);
-        
+
       } else {
-        // Handle start recording logic
-        setDebugMessage(<FormattedMessage id="connectingToRaspberry"/>);
+        setDebugMessage(intl.formatMessage({ id: 'connectingToRaspberry' }));
         await axiosInstance.post('/start', {
           username,
           material,
           speed,
         });
-        setDebugMessage(<FormattedMessage id="recordingStarted"/>);
+        setDebugMessage(intl.formatMessage({ id: 'recordingStarted' }));
         setDeleteLastPossible(false);
       }
-      // Toggle recording state after API call
-      setRecording((prevRecording) => !prevRecording);
+      setRecording(prevRecording => !prevRecording);
     } catch (error) {
-      setDebugMessage(<FormattedMessage id="recordingConnectFailed"/> + error);
+      setDebugMessage(intl.formatMessage({ id: 'recordingConnectFailed' }) + error);
     } finally {
       setLoading(false); // Reset loading state after API call is completed
     }
-  }, [recording, measurementCounter, username, material, speed, setMeasurementCounter]);
+  }, [recording, measurementCounter, username, material, speed, setMeasurementCounter, setAudioFiles]);
 
-  const handleDeleteLastRecording = React.useCallback(async () => {
+  const handleDeleteLastRecording = useCallback(async () => {
     setLoading(true); // Set loading state while API call is in progress
     try {
-      // Handle delete last recording logic
       const response = await axiosInstance.get('/delete_last');
-      setDebugMessage(<FormattedMessage id="recordingDeleteSuccess"/> + response.data);
+      setDebugMessage(intl.formatMessage({ id: 'recordingDeleteSuccess' }) + response.data);
       setMeasurementCounter(measurementCounter - 1 >= 0 ? measurementCounter - 1 : 0);
       setDeleteLastPossible(false);
-      setRecordedChunks([])
+      setRecordedChunks([]);
     } catch (error) {
-      setDebugMessage(<FormattedMessage id="recordingDeleteFailed"/> + error);
+      setDebugMessage(intl.formatMessage({ id: 'recordingDeleteFailed' }) + error);
     } finally {
       setLoading(false); // Reset loading state after API call is completed
     }
   }, [measurementCounter, setMeasurementCounter]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyPress = (event) => {
-      if(loading 
-        || speed == undefined 
-        || material == undefined
-        || speed == null 
-        || material == null){
-          return
+      if (loading || speed == undefined || material == undefined || speed == null || material == null) {
+        return;
       }
       if (event.ctrlKey && event.shiftKey && event.key === 'R') {
         handleRecording();
@@ -197,46 +186,31 @@ export default function RecordingButtons({
           onClick={handleRecording}
           variant="contained"
           startIcon={recording ? <RadioButtonCheckedIcon sx={{ color: 'red' }} /> : null}
-          disabled={loading 
-            || speed == undefined 
-            || material == undefined
-            || speed == null 
-            || material == null}
+          disabled={loading || speed == undefined || material == undefined || speed == null || material == null}
         >
-          {recording ? <FormattedMessage id="stopRecording"/> : <FormattedMessage id="startRecording"/>}
+          {recording ? intl.formatMessage({ id: 'stopRecording' }) : intl.formatMessage({ id: 'startRecording' })}
         </Button>
         {isDeleteLastPossible && (
           <Button
             onClick={handleDeleteLastRecording}
             variant="contained"
-            disabled={loading 
-              || speed == undefined 
-              || material == undefined
-              || speed == null 
-              || material == null}
+            disabled={loading || speed == undefined || material == undefined || speed == null || material == null}
             startIcon={<DeleteOutlineIcon />}
           >
-            <FormattedMessage id="deleteRecording"/>
+            {intl.formatMessage({ id: 'deleteRecording' })}
           </Button>
         )}
-        {
-          recordedChunks.length > 0 && (
-            <Button
-              onClick={handleDownloadingRecording}
-              variant="contained"
-              ref={downloadRef}
-              disabled={loading 
-                || speed == undefined 
-                || material == undefined
-                || speed == null 
-                || material == null}
-              startIcon={<DownloadIcon />}
-            >
-              <FormattedMessage id="downloadRecording"/>
-            </Button>
-          )
-        }
-
+        {recordedChunks.length > 0 && (
+          <Button
+            onClick={handleDownloadingRecording}
+            variant="contained"
+            ref={downloadRef}
+            disabled={loading || speed == undefined || material == undefined || speed == null || material == null}
+            startIcon={<DownloadIcon />}
+          >
+            {intl.formatMessage({ id: 'downloadRecording' })}
+          </Button>
+        )}
       </Stack>
       <Typography>{debugMessage}</Typography>
       <WebcamRenderer selectedVideoDevices={selectedVideoDevices} videoDevices={videoDevices} webcamRef={webcamRef}/>
