@@ -21,6 +21,8 @@ const Acquisition = ({ config }) => {
 
     const [audioFiles, setAudioFiles] = useState([]);  //audio files recorded 
 
+    const [recordingStatus, setRecordingStatus] = useState("init");
+
     const handleMaterialChange = (event) => {
         setSelectedMaterial(event.target.value)
     }
@@ -29,7 +31,7 @@ const Acquisition = ({ config }) => {
         setSelectedSpeed(event.target.value)
     }
 
-    console.log("Acq",config)
+    console.log("Acq", config)
     return (
         <div>
 
@@ -120,9 +122,11 @@ const Acquisition = ({ config }) => {
                 <Stack
                     sx={stackStyles} mt={1} spacing={2} >
 
-                    {audioFiles.map((file, index) => (
-                        <AudioPlayer key={index} audioUrl={file.url} />
-                    ))}
+                    {recordingStatus !== "start" && recordingStatus !== "init" &&
+                        audioFiles.map((file, index) => (
+                            <AudioPlayer key={index} audioUrl={file.url} />
+                        ))
+                    }
 
                     <RecordingButtons
                         username={config.username}
@@ -134,6 +138,7 @@ const Acquisition = ({ config }) => {
                         videoDevices={videoDevices}
                         audioFiles={audioFiles}
                         setAudioFiles={setAudioFiles}
+                        setRecordingStatus={setRecordingStatus}
                     />
                 </Stack>
 

@@ -32,7 +32,7 @@
   "downloadRecording": "Pobierz nagranie",
   "performedMeasurements": "Ilość wykoananych pomiarów",
   "recordingDeleteFailed": "❌ Wystąpił problem z usunięciem nagrania: ",
-  "recordingDeleteSuccess": "Ostatnie nagranie zostało pomyślnie usunięte",
+  "recordingDeleteSuccess": "Ostatnie nagranie zostało pomyślnie usunięte ",
   "recordingStarted": "Nagrywanie rozpoczęte ",
   "recordingConnectFailed": "❌ Połączenie z Raspberry Pi nie powiodło się: ",
   "connectingToRaspberry": "Łączenie z Raspberry Pi przez SSH... ",

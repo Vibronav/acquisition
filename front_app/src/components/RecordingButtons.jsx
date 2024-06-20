@@ -22,7 +22,8 @@ RecordingButtons.propTypes = {
   selectedVideoDevices: PropTypes.array.isRequired,
   videoDevices: PropTypes.array.isRequired,
   audioFiles: PropTypes.array.isRequired,
-  setAudioFiles: PropTypes.func.isRequired
+  setAudioFiles: PropTypes.func.isRequired,
+  setRecordingStatus: PropTypes.string.isRequired
 };
 
 const ffmpeg = createFFmpeg();
@@ -35,7 +36,8 @@ export default function RecordingButtons({
   setMeasurementCounter,
   selectedVideoDevices,
   videoDevices, 
-  setAudioFiles
+  setAudioFiles,
+  setRecordingStatus
  }) {
   
   const intl = useIntl(); // Initialize useIntl hook to access formatMessage function
@@ -127,6 +129,7 @@ export default function RecordingButtons({
         setMeasurementCounter(measurementCounter + 1);
         setDeleteLastPossible(true);
         setAudioFiles(response.data);
+        setRecordingStatus("stop");
 
       } else {
         setDebugMessage(intl.formatMessage({ id: 'connectingToRaspberry' }));
@@ -137,6 +140,7 @@ export default function RecordingButtons({
         });
         setDebugMessage(intl.formatMessage({ id: 'recordingStarted' }));
         setDeleteLastPossible(false);
+        setRecordingStatus("start");
       }
       setRecording(prevRecording => !prevRecording);
     } catch (error) {
@@ -154,6 +158,7 @@ export default function RecordingButtons({
       setMeasurementCounter(measurementCounter - 1 >= 0 ? measurementCounter - 1 : 0);
       setDeleteLastPossible(false);
       setRecordedChunks([]);
+      setRecordingStatus("delete");
     } catch (error) {
       setDebugMessage(intl.formatMessage({ id: 'recordingDeleteFailed' }) + error);
     } finally {
