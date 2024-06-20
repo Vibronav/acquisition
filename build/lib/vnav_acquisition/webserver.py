@@ -1,8 +1,8 @@
 import threading
 from flask import Flask, request, jsonify, send_from_directory, url_for, send_from_directory, render_template_string
 from flask_cors import CORS
-from comm import on_rec_stop, on_rec_start, delete_last_recording
-from config import config
+from .comm import on_rec_stop, on_rec_start, delete_last_recording
+from .config import config
 import argparse
 import os
 import webbrowser

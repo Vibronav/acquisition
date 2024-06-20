@@ -96,7 +96,7 @@ export default function RecordingButtons({
         minute: '2-digit',
         second: '2-digit'
       }).replace(/, /g, '_').replace(/:/g, '-');
-      const filename = username + '_' + material+ '_' +speed + '_' + formattedDate + '.mp4'
+      const filename = username + '_' + material+ '_' +speed + '_' + formattedDate + '.webm'
 
       const a = document.createElement('a');
       document.body.appendChild(a);
