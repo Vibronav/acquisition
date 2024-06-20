@@ -5,7 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { IntlProvider } from "react-intl";
 import { HashRouter, Route, Routes } from "react-router-dom";
-import { useConfig } from '../api/requests.js';
+import { useConfig } from './api/requests.js';
 import messagesDe from "../src/languages/de.json";
 import messagesEn from "../src/languages/en.json";
 import messagesPl from "../src/languages/pl.json";

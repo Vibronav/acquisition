@@ -37,5 +37,6 @@
   "recordingConnectFailed": "❌ Connection to raspberrypi failed: ",
   "connectingToRaspberry": "Connecting to RaspberryPi with SSH... ",
   "recordingSaved": "Recording saved: ",
-  "recordingDownloaded": "Recording downloaded"
+  "recordingDownloaded": "Recording downloaded",
+  "comment": "Comment"
 }

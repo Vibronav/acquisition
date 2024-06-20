@@ -37,5 +37,6 @@
   "recordingConnectFailed": "❌ Verbindung zum Raspberry Pi fehlgeschlagen: ",
   "connectingToRaspberry": "Verbinden mit Raspberry Pi über SSH...",
   "recordingSaved": "Aufnahme gespeichert: ",
-  "recordingDownloaded": "Aufnahme heruntergeladen"
+  "recordingDownloaded": "Aufnahme heruntergeladen",
+  "comment": "Kommentar"
 }

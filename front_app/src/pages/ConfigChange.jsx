@@ -9,6 +9,7 @@ import {
   OutlinedInput,
   Stack,
   TextField,
+  TextareaAutosize,
   Typography
 } from '@mui/material';
 import PropTypes from 'prop-types';
@@ -19,6 +20,7 @@ import ModifyLabChecklist from '../components/ModifyLabChecklist';
 import ModifyMaterials from '../components/ModifyMaterials';
 import ModifySpeeds from '../components/ModifySpeeds';
 import { routes } from '../paths';
+import { useEffect } from 'react';
 
 ConfigChange.propTypes = {
   config: PropTypes.object.isRequired,
@@ -29,6 +31,8 @@ ConfigChange.propTypes = {
 export default function ConfigChange({config, setConfig, handleReset }) {
   const [incorrectUsername, setIncorrectUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const initalComment = sessionStorage.getItem('commentConfig') || '';
+  const [comment, setComment] = useState(initalComment);
   const navigate = useNavigate();
 
 
@@ -83,6 +87,10 @@ export default function ConfigChange({config, setConfig, handleReset }) {
     }));
   }
 
+  useEffect(() => {
+    sessionStorage.setItem("commentConfig",comment)
+  },[comment])
+
 return (
   <Box >
     <Stack direction="row" gap={4} sx={{ marginTop: 5, width: "100%" }}>
@@ -127,6 +135,16 @@ return (
               value={config.connection[3]}
               onChange={(e) => handleChangeConnection(3, e.target.value)}
             />
+            <Typography variant="h6">
+              <FormattedMessage id="comment"/>
+              <TextareaAutosize 
+                style={{ width: '100%' }} 
+                value={comment} 
+                minRows={4}
+                maxRows={10}
+                onChange={(() => {setComment(event.target.value)})}
+                />
+            </Typography>
           </Stack>
         </Stack>
 
@@ -140,7 +158,7 @@ return (
             <TextField label={<FormattedMessage id="RemoteDir"/>} value={config.remote_dir} onChange={handleChangeRemoteDir} />
           </Stack>
           <ModifyLabChecklist config={config} setConfig={setConfig} />
-
+        
         </Stack>
 
         <ModifyMaterials config={config} setConfig={setConfig} />
