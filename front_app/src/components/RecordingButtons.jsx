@@ -4,9 +4,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import { Button, Stack, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
-import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useIntl } from 'react-intl'; // Import useIntl hook
+import { useIntl } from 'react-intl';
 import RecordRTC from 'recordrtc';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 import WebcamRenderer from './WebcamRenderer';
@@ -40,7 +39,7 @@ export default function RecordingButtons({
   setRecordingStatus
  }) {
   
-  const intl = useIntl(); // Initialize useIntl hook to access formatMessage function
+  const intl = useIntl();
 
   const webcamRef = useRef(null);
   const mediaRecordedRef = useRef(null);

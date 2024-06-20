@@ -13,6 +13,7 @@ import LoadingBar from './components/LoadingBar.jsx';
 import NavBar from './components/NavBar.jsx';
 import { routes } from './paths';
 import { darkTheme, lightTheme } from './themes';
+import { ErrorBoundary } from 'react-error-boundary';
 const ConfigChange = lazy(() => import("./pages/ConfigChange.jsx"))
 const Acquisition = lazy(() => import("./pages/Acquisition.jsx"))
 
@@ -83,13 +84,15 @@ function App() {
                   {config === null ? (
                     <LoadingBar/>
                   ) : (
-                    <Suspense fallback={<LoadingBar/>}>
-                      <ConfigChange
-                      config={config}
-                      setConfig={setConfig}
-                      handleReset={handleReset}
-                    />
-                    </Suspense>
+                    <ErrorBoundary fallback={<div>ups</div>}>
+                      <Suspense fallback={<LoadingBar/>}>
+                        <ConfigChange
+                        config={config}
+                        setConfig={setConfig}
+                        handleReset={handleReset}
+                      />
+                      </Suspense>
+                    </ErrorBoundary>
                   )}
                   </Container>
                 }
@@ -101,11 +104,13 @@ function App() {
                     {config === null ? (
                     <LoadingBar/>
                   ) : (
-                      <Suspense fallback={<LoadingBar/>}>
-                        <Acquisition
-                      config={config}
-                      />
-                      </Suspense>)}
+                      <ErrorBoundary fallback={<div>ups</div>}>
+                        <Suspense fallback={<LoadingBar/>}>
+                          <Acquisition
+                          config={config}
+                          />
+                        </Suspense>
+                      </ErrorBoundary>)}
                   </Container>
                 }
               />
