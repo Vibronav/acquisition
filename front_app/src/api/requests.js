@@ -1,5 +1,5 @@
 import { useQuery } from 'react-query';
-import axiosInstance from "../axiosConfig";
+import axiosInstance from '../../axiosConfig';
 
 const getConfig = async () => {
   const res = await axiosInstance.get('/parse_config');

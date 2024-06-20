@@ -32,10 +32,11 @@
   "downloadRecording": "Download recording",
   "performedMeasurements": "Performed measurements",
   "recordingDeleteFailed": "❌ There was a problem with the delete operation: ",
-  "recordingDeleteSuccess": "Last recording deleted succesfully",
+  "recordingDeleteSuccess": "Last recording deleted succesfully ",
   "recordingStarted": "Recording started",
   "recordingConnectFailed": "❌ Connection to raspberrypi failed: ",
   "connectingToRaspberry": "Connecting to RaspberryPi with SSH... ",
   "recordingSaved": "Recording saved: ",
-  "recordingDownloaded": "Recording downloaded"
+  "recordingDownloaded": "Recording downloaded",
+  "comment": "Comment"
 }

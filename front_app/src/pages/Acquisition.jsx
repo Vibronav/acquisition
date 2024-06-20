@@ -7,6 +7,8 @@ import LabChecklist from '../components/LabChecklist.jsx';
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
 import { formControlStyles, selectStyles, stackStyles } from './../themes';
+import { TextareaAutosize } from '@mui/material';
+import { useEffect } from 'react';
 
 
 const Acquisition = ({ config }) => {
@@ -21,6 +23,10 @@ const Acquisition = ({ config }) => {
 
     const [audioFiles, setAudioFiles] = useState([]);  //audio files recorded 
 
+    const [recordingStatus, setRecordingStatus] = useState("init");
+    const initalComment = sessionStorage.getItem("commentAcquisiton") || ''
+    const [comment, setComment] = useState(initalComment);
+
     const handleMaterialChange = (event) => {
         setSelectedMaterial(event.target.value)
     }
@@ -29,7 +35,11 @@ const Acquisition = ({ config }) => {
         setSelectedSpeed(event.target.value)
     }
 
-    console.log("Acq",config)
+    useEffect(() => {
+        sessionStorage.setItem("commentAcquisiton",comment)
+      },[comment])
+
+    console.log("Acq", config)
     return (
         <div>
 
@@ -114,15 +124,27 @@ const Acquisition = ({ config }) => {
                         <FormattedMessage id="performedMeasurements" />
                         : {measurementCounter}
                     </Typography>
+                    <Typography variant="h6">
+                    <FormattedMessage id="comment"/>
+                        <TextareaAutosize   
+                            style={{ width: '100%' }} 
+                            value={comment} 
+                            minRows={4}
+                            maxRows={10}
+                            onChange={(() => {setComment(event.target.value)})}
+                        />
+                    </Typography>
                 </Stack>
 
                 {/* Stack for video recording controls */}
                 <Stack
                     sx={stackStyles} mt={1} spacing={2} >
 
-                    {audioFiles.map((file, index) => (
-                        <AudioPlayer key={index} audioUrl={file.url} />
-                    ))}
+                    {/* {recordingStatus !== "start" && recordingStatus !== "init" &&
+                        audioFiles.map((file, index) => (
+                            <AudioPlayer key={index} audioUrl={file.url} />
+                        ))
+                    } */}
 
                     <RecordingButtons
                         username={config.username}
@@ -134,6 +156,7 @@ const Acquisition = ({ config }) => {
                         videoDevices={videoDevices}
                         audioFiles={audioFiles}
                         setAudioFiles={setAudioFiles}
+                        setRecordingStatus={setRecordingStatus}
                     />
                 </Stack>
 

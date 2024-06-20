@@ -5,7 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { IntlProvider } from "react-intl";
 import { HashRouter, Route, Routes } from "react-router-dom";
-import { useConfig } from '../api/requests.js';
+import { useConfig } from './api/requests.js';
 import messagesDe from "../src/languages/de.json";
 import messagesEn from "../src/languages/en.json";
 import messagesPl from "../src/languages/pl.json";
@@ -13,6 +13,9 @@ import LoadingBar from './components/LoadingBar.jsx';
 import NavBar from './components/NavBar.jsx';
 import { routes } from './paths';
 import { darkTheme, lightTheme } from './themes';
+import { ErrorBoundary } from 'react-error-boundary';
+import Error from './components/Error.jsx';
+
 const ConfigChange = lazy(() => import("./pages/ConfigChange.jsx"))
 const Acquisition = lazy(() => import("./pages/Acquisition.jsx"))
 
@@ -83,13 +86,15 @@ function App() {
                   {config === null ? (
                     <LoadingBar/>
                   ) : (
-                    <Suspense fallback={<LoadingBar/>}>
-                      <ConfigChange
-                      config={config}
-                      setConfig={setConfig}
-                      handleReset={handleReset}
-                    />
-                    </Suspense>
+                    <ErrorBoundary fallback={<Error config={'config'}/>}>
+                      <Suspense fallback={<LoadingBar/>}>
+                        <ConfigChange
+                        config={config}
+                        setConfig={setConfig}
+                        handleReset={handleReset}
+                      />
+                      </Suspense>
+                    </ErrorBoundary>
                   )}
                   </Container>
                 }
@@ -101,11 +106,13 @@ function App() {
                     {config === null ? (
                     <LoadingBar/>
                   ) : (
-                      <Suspense fallback={<LoadingBar/>}>
-                        <Acquisition
-                      config={config}
-                      />
-                      </Suspense>)}
+                      <ErrorBoundary fallback={<Error config={'config'}/>}>
+                        <Suspense fallback={<LoadingBar/>}>
+                          <Acquisition
+                          config={config}
+                          />
+                        </Suspense>
+                      </ErrorBoundary>)}
                   </Container>
                 }
               />
