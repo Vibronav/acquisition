@@ -11,7 +11,13 @@ import webbrowser
 app = Flask(__name__, static_folder='../front_app/dist')
 # Configure CORS using Flask-CORS (adjust origins as needed)
 # Replace with your React app origin
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173"]}})
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173","http://127.0.0.1:5000"]}})
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    return response
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

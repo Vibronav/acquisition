@@ -30,8 +30,7 @@ function App() {
   
     return stored || userLang.substring(0, 2);
   });
-  
-  console.log( navigator.language)
+
   const changeLocale = (newLocale) => {
     setLocale(newLocale.target.value);
     sessionStorage.setItem("language", newLocale.target.value.toString());
