@@ -1,0 +1,36 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  raspberrypi_mock:
+    build:
+      context: .
+    container_name: raspberrypi_mock
+    hostname: raspberrypi.mock
+    environment:
+      - PULSE_SERVER=docker.for.mac.localhost
+      - SSH_USERNAME=pi
+      - PASSWORD=VibroNav
+    volumes:
+      - ~/.config/pulse:/home/pulseaudio/.config/pulse
+    ports:
+      - "2222:22"  # Map container SSH port 22 to host port 2222
+    stdin_open: true
+    tty: true
+
+#   pulseaudio:
+#     image: jess/pulseaudio
+#     container_name: pulseaudio_container
+#     environment:
+#       - PULSE_SERVER=docker.for.mac.localhost
+#     volumes:
+#       - ~/.config/pulse:/home/pulseaudio/.config/pulse
+#     networks:
+#       default:
+#         aliases:
+#           - pulseaudio  # Alias to use for communication with other containers
+
+# networks:
+#   default:
+#     name: my_network

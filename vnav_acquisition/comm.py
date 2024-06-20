@@ -90,7 +90,7 @@ def on_rec_stop(delete=False):
             ssh.exec_command(delete_command)
     else:
         print("SSH not connected")
-    return [recorded_files[0]] # only cleaned file
+    return [recorded_files[0]] if len(recorded_files) >= 1 else [""]  # only cleaned file
 
 
 def delete_last_recording():
