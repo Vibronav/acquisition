@@ -1,9 +1,9 @@
 import os
 import time
 import paramiko
-from sound import play_chirp_signal
-from clean import clean_wav
-from config import config
+from .sound import play_chirp_signal
+from .clean import clean_wav
+from .config import config
 
 MIC_NAME = "dmic_sv"
 CHANNEL_FMT = "stereo"
