@@ -37,9 +37,12 @@ def on_rec_start(connection, username, material, speed):
         ssh_connect(*connection)
         time.sleep(1)
     if ssh:
-        print("Recording started")
+        print("Recording started !!!")
         remote_path = f"{config['remote_dir']}/{file_name}"
         mkdir_commad = f"mkdir {os.path.dirname(remote_path)}"
+
+        print("R_path ", remote_path)
+        print("SSH",ssh)
         ssh.exec_command(mkdir_commad)
 
         setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
@@ -87,7 +90,7 @@ def on_rec_stop(delete=False):
             ssh.exec_command(delete_command)
     else:
         print("SSH not connected")
-    return recorded_files
+    return [recorded_files[0]] if len(recorded_files) >= 1 else [""]  # only cleaned file
 
 
 def delete_last_recording():
