@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Cameras and Real-Time Signal Processing</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .video {
+            width: 45%;
+        }
+        .signal {
+            width: 45%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video">
+            <h2>Live Cameras</h2>
+            <img src="{{ url_for('video_feed') }}" width="100%">
+        </div>
+        <div class="signal">
+            <h2>Real-Time Signal Processing</h2>
+            <!-- Buraya PyQtGraph ile ses işleme grafiğini ekleyeceğiz -->
+            <!-- Örneğin bir img ya da div ile real-time grafikleri gösterebilirsiniz -->
+            <div id="graph-container"></div>
+        </div>
+    </div>
+</body>
+</html>
