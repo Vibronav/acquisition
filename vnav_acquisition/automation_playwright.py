@@ -1,104 +1,78 @@
 import os
 import time
 import requests
-import paramiko
 import glob
 from playwright.sync_api import sync_playwright
 from vnav_acquisition.comm import on_rec_start, on_rec_stop
 from vnav_acquisition.config import config
 from sync import add_audio_annotations
-from dobot import connect_robot, enable_robot, move_to_position  # Dobot fonksiyonlarını import etme
 import cv2
 import threading
-
-# Global variables
-recording = [False, False, False]  # Two cameras
-video_writers = [None, None, None]
-caps = [None, None, None]
-
 import subprocess
+import paramiko
+from datetime import datetime
+from dobot import connect_robot, enable_robot, move_to_position  # Dobot fonksiyonlarını import etme
 
-def start_recording_ffmpeg(video_filename, audio_device_name):
-    # Start FFmpeg process to record both video and audio
+
+# Jabra PanaCast 20 cihaz adları
+video_source = "Jabra PanaCast 20"  # Video cihazının adı
+audio_device_name = "Mikrofon (Jabra PanaCast 20)"  # Ses cihazının adı
+
+# Video ve ses ayarları
+frame_width = 1920
+frame_height = 1080
+fps = 30
+audio_rate = 48000
+
+# Kayıtların yapılacağı dizin
+video_output_dir = r"C:\Users\ucunb.DESKTOP-JEKP035.000\OneDrive\Masaüstü\acquisition-master2\vnav_acquisition\videos"
+
+def start_recording(output_filepath):
     command = [
         'ffmpeg',
-        '-f', 'dshow',
-        '-i', f'video="{video_filename}":audio="{audio_device_name}"',
-        '-c:v', 'libx264',
-        '-c:a', 'aac',
-        '-strict', 'experimental',
-        '-y',  # Overwrite output file if it exists
-        f'output_{time.strftime("%Y-%m-%d_%H-%M-%S")}.mp4'
+        '-f', 'dshow',  # Windows için DirectShow
+        '-rtbufsize', '1G',  # Buffer boyutunu artırın
+        '-video_size', f"{frame_width}x{frame_height}",
+        '-framerate', str(fps),
+        '-i', f"video={video_source}",  # Video cihazının adı
+        '-f', 'dshow',  # Windows için DirectShow
+        '-i', f"audio={audio_device_name}",  # Ses cihazının adı
+        '-ar', str(audio_rate),
+        '-ac', '1',  # Mono ses
+        '-c:v', 'libx264',  
+        '-c:a', 'libopus',  # Use Opus codec
+        '-b:a', '256k',  # High-quality audio bitrate
+        '-preset', 'fast',
+        '-filter:a', 'loudnorm',  # Optional: Normalize audio
+        '-async', '1',  # Synchronize audio with video
+        '-strict', 'experimental',  
+        output_filepath
     ]
-    return subprocess.Popen(command)
-
-def stop_recording_ffmpeg(process):
-    process.terminate()
-    process.wait()
-    print("Recording stopped and saved.")
-
-
-def get_laptop_camera_index():
-    # Bu fonksiyon yerleşik laptop kamerasının indeksini bulur.
-    index = 0
-    cap = cv2.VideoCapture(index)
-    if cap.isOpened():
-        cap.release()
-        return index
-    return None
-
-def get_usb_camera_index():
-    # Bu fonksiyon harici USB kameranın indeksini bulur.
-    index = 1  # Genellikle USB kameralar 1 numarayla başlar; 0 yerleşik laptop kamerası
-    cap = cv2.VideoCapture(index)
-    if cap.isOpened():
-        cap.release()
-        return index
-    return None
-
-def start_camera_recording(camera_index, output_path):
-    global recording, video_writers, caps
-
-    # Release any existing capture
-    if caps[camera_index]:
-        caps[camera_index].release()
-        caps[camera_index] = None
-
-    # Open the camera
-    caps[camera_index] = cv2.VideoCapture(camera_index)
-    if not caps[camera_index].isOpened():
-        print(f"Error: Camera {camera_index} not accessible.")
-        return
     
-    # Set camera resolution to 1920x1080 (Full HD)
-    caps[camera_index].set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    caps[camera_index].set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    process = subprocess.Popen(command, stdin=subprocess.PIPE)
+    return process
 
-    frame_width = int(caps[camera_index].get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(caps[camera_index].get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writers[camera_index] = cv2.VideoWriter(output_path, fourcc, 60.0, (frame_width, frame_height))
-    recording[camera_index] = True
+    #print(f"Ses ve video kaydediliyor: {output_filepath}")
+    #subprocess.run(command, check=True)
+    #print(f"Ses ve video kaydı tamamlandı: {output_filepath}")
+def stop_recording(process):
+    if process.stdin:
+        # Send 'q' to the ffmpeg process to stop recording gracefully
+        process.stdin.write(b'q')
+        process.stdin.flush()
+        process.wait(timeout=1)
+    else:
+        print("Error: Process stdin is None")
 
-    def record():
-        while recording[camera_index]:
-            ret, frame = caps[camera_index].read()
-            if not ret:
-                print(f"Error: Failed to read frame from camera {camera_index}.")
-                break
-            video_writers[camera_index].write(frame)
-
-    threading.Thread(target=record, daemon=True).start()
-
-def stop_camera_recording(camera_index):
-    global recording, video_writers, caps
-
-    recording[camera_index] = False
-    if caps[camera_index]:
-        caps[camera_index].release()
-    if video_writers[camera_index]:
-        video_writers[camera_index].release()
-
+def get_flask_port():
+    port_file_path = os.path.join(os.path.dirname(__file__), 'flask_port.txt')
+    if os.path.exists(port_file_path):
+        with open(port_file_path, 'r') as f:
+            port = f.read().strip()
+            return port
+    else:
+        raise Exception("Flask port file not found.")
+    
 def establish_ssh_connection(host, port, username, password):
     try:
         ssh = paramiko.SSHClient()
@@ -127,20 +101,15 @@ def synchronize_audio_video(audio_video_directory):
         else:
             print(f'No matching video file found for {base_name}')
 
-def run_automation(username, material, speed, position_type, p1, p2, p3):
-    setup_json_path = r'C:\Users\ucunb\OneDrive\Masaüstü\Vibronav\acquisition-master\setup.json'
+def run_automation(username, material, speed=None, position_type=None, p1=None, p2=None, p3=None, num_iterations=None):
+    setup_json_path = r'C:\Users\ucunb.DESKTOP-JEKP035.000\OneDrive\Masaüstü\acquisition-master2\setup.json'
     config.load_from_json(setup_json_path)
     
-    laptop_camera_index = get_laptop_camera_index()
-    usb_camera_index = get_usb_camera_index()
-    
-    if laptop_camera_index is None or usb_camera_index is None:
-        print("Error: Could not find required cameras.")
-        return
+    flask_port = get_flask_port()        
 
     with sync_playwright() as p:
         video_path = os.path.join(os.path.dirname(setup_json_path), "videos", f"{time.strftime('%Y-%m-%d_%H-%M-%S')}.mp4")
-        record_video_dir = r'C:\Users\ucunb\OneDrive\Masaüstü\acquisition-master-yedek - Kopya - 5 - Kopya\videos'
+        record_video_dir = os.path.join(os.path.dirname(setup_json_path), "videos")
         
         try:
             os.makedirs(record_video_dir, exist_ok=True)
@@ -157,17 +126,13 @@ def run_automation(username, material, speed, position_type, p1, p2, p3):
         )
         
         page = context.new_page()
-        page.goto("http://localhost:5488")  # Adjust port if necessary
+        page.goto(f"http://localhost:{flask_port}")
         
-        # Video ve ses kaynaklarını seçmek için dropdown menüye erişim sağlayın
         video_source_dropdown = page.locator('select#videoSource')
         audio_source_dropdown = page.locator('select#audioSource')
 
-        # Video kaynağını ayarlayın
-        video_source_dropdown.select_option(label="Integrated Camera (174f:2459)")  # veya value ile: value="d7c04b2221e299301d48400e8eb6ff0ee4544b39c95c76ee878f56c955e98e82"
-
-        # Ses kaynağını ayarlayın
-        audio_source_dropdown.select_option(label="Mikrofon (Realtek(R) Audio)")  # veya value ile: value="default"
+        video_source_dropdown.select_option(label="Integrated Camera (174f:2459)")
+        audio_source_dropdown.select_option(label="Mikrofon (Realtek(R) Audio)")
 
         page.fill('input#username', username)
         print("Username filled.")
@@ -180,78 +145,123 @@ def run_automation(username, material, speed, position_type, p1, p2, p3):
 
         print("Material and speed selected.")
 
-        num_iterations = 12
-        page.wait_for_timeout(5000)
 
+        page.wait_for_timeout(5000)
+        
         # Dobot ile bağlantı kuruluyor
         dashboard, move = connect_robot()
         enable_robot(dashboard)
         time.sleep(2)
         
+        if num_iterations is None:
+            num_iterations = 12  # Default value if not provided
+        
+        if speed is not None:  # If speed parameter is provided
+            if speed == "slow":
+                speed_value = 10
+            elif speed == "medium":
+                speed_value = 15
+            elif speed == "fast":
+                speed_value = 25
+            else:
+                speed_value = 15  # Default value if the speed string is not recognized
+        
+        dashboard.SpeedFactor(speed_value)
+        
+            # Dobot'un hareketlerini tanımlıyoruz (interface ile  çalıştırmak için)   
+        if position_type == "Only Up and Down":  # If position_type is provided
+            P1 = p1  # Initial position from GUI
+            P2 = None # Initial position from GUI  
+            P3 = p3  # Initial position from GUI
+        elif position_type == "Up, Down, Forward":
+            P1 = p1  # Initial position from GUI
+            P2 = p2  # Initial position from GUI  
+            P3 = p3  # Initial position from GUI
+            
+        if position_type is None:    # Dobot'un hareketlerini tanımlıyoruz (interface olmadan çalıştırmak için)   
+            P1 = (275, 150, 110, 0)  # X, Y, Z, R
+            P2 = (P1[0], P1[1], 110, P1[3])  # X, Y, Z, R
+            P3 = (P1[0], P1[1], 70, P1[3])  # X, Y, Z, R
+        
         for i in range(num_iterations):
             try:
-                timestamp = time.strftime("%Y.%m.%d-%H.%M.%S")
-                usb_camera_filename = os.path.join(record_video_dir, f"usb_camera_{timestamp}.mp4")
-                
+                # Başlangıçta video kaydı başlat
+                timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                output_filename = f"output_{timestamp}.mp4"
+                output_filepath = os.path.join(video_output_dir, output_filename)
+
                 # Dobot'un hareketlerini tanımlıyoruz
                 # Gelen pozisyonlar arayüzden çekiliyor
-                P1 = p1  # Arayüzden gelen P1
-                P2 = p2 if position_type == "Up, Down, Forward" else None  # Arayüzden gelen P2
-                P3 = p3  # Arayüzden gelen P3
-
+                # Yeni pozisyonlar ikinci döngü için
+                print(f"Speed set to {speed_value}%")
                 # Move to P1
                 move_to_position(dashboard, move, P1)
                 time.sleep(1)  # Dobot ilk pozisyonuna geçene kadar bekle
-
-                # Record button click
-                start_recording_url = "http://localhost:5488/start"
-                response = requests.post(start_recording_url, json={"username": username, "material": material, "speed": speed})
-                response.raise_for_status()
+                
+                print(f"Recording {i+1}/{num_iterations} started.")
+                start_recording_url = f"http://localhost:{flask_port}/start"
+                #response = requests.post(start_recording_url, json={"username": username, "material": material, "speed": speed})
+                #response.raise_for_status()
                 print(f"Recording started via Flask application. Iteration {i+1}/{num_iterations}")
-    
+                
+                # Kamera kaydını başlat
+                recording_process = start_recording(output_filepath)
+
                 page.wait_for_selector('button#rec', state='visible')
                 print(f"Recording {i+1}/{num_iterations}...")
                 page.click('button#rec')
                 print("Record button clicked.")
-
-                start_camera_recording(usb_camera_index, usb_camera_filename)
-                print(f"Started recording USB camera to {usb_camera_filename}")
-                
+  
                 # Dobot'u aşağı indir
                 if P2:
                     move_to_position(dashboard,move, P2)
-                    time.sleep(2)
+                    time.sleep(2.71)
+                #move_to_position(dashboard,move, P2)
+                #time.sleep(2)
                     
                 # Dobot'u aşağı indir
                 move_to_position(dashboard,move, P3)
-                time.sleep(2)
+                time.sleep(2.71)
                 
                 # Move to P1
                 move_to_position(dashboard, move, P1)
-                time.sleep(2)  # Dobot ilk pozisyonuna geçene kadar bekle
+                time.sleep(2.71)  # Dobot ilk pozisyonuna geçene kadar bekle
 
-                # Stop button click
+                 # Stop button click
                 page.wait_for_selector('button#stop', state='visible')
                 page.click('button#stop')
                 print("Stop button clicked.")
                 
-                # Stop recording
-                stop_recording_url = "http://localhost:5488/stop"
-                response = requests.get(stop_recording_url)
-                response.raise_for_status()
+                # Stop recording raspberyypi
+                stop_recording_url = f"http://localhost:{flask_port}/stop"
+                #response = requests.get(stop_recording_url)
+                #response.raise_for_status()
                 print("Recording stopped via Flask application.")
+                if P2 is not None:  # Eğer P2 geçerli ise
+                    P1 = (P1[0] + 1, P1[1], P1[2], P1[3])
+                    P2 = (P1[0], P2[1], P2[2], P2[3])  # P2 güncellenir
+                    P3 = (P1[0], P3[1], P3[2], P3[3])  # P3 güncellenir
+                else:  # P2 geçerli değilse
+                    print("P2 kullanılmadı, sadece P1 ve P3 güncelleniyor.")
                 
-                stop_camera_recording(usb_camera_index)
-                print(f"USB camera recording stopped and saved to {usb_camera_filename}")
-                
+                # Stop recording
+                time.sleep(0.91)
+                stop_recording(recording_process)
+
+                # İlk hareket setini tekrarla
+                           
             except Exception as e:
                 print(f"An error occurred in iteration {i+1}: {e}")
-      
+                
+        
         dashboard.DisableRobot()
+
         print(f"Iteration {i+1} completed.")
+        #print(f"All {num_iterations} loops completed.")
         context.close()
         browser.close()
         print(f"All {num_iterations} loops completed. Context and browser closed.")
 
 if __name__ == "__main__":
-    run_automation("test_user", config["materials"][1], config["speeds"][1], "Up, Down, Forward", (350, 0, 20, 0), (350, 0, 20, 0), (350, 0, -22, 0))
+    run_automation("test_user", config["materials"][0], config["speeds"][1], None, None, None, None)
+    #run_automation("test_user", config["materials"][0], config["speeds"][0], "Up, Down, Forward", (350, 0, 50, 0), (350, 0, 50, 0), (350, 0, -10, 0))
