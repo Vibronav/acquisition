@@ -1,3 +1,10 @@
+tkinter
+ttkthemes
+Pillow
+imageio
+asyncio
+playwright
+dobot
 numpy>=1,<2
 sounddevice>=0.4.6,<1
 paramiko>=3.3.1,<4
@@ -5,3 +12,7 @@ flask>=2.0.3,<3
 tqdm>=4,<5
 scipy>=1,<2
 librosa>=0,<1
+opencv-python>=4,<5  # For image processing
+matplotlib>=3,<4      # For visualization
+requests>=2,<3        # For HTTP requests
+pytest>=6,<7          # For writing tests

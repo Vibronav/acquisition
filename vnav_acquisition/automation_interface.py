@@ -41,7 +41,7 @@ def create_gui():
         elif selected_index == 2:
             speed_label.config(text="Speed: 25", foreground="red")
 
-    async def show_camera_feed():
+    """async def show_camera_feed():
         reader = imageio.get_reader('<video0>', 'ffmpeg')
         while True:
             frame = reader.get_next_data()
@@ -54,7 +54,7 @@ def create_gui():
     def start_camera_feed():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(show_camera_feed())
+        loop.run_until_complete(show_camera_feed())"""
 
     root = ThemedTk()
     root.title("Berke - Acquisition Tool Vibronav Automation Setup")
@@ -177,7 +177,7 @@ def create_gui():
 
     submit_button = ttk.Button(root, text="Submit", command=on_submit)
     submit_button.grid(row=11, column=1, padx=10, pady=10)
-
+    """
     # Create a canvas for the camera feed
     camera_canvas = tk.Canvas(root, width=640, height=480)
     camera_canvas.grid(row=12, column=0, columnspan=4, padx=10, pady=10)
@@ -186,7 +186,7 @@ def create_gui():
     camera_thread = threading.Thread(target=start_camera_feed)
     camera_thread.daemon = True
     camera_thread.start()
-
+    """
     root.mainloop()
 
 if __name__ == "__main__":
