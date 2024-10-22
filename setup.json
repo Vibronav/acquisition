@@ -1,0 +1,7 @@
+{
+    "connection": ["raspberrypi", 22, "pi", "VibroNav"], 
+    "materials": ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)", "African (silk)"],
+    "speeds": ["slow", "medium", "fast"],
+    "local_dir": "C:\\vnav_acquisition",
+    "remote_dir": "vnav_acquisition"
+}
