@@ -153,16 +153,29 @@ Additionally, ensure the following directory is set in `automation_playwright.py
 
 ### 3. Running the Application
 
-To start the GUI and begin the automation process, run the following command:
+To start the GUI and begin the automation process, follow these steps:
+
+1. **Start the web server**:
+    - Open your terminal and first run the `webserver.py` to start the web server:
+    
+```bash
+    python webserver.py
+```
+    This will run the server in the background without opening a terminal window, and the program will continue running.
+
+2. **Start the GUI**:
+    - Then, open another terminal and run the following command to start the GUI and begin the automation process:
 
 ```bash
-python automation_interface.py 
+    python automation_interface.py 
 ```
-or
+    or
 
 ```bash
-py automation_interface.py 
+    py automation_interface.py 
 ```
+
+This will open the graphical user interface (GUI) for entering parameters, and the web server will continue running in the background.
 
 ### 4. Submitting Parameters
 
