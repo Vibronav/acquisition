@@ -14,12 +14,12 @@ def show_live_cameras(camera_indices):
     camera_indices = [i for i in camera_indices if i != 0]
     
     # En fazla 2 kamerayı gösteriyoruz
-    if len(camera_indices) < 2:
+    if len(camera_indices) < 1:
         print("2 kamera bulunamadı, bağlantıları kontrol edin.")
         return
 
     # İlk iki kamerayı alıyoruz
-    camera_indices = camera_indices[:2]
+    camera_indices = camera_indices[:1]
     caps = [cv2.VideoCapture(i) for i in camera_indices]
 
     while True:

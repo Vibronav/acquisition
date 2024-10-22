@@ -7,6 +7,7 @@ import threading
 import webbrowser
 import argparse
 import json
+import os   # Berke 16.09.2024
 
 app = Flask(__name__)
 
@@ -52,6 +53,13 @@ def main():
     port = 5000 + random.randint(0, 999)
     url = "http://127.0.0.1:{0}".format(port)
     threading.Timer(1.25, lambda: webbrowser.open(url) ).start()
+    
+    # Berke 16.09.2024 Port bilgisini bir dosyaya yazalım  
+    port_file_path = os.path.join(os.path.dirname(__file__), 'flask_port.txt')
+    with open(port_file_path, 'w') as f:
+        f.write(str(port))
+    # Berke 16.09.2024 Port bilgisini bir dosyaya yazalım  
+    
     app.run(port=port, debug=False)
 
 
