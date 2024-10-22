@@ -161,7 +161,7 @@ To start the GUI and begin the automation process, follow these steps:
 ```bash
     python webserver.py
 ```
-    This will run the server in the background without opening a terminal window, and the program will continue running.
+    Now close the program which is opened on web browser. This will run the server in the background without opening a terminal window, and the program will continue running.
 
 2. **Start the GUI**:
     - Then, open another terminal and run the following command to start the GUI and begin the automation process:
