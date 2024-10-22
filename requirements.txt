@@ -1,10 +1,8 @@
-tkinter
 ttkthemes
 Pillow
 imageio
 asyncio
 playwright
-dobot
 numpy>=1,<2
 sounddevice>=0.4.6,<1
 paramiko>=3.3.1,<4
