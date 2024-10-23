@@ -107,13 +107,33 @@ pip install -r requirements.txt
 Your `requirements.txt` file should contain the following:
 
 ```
-tkinter
 ttkthemes
 Pillow
 imageio
 asyncio
 playwright
-dobot
+```
+### Installing Playwright
+
+After installing the required libraries, you also need to install Playwright dependencies. Run the following command in terminal:
+
+```bash
+playwright install
+```
+This step is crucial to ensure all necessary browser binaries are available for the Playwright library.
+
+### Installing FFmpeg
+
+If FFmpeg is not already installed on your system, you can download and install it by following the instructions specific to your operating system:
+
+- For Windows, download the latest build from FFmpeg's official [https://www.ffmpeg.org/download.html] site and follow the installation instructions.
+- For macOS, you can use Homebrew:
+```bash
+brew install ffmpeg
+```
+- For Linux, use your package manager, for example:
+```bash
+sudo apt-get install ffmpeg
 ```
 
 ---
@@ -197,6 +217,10 @@ Example for updating the paths:
 setup_json_path = r'C:\path\to\your\setup.json'
 video_output_dir = r'C:\path\to\your\output_videos'
 ```
+
+### 5. Closing the Program
+
+To safely close the program, return to the terminal where the application is running and press **`Ctrl + C`**. This will terminate the processes without requiring you to close the opened GUI windows directly.
 
 ---
 
