@@ -19,12 +19,13 @@ def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
 
         # execute FFmpeg from PowerShell
         try:
-            subprocess.run(ffmpeg_command, check=True, shell=True)
+            subprocess.run(ffmpeg_command)
             fs, x = read_wave(tmp_wav_file)
             os.remove(tmp_wav_file)
             return fs, x
         except subprocess.CalledProcessError as e:
             print(f'Error while executing FFmpeg: {e}')
+            raise e
 
 
 def argmax_correlation(input_signal, sync_signal):
