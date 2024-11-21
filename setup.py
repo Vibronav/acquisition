@@ -18,7 +18,16 @@ setup(
     install_requires=install_requires,
     extras_require={},
     package_data={
-        'vnav_acquisition': ['*.js', '*.css', '*.html', '*.txt']
+        'vnav_acquisition': ['*.js', 
+        '*.css', 
+        '*.html', 
+        '*.txt', 
+        'front_app/*',
+        'front_app/dist/*',
+        'front_app/dist/assets/*',
+        'front_app/.vite/*'
+        ],
+
     },
     data_files=[],
     entry_points={

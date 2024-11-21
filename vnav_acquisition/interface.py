@@ -11,6 +11,7 @@ def _choices2radiobuttons(choice_list, choice_name):
 
 
 def get_html(materials, speeds):
+    
     content = {
         "JS": open(os.path.join(os.path.dirname(__file__), "main.js")).read(),
         "CSS": open(os.path.join(os.path.dirname(__file__), "style.css")).read(),
