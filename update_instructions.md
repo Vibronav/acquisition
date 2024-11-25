@@ -5,6 +5,7 @@ Uninstall old version
 python -m pip uninstall -y vnav_acqiusition
 ```
 
+This will install the new version of the app:
 ```commandline
 python -m pip install git+https://github.com/Vibronav/acquisition.git@vibronav_acqiusition_v2
 ```
