@@ -25,7 +25,8 @@ setup(
         'front_app/*',
         'front_app/dist/*',
         'front_app/dist/assets/*',
-        'front_app/.vite/*'
+        'front_app/.vite/*',
+        'audio.wav'
         ],
 
     },

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import axiosInstance from '../../axiosConfig.js'
 
 const AudioVisualizer = () => {
   const canvasRef = useRef(null);
@@ -8,11 +9,35 @@ const AudioVisualizer = () => {
   const bufferLengthRef = useRef(null);
   const sourceRef = useRef(null);
 
+  // List available media devices and choose a specific one
+  async function listAndSelectMediaDevice() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    let audioInputDeviceId = null;
+
+    devices.forEach(device => {
+      console.log(`${device.kind}: ${device.label} (ID: ${device.deviceId})`);
+      // Choose the first audio input device (microphone)
+      if (device.label === 'Domyślny - Internal Microphone (Built-in)') {
+        audioInputDeviceId = device.deviceId;
+      }
+    });
+
+    return audioInputDeviceId;
+  }
+
   useEffect(() => {
     const init = async () => {
       try {
+        // Get the deviceId of a specific microphone
+        const selectedDeviceId = await listAndSelectMediaDevice();
+
+        if (!selectedDeviceId) {
+          console.error("No audio input devices found.");
+          return;
+        }
+       
         // Access the microphone
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: selectedDeviceId  } });
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
         analyserRef.current = audioContextRef.current.createAnalyser();
         sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
@@ -58,7 +83,7 @@ const AudioVisualizer = () => {
 
       for (let i = 0; i < bufferLengthRef.current; i++) {
         const v = dataArrayRef.current[i] / 128.0;
-        const y = (v * canvas.height) / 2;
+        const y = (v * canvas.height) / 2 ;
 
         if (i === 0) {
           canvasCtx.moveTo(x, y);

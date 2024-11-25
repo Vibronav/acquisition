@@ -57,7 +57,7 @@ export default function ConfigChange({config, setConfig, handleReset }) {
     setIncorrectUsername(isUsernameIncorrect);
 
     if (!isUsernameIncorrect) {
-      navigate(routes['Camera']);
+      navigate(routes['AcqDobot']);
     }
 
   };

@@ -17,7 +17,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import Error from './components/Error.jsx';
 
 const ConfigChange = lazy(() => import("./pages/ConfigChange.jsx"))
-const Acquisition = lazy(() => import("./pages/Acquisition.jsx"))
+const AcquisitionManual = lazy(() => import("./pages/AcquisitionManual.jsx"))
 
 const messages = {
   'en': messagesEn,
@@ -82,7 +82,7 @@ function App() {
               <Route
                 path={routes.Home}
                 element={
-                  <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+                  <Container  style={{ marginTop: '20px' }}>
                   {config === null ? (
                     <LoadingBar/>
                   ) : (
@@ -100,15 +100,15 @@ function App() {
                 }
               />
               <Route
-                path={routes.Camera}
+                path={routes.AcqManual}
                 element={
-                  <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+                  <Container  maxWidth="lg"  style={{ marginTop: '20px' }}>
                     {config === null ? (
                     <LoadingBar/>
                   ) : (
                       <ErrorBoundary fallback={<Error config={'config'}/>}>
                         <Suspense fallback={<LoadingBar/>}>
-                          <Acquisition
+                          <AcquisitionManual
                           config={config}
                           />
                         </Suspense>
@@ -116,6 +116,7 @@ function App() {
                   </Container>
                 }
               />
+
             </Routes>
           </HashRouter>
         </ThemeProvider>

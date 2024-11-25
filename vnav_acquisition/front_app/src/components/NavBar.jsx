@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { MenuItem, Select } from '@mui/material';
+import { MenuItem, Select, Button } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -20,33 +21,41 @@ export default function NavBar({ currentTheme, onChangeTheme, changeLanguage }) 
     navigate(routes['Home']);
   };
 
+
   const intl = useIntl();
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
         <Toolbar variant="dense">
+
           <IconButton
             size="small"
             edge="start"
             color="inherit"
             aria-label="menu"
-            sx={{ mr: 2 }}
+            
+            onClick={handleConfigChange}
           >
-            <SettingsIcon onClick={handleConfigChange} />
-          </IconButton>
-          <Typography variant="h8" component="div" sx={{ flexGrow: 1 }}>
-            {<FormattedMessage id="configurationChange"/>}
+            <SettingsIcon sx={{ mr: 1 }} />
+            <Typography  component="div" >
+            {<FormattedMessage id="configurationChange" />}
           </Typography>
+          </IconButton>
+          
+
+          
+          <Box sx={{ flexGrow: 1 }}></Box>
+
           <KeyboardShortcutsHelp></KeyboardShortcutsHelp>
           <ThemeSwitchButton currentTheme={currentTheme} onChange={onChangeTheme} />
           <Select
             value={intl.locale}
             onChange={changeLanguage}
           >
-            <MenuItem value="en"><FormattedMessage id="en"/></MenuItem>
-            <MenuItem value="pl"><FormattedMessage id="pl"/></MenuItem>
-            <MenuItem value="de"><FormattedMessage id="de"/></MenuItem>
+            <MenuItem value="en"><FormattedMessage id="en" /></MenuItem>
+            <MenuItem value="pl"><FormattedMessage id="pl" /></MenuItem>
+            <MenuItem value="de"><FormattedMessage id="de" /></MenuItem>
           </Select>
         </Toolbar>
       </AppBar>

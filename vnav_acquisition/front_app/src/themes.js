@@ -24,9 +24,6 @@ export const darkTheme = createTheme({
         divider: "rgba(255, 255, 255, 0.12)",
     },
 
-
-
-
 });
 
 export const lightTheme = createTheme({

@@ -2,7 +2,6 @@ import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@m
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import AudioPlayer from '../components/AudioPlayer.jsx';
 import LabChecklist from '../components/LabChecklist.jsx';
 import RecordingButtons from '../components/RecordingButtons.jsx';
 import VideoAudioSelect from '../components/VideoAudioSelect.jsx';
@@ -11,7 +10,7 @@ import { TextareaAutosize } from '@mui/material';
 import { useEffect } from 'react';
 
 
-const Acquisition = ({ config }) => {
+const AcquisitionManual = ({ config }) => {
     // State variables
     const [selectedVideoDevices, setSelectedVideoDevices] = useState([]); // Selected video devices state
     const [videoDevices, setVideoDevices] = useState([]); // Video devices state
@@ -124,7 +123,7 @@ const Acquisition = ({ config }) => {
                         <FormattedMessage id="performedMeasurements" />
                         : {measurementCounter}
                     </Typography>
-                    <Typography variant="h6">
+                    {/* <Typography variant="h6">
                     <FormattedMessage id="comment"/>
                         <TextareaAutosize   
                             style={{ width: '100%' }} 
@@ -133,7 +132,7 @@ const Acquisition = ({ config }) => {
                             maxRows={10}
                             onChange={(() => {setComment(event.target.value)})}
                         />
-                    </Typography>
+                    </Typography> */}
                 </Stack>
 
                 {/* Stack for video recording controls */}
@@ -157,6 +156,7 @@ const Acquisition = ({ config }) => {
                         audioFiles={audioFiles}
                         setAudioFiles={setAudioFiles}
                         setRecordingStatus={setRecordingStatus}
+                        localDir={config.local_dir}
                     />
                 </Stack>
 
@@ -167,8 +167,8 @@ const Acquisition = ({ config }) => {
     );
 }
 
-Acquisition.propTypes = {
+AcquisitionManual.propTypes = {
     config: PropTypes.object.isRequired
 };
 
-export default Acquisition;
+export default AcquisitionManual;

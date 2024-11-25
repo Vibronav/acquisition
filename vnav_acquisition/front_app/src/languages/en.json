@@ -36,7 +36,9 @@
   "recordingStarted": "Recording started",
   "recordingConnectFailed": "❌ Connection to raspberrypi failed: ",
   "connectingToRaspberry": "Connecting to RaspberryPi with SSH... ",
-  "recordingSaved": "Recording saved: ",
   "recordingDownloaded": "Recording downloaded",
-  "comment": "Comment"
+  "comment": "Comment",
+  "recordingUploaded": "Recording saved ",
+  "recordedSuccesfully": "Successfully recorded. Save or delete ",
+  "dobotInterface": "Dobot Parameters"
 }

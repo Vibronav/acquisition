@@ -10,10 +10,18 @@
         "Ikea (plastic bag)",
         "African (silk)"
     ],
-    "chosenMaterials": [],
+    "chosenMaterials": [
+        "Slime",
+        "Silicone",
+        "PU",
+        "Plato (play dough)",
+        "Plastic",
+        "Ikea (plastic bag)",
+        "African (silk)"
+    ],
     "newMaterials": [],
     "defaultSpeeds": ["slow", "medium", "fast"],
-    "chosenSpeeds": [],
+    "chosenSpeeds": ["slow", "medium", "fast"],
     "newSpeeds": [],
     "local_dir": "c:\\vnav_acquisition",
     "remote_dir": "vnav_acquisition",

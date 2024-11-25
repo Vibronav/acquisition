@@ -15,7 +15,7 @@ const defaultConfig = {
   defaultSpeeds: ["slow", "medium", "fast"],
   chosenSpeeds: [],
   newSpeeds: [],
-  local_dir: "c:\\vnav_acquisition",
+  local_dir: ".",
   remote_dir: "vnav_acquisition",
   lab_checks: [
     "Quiet room/reduce external noises",

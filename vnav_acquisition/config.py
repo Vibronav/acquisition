@@ -54,6 +54,6 @@ class Configurator:
         return self._config.get(key, self._DEFAULT_CONFIG[key])
 
 
-config = Configurator()
+app_config = Configurator()
 
 

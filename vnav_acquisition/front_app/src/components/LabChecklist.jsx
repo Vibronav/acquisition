@@ -41,12 +41,12 @@ export default function LabChecklist({ config }) {
 
     // Define styles conditionally based on allChecked
     const buttonStyles = {
-        backgroundColor: !allChecked &&  'error.main',
+        backgroundColor: !allChecked &&  'secondary.main',
         '&:hover': {
-            backgroundColor: !allChecked && 'error.main',
+            backgroundColor: !allChecked && 'secondary.main',
         },
         '&:active': {
-            backgroundColor: !allChecked && 'error.main',
+            backgroundColor: !allChecked && 'secondary.main',
         },
     };
 

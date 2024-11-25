@@ -8,11 +8,17 @@ import RecordRTC from 'recordrtc';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 import WebcamRenderer from './WebcamRenderer';
 import AudioVisualizer from './AudioVisualizer';
+import AudioStream from './Audio_Vis.jsx';
 
 RecordingButtons.propTypes = {
   username: PropTypes.string.isRequired,
   material: PropTypes.string,
   speed: PropTypes.string,
+  positionType: PropTypes.string.isRequired,
+  P1: PropTypes.string.isRequired,
+  P2: PropTypes.string.isRequired,
+  P3: PropTypes.string.isRequired,
+  numIterations: PropTypes.number.isRequired,
   isCamera: PropTypes.bool.isRequired,
   measurementCounter: PropTypes.number.isRequired,
   setMeasurementCounter: PropTypes.func.isRequired,
@@ -29,6 +35,11 @@ export default function RecordingButtons({
   username, 
   material, 
   speed, 
+  positionType,
+  P1,
+  P2,
+  P3,
+  numIterations,
   measurementCounter, 
   setMeasurementCounter,
   selectedVideoDevices,
@@ -192,52 +203,118 @@ export default function RecordingButtons({
     }
 };
 
-
-
-  const handleRecording = useCallback(async () => {
-    setLoading(true); // Set loading state while API call is in progress
+const handleRecording = useCallback(async () => {
+  setLoading(true); // Set loading state while API call is in progress
+  setRecordingStatus("start");
+  
+  for (let i = 1; i <= numIterations; i++) {
     try {
-      if (recording) {
-        const response = await axiosInstance.get('/stop');
-        const filenames = response.data.map(file => file.filename);
-        setDebugMessage(intl.formatMessage({ id: 'recordedSuccesfully' }) + filenames.join(', '));
-        setMeasurementCounter(measurementCounter + 1);
-        setDeleteLastPossible(true);
-        setAudioFiles(response.data);
-        setRecordingStatus("stop");
+      setDebugMessage(intl.formatMessage({ id: 'connectingToRaspberry' }));
 
-      } else {
-        setDebugMessage(intl.formatMessage({ id: 'connectingToRaspberry' }));
-        await axiosInstance.post('/start', {
-          username,
-          material,
-          speed,
-        });
-        setDebugMessage(intl.formatMessage({ id: 'recordingStarted' }));
-
-        if(isDeleteLastPossible){
-          await handleDownloadingRecording();
-          
-        }
-
-        setDeleteLastPossible(false);
-
-        setCameraIndexes(
-          selectedVideoDevices
-            .map((selectedLabel) => videoDevices.findIndex((device) => device.label === selectedLabel))
-            .filter((index) => index !== -1)
-        );
-        setRecordedChunks([]);
-        setRecordingStatus("start");
-
+      if (isDeleteLastPossible) {
+        await handleDownloadingRecording();
       }
-      setRecording(prevRecording => !prevRecording);
+
+      setDeleteLastPossible(false);
+
+      setCameraIndexes(
+        selectedVideoDevices
+          .map((selectedLabel) => videoDevices.findIndex((device) => device.label === selectedLabel))
+          .filter((index) => index !== -1)
+      );
+      setRecordedChunks([]);
+      setDebugMessage(i + ': ' + intl.formatMessage({ id: 'recordingStarted' }));
+      console.log("REC");
+      
+      // Await the axios post request to ensure it completes before moving on
+      const response = await axiosInstance.post('/start_dobot', {
+        username,
+        material,
+        speed,
+        positionType,
+        P1,
+        P2,
+        P3
+      });
+
+      // Optionally handle the response from the server
+      console.log("Start Dobot response:", response.data);
+
+      // After start_dobot call is finished - stop also camera recording
+      const stopResponse = await axiosInstance.get('/stop');
+      const filenames = stopResponse.data.map(file => file.filename);
+      console.log("FILENAMES:", filenames);
+      setDebugMessage(i + ': ' + intl.formatMessage({ id: 'recordedSuccesfully' }) + filenames.join(', '));
+      
     } catch (error) {
       setDebugMessage(intl.formatMessage({ id: 'recordingConnectFailed' }) + error);
     } finally {
       setLoading(false); // Reset loading state after API call is completed
     }
-  }, [recording, measurementCounter, username, material, speed, setMeasurementCounter, setAudioFiles]);
+  }
+  
+  setRecordingStatus("stop");
+  setDeleteLastPossible(true);
+}, [setRecordingStatus, username, material, speed, isDeleteLastPossible, selectedVideoDevices, videoDevices]);
+
+
+  // const handleRecording = useCallback(async () => {
+  //   setLoading(true); // Set loading state while API call is in progress
+  //   setRecordingStatus("start");
+  //   for (let i = 1; i <= numIterations; i++) {
+  //     try {
+        
+  //         setDebugMessage(intl.formatMessage({ id: 'connectingToRaspberry' }));
+          
+
+  //         if(isDeleteLastPossible){
+  //           await handleDownloadingRecording();
+  //         }
+
+  //         setDeleteLastPossible(false);
+
+  //         setCameraIndexes(
+  //           selectedVideoDevices
+  //             .map((selectedLabel) => videoDevices.findIndex((device) => device.label === selectedLabel))
+  //             .filter((index) => index !== -1)
+  //         );
+  //         setRecordedChunks([]);
+  //         setDebugMessage(i +': '+intl.formatMessage({ id: 'recordingStarted' }));
+  //         console.log("REC")
+  //         // synchronous call, will execute dobot acquisition movements
+  //         axiosInstance.post('/start_dobot', {
+  //           username,
+  //           material,
+  //           speed,
+  //           positionType,
+  //           P1,
+  //           P2,
+  //           P3
+  //         });
+          
+
+  //         // // after start_dobot call is finished - stop also camera recording
+  //         // const response = axiosInstance.get('/stop');
+  //         // const filenames = response.data.map(file => file.filename);
+  //         // console.log("FILENAMES :", filenames)
+  //         // console.log("RESPONSE :",response)
+  //         // setDebugMessage(i +': ' + intl.formatMessage({ id: 'recordedSuccesfully' }) + filenames.join(', '));
+  //         // setMeasurementCounter(measurementCounter + 1);
+  //         // setAudioFiles(response.data);
+          
+        
+  //     } catch (error) {
+  //       setDebugMessage(intl.formatMessage({ id: 'recordingConnectFailed' }) + error);
+  //     } finally {
+  //       setLoading(false); // Reset loading state after API call is completed
+  //     }
+
+      
+  //   }
+  //   setRecordingStatus("stop");
+  //   setDeleteLastPossible(true);
+
+  // }, [recording, measurementCounter, username, material, speed, setMeasurementCounter, setAudioFiles]);
 
   const handleDeleteLastRecording = useCallback(async () => {
     setLoading(true); // Set loading state while API call is in progress
@@ -275,7 +352,7 @@ export default function RecordingButtons({
 
   return (
     <Stack spacing={2}>
-      <AudioVisualizer></AudioVisualizer>
+      {/* <AudioStream></AudioStream> */}
       <Stack direction="row" spacing={2}>
         <Button
           onClick={handleRecording}

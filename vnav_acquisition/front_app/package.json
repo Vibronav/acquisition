@@ -20,14 +20,17 @@
     "@mui/material": "^5.15.14",
     "@wavesurfer/react": "^1.0.6",
     "axios": "^1.6.8",
+    "plotly.js": "^2.35.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-error-boundary": "^4.0.13",
     "react-intl": "^6.6.8",
+    "react-plotly.js": "^2.6.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.23.1",
     "react-webcam": "^7.2.0",
     "recordrtc": "^5.6.2",
+    "socket.io-client": "^4.8.0",
     "wavesurfer.js": "^7.7.15"
   },
   "devDependencies": {

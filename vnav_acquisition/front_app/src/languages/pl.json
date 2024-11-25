@@ -36,7 +36,9 @@
   "recordingStarted": "Nagrywanie rozpoczęte ",
   "recordingConnectFailed": "❌ Połączenie z Raspberry Pi nie powiodło się: ",
   "connectingToRaspberry": "Łączenie z Raspberry Pi przez SSH... ",
-  "recordingSaved": "Nagranie zapisane: ",
   "recordingDownloaded": "Nagranie pobrane ",
-  "comment": "Komentarz"
+  "comment": "Komentarz",
+  "recordingUploaded": "Narganie zapisane ",
+  "recordedSuccesfully": "Nagranie zarejestrowane. Zapisz lub usuń ",
+  "dobotInterface": "Interfejs Dobota"
 }
