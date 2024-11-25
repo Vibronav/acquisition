@@ -1,5 +1,4 @@
 import base64
-import random
 import threading
 from flask import Flask, request, jsonify, send_from_directory, url_for, send_from_directory, render_template_string
 from flask_cors import CORS
@@ -9,9 +8,7 @@ from .config import app_config
 import argparse
 import os
 import webbrowser
-from .audio_stream import start_recording, data_listener, parse_data
-import numpy as np
-from .automation import run_automation
+from .audio_stream import Streamer
 import time
 
 
@@ -21,6 +18,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize SocketIO instan
 # Configure CORS using Flask-CORS (adjust origins as needed)
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173","http://127.0.0.1:5000"]}})
 
+streamer = Streamer()
 
 
 @app.after_request
@@ -46,31 +44,11 @@ def parse_config():
 # WebSocket route for NumPy streaming
 @app.route("/api/audio_stream", methods=['GET'])
 def handle_connect():
-    #data_to_send = parse_data()  # Convert NumPy array to list for JSON serialization
-
-    # return jsonify({
-    #     "audio_channel1": data_to_send[0].tolist(),
-    #     "audio_channel2": data_to_send[1].tolist()
-    # })
-
-    #===== Stub audio ==========
-    # Parameters
-
-    frequency = random.randint(240, 450)  # Frequency of the sine wave (in Hz)
-    sample_rate = 44100  # Sample rate (in samples per second)
-    duration = 1024 / sample_rate  # Duration in seconds for 1024 samples
-
-    # Generate time values for 1024 samples
-    t = np.linspace(0, duration, 1024, endpoint=False)
-
-    # Generate the sine wave
-    sine_wave = np.sin(2 * np.pi * frequency * t)
-
     return jsonify({
-        "audio_channel1": sine_wave.tolist(),
-        "audio_channel2": sine_wave.tolist()
-     })
-        
+        "audio_channel1": streamer.data_channel1,
+        "audio_channel2": streamer.data_channel2
+    })
+
 
 
 # will serve recorded files
@@ -187,11 +165,14 @@ def main():
     if args.setup:
         app_config.load_from_json(args.setup)
 
-    # audio_out = start_recording()
-    # threading.Thread(target=data_listener, args=(audio_out,), daemon=True).start()
+    #Audio stream
+    if (streamer.isRunning):
+        stdout = streamer.start_recording()
+        threading.Thread(target=streamer.data_listener, args=(stdout,), daemon=True).start()
+
 
     url = "http://127.0.0.1:5000"
-    # recorder.run()
+
     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
     socketio.run(app, port=5000, debug=False)
 

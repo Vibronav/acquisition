@@ -14,6 +14,7 @@ function AudioStreamComponent() {
       try {
         const response = await axiosInstance.get('/audio_stream');
         const audioChannelData = response.data.audio_channel1;
+        console.log(response.data.audio_channel1)
         dataArrayRef.current.set(audioChannelData.map(val => Math.min(255, val * 255)));
         setAudioData([...dataArrayRef.current]); // Trigger draw update
       } catch (error) {
@@ -84,7 +85,7 @@ function AudioStreamComponent() {
 
   return (
     <>
-      <div> {audioData ? '': 'Loading...'}</div>
+      <div> {audioData ? '': 'Loading...'} </div>
       <canvas ref={canvasRef} width="600" height="90" ></canvas>
     </>
   );

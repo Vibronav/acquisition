@@ -6,3 +6,6 @@ tqdm>=4,<5
 scipy>=1,<2
 librosa>=0,<1
 flask_cors>=4.0.1
+pygrabber>=0.2
+pyaudio>=0.2.14
+flask_socketio>=5.3.6

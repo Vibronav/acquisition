@@ -1,12 +1,17 @@
 To update app to version execute following commands:
 
+Uninstall old version
+```commandline
+python -m pip uninstall -y vnav_acqiusition
+```
+
 ```commandline
 python -m pip install git+https://github.com/Vibronav/acquisition.git@vibronav_acqiusition_v2
 ```
 
-Or to install **old version** back run:
+Or to install **old version** run:
 ```commandline
-pip install pip install git+https://github.com/Vibronav/acquisition.git@master
+python -m pip install git+https://github.com/Vibronav/acquisition.git@master
 ```
 Always run the *uninstall* command inbetween switching the versions.
 

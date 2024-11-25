@@ -8,6 +8,7 @@ import RecordRTC from 'recordrtc';
 import axiosInstance from '../../axiosConfig'; // Import the configured Axios instance
 import WebcamRenderer from './WebcamRenderer';
 import AudioVisualizer from './AudioVisualizer';
+import AudioStreamComponent from './Audio_Vis';
 
 RecordingButtons.propTypes = {
   username: PropTypes.string.isRequired,
@@ -275,7 +276,7 @@ export default function RecordingButtons({
 
   return (
     <Stack spacing={2}>
-      <AudioVisualizer></AudioVisualizer>
+      <AudioStreamComponent></AudioStreamComponent>
       <Stack direction="row" spacing={2}>
         <Button
           onClick={handleRecording}
