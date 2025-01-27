@@ -90,3 +90,51 @@ Requires Python 3.10. To install tool, run in command line:
 ```commandline
 python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
 ```
+### Use Vibronav acqusition V2
+
+To install vnav_acquisition package **unstable React version** (without cloning git repo):
+```
+python -m pip uninstall vnav-acquisition # if you have old version installed
+python -m pip install https://github.com/Vibronav/acquisition/archive/vibronav_acquisition_v2.zip # install react version
+```
+
+
+For development,  to clone git repo:
+```
+git clone https://github.com/Vibronav/acquisition/tree/vibronav_acquisition_v2
+```
+
+you can use `run.sh` script to build and run the app 
+```
+./run.sh #runs the app
+```
+
+To see the changes you’ve made in backend  you need to build backend
+```
+./run.sh -b #builds backend and runs the app
+```
+
+To see the changes you’ve made in front_app/ you need to build frontend 
+```
+./run.sh -f #builds frontend and runs the app
+```
+
+```
+./run.sh -fb # builds everything
+```
+
+You can open the app on http://localhost:5000
+
+
+Run backend by using `run.sh` script (this will open also an instance of frontend on localhost:5000, but it doesn’t matter):
+```
+./run.sh
+```
+
+Simultaneously run frontend by:
+```
+cd front_app
+npm start #this will run a frontend on localhost:5173
+```
+
+Open http://localhost:5173 in your browser. Now when you make any changes to files in front_app/ directory they will be reflected in the browser instantaneously
