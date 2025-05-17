@@ -57,7 +57,7 @@ function renderRadioButtons(wrapper, name, values) {
 
 async function loadConfig() {
 	try {
-		const res = await fetch("/api/config");
+		const res = await fetch("/config");
 		if(!res.ok) throw new Error();
 		return await res.json();
 	} catch {

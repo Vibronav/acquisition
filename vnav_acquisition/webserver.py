@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
 from vnav_acquisition.config import config
@@ -8,17 +8,32 @@ import webbrowser
 import argparse
 import json
 import os   # Berke 16.09.2024
+from pathlib import Path
 
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR
+PORT_FILE = BASE_DIR / "flask_port.txt"
+
+app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
+app.config["JSON_AS_ASCII"] = False
 
 
 @app.route("/", methods=['GET'])
 def frontpage():
-    return get_html(materials=config['materials'], speeds=config['speeds'])
+    return send_from_directory(STATIC_DIR, "index.html")
+
+@app.route("/config", methods=['GET'])
+def api_config():
+    print("Received config/GET request")
+    return jsonify({
+        "materials": config["materials"],
+        "speeds": config["speeds"]
+    })
 
 
 @app.route("/stop", methods=['GET'])
 def stop():
+    print("Received stop/GET request")
     recording_status = on_rec_stop()
     print("Received stop/GET request")
     return jsonify(recording_status)
@@ -40,26 +55,29 @@ def delete_last():
     return jsonify(deleted_files)
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
                                                  "(from rasberry_pi/banana_pi devboard) and video from webcam")
     parser.add_argument("--setup", help="Path to setup JSON file (if not provided or some fields are missing, default "
-                                        "configuration is used.)",
-                        default="")
-    args = parser.parse_args()
+                                        "configuration is used.)", default="")
+    parser.add_argument("--port", type=int, help="Port (default 5000)", default=5000)
+    parser.add_argument("--open-browser", action="store_true", help="Open browser after start")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
     if args.setup:
         config.load_from_json(args.setup)
 
     # port = 5000 + random.randint(0, 999)
-    port = 5000
+    port = args.port
     url = "http://127.0.0.1:{0}".format(port)
-    #threading.Timer(1.25, lambda: webbrowser.open(url) ).start()
-    
-    # Berke 16.09.2024 writing the port number to a file
-    port_file_path = os.path.join(os.path.dirname(__file__), 'flask_port.txt')
-    with open(port_file_path, 'w') as f:
-        f.write(str(port))
-    # Berke 16.09.2024 writing the port number to a file
+
+    PORT_FILE.write_text(str(port), encoding="utf-8")
+
+    if args.open_browser:
+        threading.Timer(1.0, lambda: webbrowser.open(url), ).start()
     
     app.run(port=port, debug=False)
 
