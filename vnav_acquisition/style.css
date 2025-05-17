@@ -3,7 +3,7 @@ body {
      font-size: 13px;
      background-color: #F8F8F8;
 }
- div {
+div {
      background-color: #FFF;
 }
 .container {
@@ -11,7 +11,10 @@ body {
      grid-template-columns: min-content min-content min-content;
      grid-template-rows: min-content min-content min-content;
      gap: 10px 10px;
-     grid-template-areas: "head head head" "name type kind" "video video video";
+     grid-template-areas:
+          "head head head head" 
+          "name iter type kind" 
+          "video video video video";
      background-color: #F8F8F8;
 }
 .content-wrapper {
@@ -27,6 +30,12 @@ body {
 }
 .name {
      grid-area: name;
+     box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+     border-radius: 5px;
+     padding: 10px;
+}
+.iter {
+     grid-area: iter;
      box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
      border-radius: 5px;
      padding: 10px;

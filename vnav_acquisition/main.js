@@ -3,10 +3,10 @@
 /* globals MediaRecorder */
 // Spec is at http://dvcs.w3.org/hg/dap/raw-file/tip/media-stream-capture/RecordingProposal.html
 
-const recBtn = document.getElementById("rec");
-const stopBtn = document.getElementById('stop');
-const deleteBtn = document.getElementById('delete');
+
 const usernameEl = document.getElementById('username');
+const iterEl = document.getElementById("iterations");
+const startAutomationBt = document.getElementById("startTests");
 
 const materialsContainter = document.getElementById("materials");
 const speedsContainer = document.getElementById("speeds");
@@ -16,8 +16,6 @@ const videoSelect = document.getElementById("videoSource");
 const selectors = [audioInputSelect, videoSelect];
 
 const liveVideoElement = document.getElementById('video');
-const downloadLink = document.getElementById('downloadLink');
-const statusLabel = document.getElementById('statusLabel');
 
 
 liveVideoElement.controls = false;
@@ -75,7 +73,7 @@ function gotDevices(deviceInfos) {
 
   deviceInfos.forEach((info) => {
 	const option = document.createElement("option");
-	option.value = info.deficeId
+	option.value = info.deviceId
 	option.text = info.label || `${info.kind} ${option.value}`
 	if(info.kind == "audioinput") {
 		audioInputSelect.appendChild(option)
@@ -120,7 +118,7 @@ function start() {
 		.then((stream) => {
 			localStream = stream;
 			liveVideoElement.srcObject = stream;
-			liveVideoElement.play();
+			// liveVideoElement.play();
 		})
 		.catch(handleError);
 }
@@ -128,170 +126,69 @@ function start() {
 audioInputSelect.onchange = start;
 videoSelect.onchange = start;
 
-function onRecord(){
-	const username = usernameEl.value.trim()
-	const material = document.querySelector('input[name="materials"]:checked')
-	const speed = document.querySelector('input[name="speeds"]:checked')
-
-	if(!localStream) {
-		alert('Could not get local stream from mic/camera');
-	} 
-	if(!username) {
-		alert('Please input user name');
-	}
-	if(!material) {
-		alert('Please select material');
-	}
-	if(!speed) {
-		alert('Please select speed');
-	}
-
-	recBtn.disabled = true;
-	recBtn.textContent = 'Recording...';
-	stopBtn.disabled = false;
-	statusLabel.textContent = 'Comunicating with RaspberryPi...';
-
-	/* use the stream */
-	log('Start recording...');
-	fetch("/start", {
-		method: "POST",
-		body: JSON.stringify({
-			username: username.value,
-			material: material.value,
-			speed: speed.value
-		}),
-		headers: {
-			"Content-type": "application/json; charset=UTF-8"
-		}
-	})
-		.then(res => res.json())
-		.then(filename => {
-			videoFileName = filename;
-			console.log(filename)
-			statusLabel.textContent = `Recording started (${filename})`;
-		});
-
-	
-
-	if (typeof MediaRecorder.isTypeSupported == 'function'){
-		/*
-			MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
-		*/
-		if (MediaRecorder.isTypeSupported('video/mp4')) {
-			//Safari 14.0.2 has an EXPERIMENTAL version of MediaRecorder enabled by default
-			containerType = "video/mp4";
-			var options = {mimeType: 'video/mp4'};
-		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-			var options = {mimeType: 'video/webm;codecs=vp9'};
-		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-			var options = {mimeType: 'video/webm;codecs=h264'};
-		} else if (MediaRecorder.isTypeSupported('video/webm')) {
-			var options = {mimeType: 'video/webm'};
-		}
-		log('Using '+options.mimeType);
-		mediaRecorder = new MediaRecorder(localStream, options);
-	}else{
-		log('isTypeSupported is not supported, using default codecs for browser');
-		mediaRecorder = new MediaRecorder(localStream);
-	}
-
-	chunks = [];
-
-	mediaRecorder.ondataavailable = function(e) {
-		log('mediaRecorder.ondataavailable, e.data.size='+e.data.size);
-		if (e.data && e.data.size > 0) {
-			chunks.push(e.data);
-		}
-	};
-
-	mediaRecorder.onerror = function(e){
-		log('mediaRecorder.onerror: ' + e);
-	};
-
-	mediaRecorder.onstart = function(){
-		log('mediaRecorder.onstart, mediaRecorder.state = ' + mediaRecorder.state);
-		
-		localStream.getTracks().forEach(function(track) {
-			if(track.kind == "audio"){
-			log("onstart - Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-			}
-			if(track.kind == "video"){
-			log("onstart - Video track.readyState="+track.readyState+", track.muted=" + track.muted);
-			}
-		});
-		
-	};
-
-	mediaRecorder.onpause = function(){
-		log('mediaRecorder.onpause, mediaRecorder.state = ' + mediaRecorder.state);
-	}
-
-	mediaRecorder.onresume = function(){
-		log('mediaRecorder.onresume, mediaRecorder.state = ' + mediaRecorder.state);
-	}
-
-	mediaRecorder.onwarning = function(e){
-		log('mediaRecorder.onwarning: ' + e);
-	};
-
-	mediaRecorder.onstop = onRecorderStop;
-
-	mediaRecorder.start(1000);
-
-	localStream.getTracks().forEach(function(track) {
-		log(track.kind+":"+JSON.stringify(track.getSettings()));
-		console.log(track.getSettings());
-	})
-
-}
 
 navigator.mediaDevices.ondevicechange = function(event) {
 	log("mediaDevices.ondevicechange");
-}
-
-function onRecorderStop() {
-	const blob = new Blob(chunks, {type: mediaRecorder.mimeType});
-	const url = URL.createObjectURL(blob);
-	const ext = containerType == "video/mp4" ? "mp4" : "webm";
-	const name = `${videoFileName}.${ext}`
-
-	downloadLink.hidden = false;
-	downloadLink.href = url;
-	downloadLink.download = name;
-	downloadLink.textContent = `Download recording ${name}`;
-
-	fetch("/stop")
-		.then((res) => res.json())
-		.then((res) => {
-			statusLabel.textContent = res.length
-				? "Recording saved successfully"
-				: "Recording save failed"
-		});
-}
-
-function onStop(){
-	mediaRecorder?.stop();
-	recBtn.disabled = false;
-	recBtn.innerHTML = 'Record';
-	stopBtn.disabled = true;
-    deleteBtn.disabled = false;
-}
-
-function onDelete(){
-    fetch("/delete_last")
-    .then(res => res.json())
-    .then(files => {
-        if(files.length) {
-			statusLabel.textContent = "Deleted: " + files.join(", ");
-			deleteBtn.disabled = true;
-		}
-    })
 }
 
 
 function log(message){
 	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 	console.log(message)
+}
+
+function startAutomation() {
+
+	const username = usernameEl.value.trim()
+	const material = document.querySelector('input[name="materials"]:checked')
+	const speeds = document.querySelector('input[name="speeds"]:checked')
+	const iterInput = iterEl.value;
+	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
+
+	if(!username) {
+		return alert("Please pass username");
+	}
+	if(!material) {
+		return alert("Please select material");
+	}
+	if(!speeds) {
+		return alert("Please select speed");
+	}
+	if(iterations <= 0) {
+		return alert("Iterations must be greater then 0");
+	}
+
+	const payload = {
+		username: username,
+		material: material.value,
+		speed: speed.value,
+		iterations: iterations
+	};
+
+	startAutomationBt.disabled = true;
+	startAutomationBt.textContent = "Running...";
+
+	fetch("/run", {
+		method: "POST",
+		headers: {"Content-Type": "application/json"},
+		body: JSON.stringify(payload)
+	})
+	.then(res => {
+		if(!res.ok) throw new Error("Server error");
+		return res.json();
+	})
+	.then(data => {
+		console.log("Automation started: ", data);
+		alert("Tests started - you can monitor it by video from camera.");
+	})
+	.catch(err => {
+		console.error(err);
+	})
+	.finally(() => {
+		startAutomationBt.disabled = false;
+		startAutomationBt.textContent = "Start automation";
+	})
+
 }
 
 (async function init() {
@@ -309,9 +206,9 @@ function log(message){
 
 })();
 
-recBtn.addEventListener("click", onRecord);
-stopBtn.addEventListener("click", onStop);
-deleteBtn.addEventListener("click", onDelete);
+startAutomationBt.addEventListener("click", startAutomation);
+
+
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the

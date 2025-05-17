@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
 from vnav_acquisition.config import config
+from vnav_acquisition.automation_playwright import run_automation
 import random
 import threading
 import webbrowser
@@ -46,6 +47,36 @@ def start():
     print(params)
     file_name = on_rec_start(config['connection'], **params)
     return jsonify(file_name)
+
+
+@app.route("/run", methods=["POST"])
+def run():
+    params = request.get_json(force=True)
+
+    required = ("username", "material", "speed", "iterations")
+    if not all(param in params for param in required):
+        return jsonify({"error": "Missing parameters"}), 400
+    
+    t = threading.Thread(
+        target=run_automation,
+        kwargs=dict(
+            username = params["username"],
+            material = params["material"],
+            speed = params["speed"],
+            position_type = "Only Up and Down",
+            p1 = (300, 0, -20, 0),
+            p2 = (0, 0, 0, 0),
+            p3 = (300, 0, -90, 0),
+            num_iterations = params["iterations"]
+        ),
+        daemon=True
+    )
+
+    t.start()
+
+    return jsonify({"status": "started"})
+
+
 
 
 @app.route("/delete_last", methods=['GET'])

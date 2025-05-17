@@ -11,7 +11,6 @@
 <div class="content-wrapper">
     <div class="container">
         <div class="head">
-            <div id="statusLabel"></div>
 
             <div class="select">
                 <label for="audioSource">Camera audio input source: </label>
@@ -39,11 +38,14 @@
             <div id="speeds"></div>
         </div>
 
+        <div class="iter">
+            <p>Number of tests</p>
+            <input type="number" id="iterations" value="10" min="1" style="width:80px;">
+        </div>
+
         <div class="video">
             <div id="controls">
-                <button id="rec">Record</button>
-                <button id="stop" disabled>Stop</button>
-                <button id="delete" disabled>Delete last recording</button>
+                <button id="startTests" style="margin-left: 20px;">Start automation</button>
             </div>
 
             <video
@@ -57,8 +59,6 @@
                 muted
             ></video>
 
-            <a id="downloadLink" hidden></a>
-            <p id="data"></p>
         </div>
     </div>
 </div>
