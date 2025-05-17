@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>VibroNav Acquisition Tool</title>
-    <style>$CSS</style>
+    
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -11,41 +12,57 @@
     <div class="container">
         <div class="head">
             <div id="statusLabel"></div>
-            <div class="select" style="display: block">
-                <label for="audioSource">Camera audio input source: </label><select id="audioSource"></select>
+
+            <div class="select">
+                <label for="audioSource">Camera audio input source: </label>
+                <select id="audioSource"></select>
             </div>
 
             <div class="select">
-                <label for="videoSource">Video source: </label><select id="videoSource"></select>
+                <label for="videoSource">Video source: </label>
+                <select id="videoSource"></select>
             </div>
         </div>
+
         <div class="name">
             <p>Username</p>
             <input type="text" id="username" value=""><br>
         </div>
+
         <div class="type">
             <p>Material</p>
-            $MATERIAL
+            <div id="materials"></div>
         </div>
+
         <div class="kind">
             <p>Speed</p>
-            $SPEED
+            <div id="speeds"></div>
         </div>
+
         <div class="video">
             <div id="controls">
-                <button id="rec" onclick="onBtnRecordClicked()">Record</button>
-                <button id="stop" onclick="onBtnStopClicked()"  disabled>Stop</button>
-                <button id="delete" onclick="onBtnDeteleClicked()" disabled>Delete last recording</button>
+                <button id="rec">Record</button>
+                <button id="stop" disabled>Stop</button>
+                <button id="delete" disabled>Delete last recording</button>
             </div>
 
-            <video id="video" style="width: 960px; height: 480px; margin: 10px;" controls autoplay playsinline muted></video>
+            <video
+                id="video"
+                width="960"
+                height="480"
+                style="margin: 10px" 
+                controls 
+                autoplay 
+                playsinline 
+                muted
+            ></video>
 
-            <a id="downloadLink" download="mediarecorder.webm" name="mediarecorder.webm" href></a>
+            <a id="downloadLink" hidden></a>
             <p id="data"></p>
         </div>
     </div>
 </div>
 
-<script type="text/javascript">$JS</script>
+<script type="module" src="main.js"></script>
 </body>
 </html>

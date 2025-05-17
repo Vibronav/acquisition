@@ -3,70 +3,94 @@
 /* globals MediaRecorder */
 // Spec is at http://dvcs.w3.org/hg/dap/raw-file/tip/media-stream-capture/RecordingProposal.html
 
-var recBtn = document.querySelector('button#rec');
-var stopBtn = document.querySelector('button#stop');
-var deleteBtn = document.querySelector('button#delete');
-var username = document.getElementById('username')
+const recBtn = document.getElementById("rec");
+const stopBtn = document.getElementById('stop');
+const deleteBtn = document.getElementById('delete');
+const usernameEl = document.getElementById('username');
 
-var liveVideoElement = document.querySelector('#video');
-var dataElement = document.querySelector('#data');
-var downloadLink = document.querySelector('a#downloadLink');
-var statusLabel = document.querySelector('div#statusLabel');
+const materialsContainter = document.getElementById("materials");
+const speedsContainer = document.getElementById("speeds");
 
-const audioInputSelect = document.querySelector('select#audioSource');
-const videoSelect = document.querySelector('select#videoSource');
+const audioInputSelect  = document.getElementById("audioSource");
+const videoSelect = document.getElementById("videoSource");
 const selectors = [audioInputSelect, videoSelect];
+
+const liveVideoElement = document.getElementById('video');
+const downloadLink = document.getElementById('downloadLink');
+const statusLabel = document.getElementById('statusLabel');
+
 
 liveVideoElement.controls = false;
 
-var mediaRecorder;
-var chunks = [];
-var count = 0;
-var localStream = null;
-var soundMeter  = null;
-var containerType = "video/webm";
-var videoFileName = ""
+let localStream = null;
+let mediaRecorder = null;
+let chunks = [];
+let containerType = "video/webm";
+let videoFileName = "";
 
+// Helper for now, should be deleted later
+const DEFAULT_CONFIG = {
+	materials: ["slime", "Silicone", "Chicken"],
+	speeds: ["slow", "medium", "fast"]
+};
+
+function renderRadioButtons(wrapper, name, values) {
+
+	wrapper.innerHTML = "";
+	values.forEach((val, idx) => {
+		const id = `${name}-${idx}`;
+		const label = document.createElement("label");
+		label.setAttribute("for", id);
+		label.textContent = val;
+
+		const input = document.createElement("input");
+		input.type = "radio";
+		input.name = name;
+		input.id = id;
+		input.value = val;
+
+		wrapper.appendChild(input);
+		wrapper.appendChild(label);
+		wrapper.appendChild(document.createElement("br"));
+	});
+}
+
+async function loadConfig() {
+	try {
+		const res = await fetch("/api/config");
+		if(!res.ok) throw new Error();
+		return await res.json();
+	} catch {
+		console.warn("/api/config caused error. Default config to be used")
+		return DEFAULT_CONFIG
+	}
+}
 
 function gotDevices(deviceInfos) {
   // Handles being called several times to update labels. Preserve values.
   const values = selectors.map(select => select.value);
-  selectors.forEach(select => {
-    while (select.firstChild) {
-      select.removeChild(select.firstChild);
-    }
-  });
+  selectors.forEach((select) => (select.innerHTML = ""));
+
   console.log(deviceInfos)
-  for (let i = 0; i !== deviceInfos.length; ++i) {
-    const deviceInfo = deviceInfos[i];
-    const option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
-    if (deviceInfo.kind === 'audioinput') {
-      console.log(deviceInfo)
-      option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
-      audioInputSelect.appendChild(option);
-    } else if (deviceInfo.kind === 'videoinput') {
-      option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
-      videoSelect.appendChild(option);
-    } else {
-      console.log('Some other kind of source/device: ', deviceInfo);
-    }
-  }
-  selectors.forEach((select, selectorIndex) => {
-    if (Array.prototype.slice.call(select.childNodes).some(n => n.value === values[selectorIndex])) {
-      select.value = values[selectorIndex];
-    }
+
+  deviceInfos.forEach((info) => {
+	const option = document.createElement("option");
+	option.value = info.deficeId
+	option.text = info.label || `${info.kind} ${option.value}`
+	if(info.kind == "audioinput") {
+		audioInputSelect.appendChild(option)
+	}
+	if(info.kind == "videoinput") {
+		videoSelect.appendChild(option)
+	}
+  });
+
+  selectors.forEach((select, idx) => {
+	if([...select.childNodes].some((n) => n.value === values[idx])) {
+		select.value = values[idx];
+	}
   });
 }
-
-navigator.mediaDevices
-    .getUserMedia({ audio: true, video: true })
-    .then((s) => {
-        navigator.mediaDevices.enumerateDevices().then(gotDevices).then(start).catch(handleError);
-    });
-
-audioInputSelect.onchange = start;
-videoSelect.onchange = start;
 
 function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
@@ -83,222 +107,184 @@ function start() {
     const videoSource = videoSelect.value;
     const constraints = {
         audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {deviceId: videoSource ? {exact: videoSource} : undefined, width:{min:640,ideal:1280,max:1280 },height:{ min:480,ideal:720,max:720}, framerate: 60}
+        video: {
+			deviceId: videoSource ? {exact: videoSource} : undefined,
+			width:{min:640,ideal:1280,max:1280 },
+			height:{ min:480,ideal:720,max:720}, 
+			framerate: 60
+		}
     };
 //    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
-    if (!navigator.mediaDevices.getUserMedia){
-        alert('navigator.mediaDevices.getUserMedia not supported on your browser, use the latest version of Firefox or Chrome');
-    } else{
-        if (window.MediaRecorder == undefined) {
-                alert('MediaRecorder not supported on your browser, use the latest version of Firefox or Chrome');
-        }else{
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function(stream) {
-                    localStream = stream;
-
-                    localStream.getTracks().forEach(function(track) {
-                        if(track.kind == "audio"){
-                            track.onended = function(event){
-                                 log("audio track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-                            }
-                        }
-                        if(track.kind == "video"){
-                            track.onended = function(event){
-                                log("video track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-                            }
-                        }
-                    });
-
-                    liveVideoElement.srcObject = localStream;
-                    liveVideoElement.play();
-
-                    try {
-                        window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                        window.audioContext = new AudioContext();
-                    } catch (e) {
-                        log('Web Audio API not supported.');
-                    }
-
-                    soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
-                    soundMeter.connectToSource(localStream, function(e) {
-                        if (e) {
-                            log(e);
-                            return;
-                        }
-                    });
-
-                }).catch(function(err) {
-                    /* handle the error */
-                    log('navigator.getUserMedia error: '+err);
-                });
-        }
-    }
+    navigator.mediaDevices.getUserMedia(constraints)
+		.then((stream) => {
+			localStream = stream;
+			liveVideoElement.srcObject = stream;
+			liveVideoElement.play();
+		})
+		.catch(handleError);
 }
 
+audioInputSelect.onchange = start;
+videoSelect.onchange = start;
 
-function onBtnRecordClicked(){
-	let material = document.querySelector('input[name="material"]:checked')
-	let speed = document.querySelector('input[name="speed"]:checked')
-	if (localStream == null) {
+function onRecord(){
+	const username = usernameEl.value.trim()
+	const material = document.querySelector('input[name="materials"]:checked')
+	const speed = document.querySelector('input[name="speeds"]:checked')
+
+	if(!localStream) {
 		alert('Could not get local stream from mic/camera');
-	} else if (username.value == "") {
+	} 
+	if(!username) {
 		alert('Please input user name');
-	} else if (material == null) {
-		alert('Please select material');
-	} else if (speed == null) {
-		alert('Please select speed');
-	} else {
-		recBtn.disabled = true;
-		recBtn.innerHTML = 'Recording...';
-        stopBtn.disabled = false;
-        statusLabel.innerHTML = '<font color="orange">Communicating with RaspberryPi...</font>';
-
-		chunks = [];
-
-		/* use the stream */
-		log('Start recording...');
-        fetch("/start", {
-            method: "POST",
-            body: JSON.stringify({
-                username: username.value,
-                material: material.value,
-                speed: speed.value
-            }),
-            headers: {
-                "Content-type": "application/json; charset=UTF-8"
-            }
-        }).then(res => res.json()).then(res => {
-            videoFileName = res;
-            console.log(res)
-            statusLabel.innerHTML = `<font color="blue">Recording started (${res})</font>`;
-        });
-
-		if (typeof MediaRecorder.isTypeSupported == 'function'){
-			/*
-				MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
-			*/
-			if (MediaRecorder.isTypeSupported('video/mp4')) {
-			  //Safari 14.0.2 has an EXPERIMENTAL version of MediaRecorder enabled by default
-			  containerType = "video/mp4";
-			  var options = {mimeType: 'video/mp4'};
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-			  var options = {mimeType: 'video/webm;codecs=vp9'};
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-			  var options = {mimeType: 'video/webm;codecs=h264'};
-			} else if (MediaRecorder.isTypeSupported('video/webm')) {
-			  var options = {mimeType: 'video/webm'};
-			}
-			log('Using '+options.mimeType);
-			mediaRecorder = new MediaRecorder(localStream, options);
-		}else{
-			log('isTypeSupported is not supported, using default codecs for browser');
-			mediaRecorder = new MediaRecorder(localStream);
-		}
-
-		mediaRecorder.ondataavailable = function(e) {
-			log('mediaRecorder.ondataavailable, e.data.size='+e.data.size);
-			if (e.data && e.data.size > 0) {
-				chunks.push(e.data);
-			}
-		};
-
-		mediaRecorder.onerror = function(e){
-			log('mediaRecorder.onerror: ' + e);
-		};
-
-		mediaRecorder.onstart = function(){
-			log('mediaRecorder.onstart, mediaRecorder.state = ' + mediaRecorder.state);
-			
-			localStream.getTracks().forEach(function(track) {
-              if(track.kind == "audio"){
-                log("onstart - Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-              }
-              if(track.kind == "video"){
-                log("onstart - Video track.readyState="+track.readyState+", track.muted=" + track.muted);
-              }
-            });
-			
-		};
-
-		mediaRecorder.onstop = function(){
-			log('mediaRecorder.onstop, mediaRecorder.state = ' + mediaRecorder.state);
-
-			var recording = new Blob(chunks, {type: mediaRecorder.mimeType});
-			downloadLink.href = URL.createObjectURL(recording);
-
-			var rand =  Math.floor((Math.random() * 10000000));
-			switch(containerType){
-				case "video/mp4":
-					var name  = videoFileName + ".mp4" ;
-					break;
-				default:
-					var name  = videoFileName + ".webm" ;
-			}
-
-			downloadLink.innerHTML = '<br> Download recording '+name;
-
-			downloadLink.setAttribute( "download", name);
-			downloadLink.setAttribute( "name", name);
-			downloadLink.click();
-
-			fetch("/stop").then(res => res.json()).then(res => {
-                var recordingStatus = res;
-                if (recordingStatus.length){
-                    const recorded_files = recordingStatus.join('<br>')
-                    statusLabel.innerHTML = `<font color="green">Recording saved succesfully to local directory:<br>${recorded_files}</font>`;
-                } else {
-                    statusLabel.innerHTML = '<font color="red">Recording save failed.</font>';
-                }
-                console.log(res)
-            });
-		};
-
-		mediaRecorder.onpause = function(){
-			log('mediaRecorder.onpause, mediaRecorder.state = ' + mediaRecorder.state);
-		}
-
-		mediaRecorder.onresume = function(){
-			log('mediaRecorder.onresume, mediaRecorder.state = ' + mediaRecorder.state);
-		}
-
-		mediaRecorder.onwarning = function(e){
-			log('mediaRecorder.onwarning: ' + e);
-		};
-
-		// pauseResBtn.textContent = "Pause";
-
-		mediaRecorder.start(1000);
-
-		localStream.getTracks().forEach(function(track) {
-			log(track.kind+":"+JSON.stringify(track.getSettings()));
-			console.log(track.getSettings());
-		})
 	}
+	if(!material) {
+		alert('Please select material');
+	}
+	if(!speed) {
+		alert('Please select speed');
+	}
+
+	recBtn.disabled = true;
+	recBtn.textContent = 'Recording...';
+	stopBtn.disabled = false;
+	statusLabel.textContent = 'Comunicating with RaspberryPi...';
+
+	/* use the stream */
+	log('Start recording...');
+	fetch("/start", {
+		method: "POST",
+		body: JSON.stringify({
+			username: username.value,
+			material: material.value,
+			speed: speed.value
+		}),
+		headers: {
+			"Content-type": "application/json; charset=UTF-8"
+		}
+	})
+		.then(res => res.json())
+		.then(filename => {
+			videoFileName = filename;
+			console.log(filename)
+			statusLabel.textContent = `Recording started (${filename})`;
+		});
+
+	
+
+	if (typeof MediaRecorder.isTypeSupported == 'function'){
+		/*
+			MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
+		*/
+		if (MediaRecorder.isTypeSupported('video/mp4')) {
+			//Safari 14.0.2 has an EXPERIMENTAL version of MediaRecorder enabled by default
+			containerType = "video/mp4";
+			var options = {mimeType: 'video/mp4'};
+		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+			var options = {mimeType: 'video/webm;codecs=vp9'};
+		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+			var options = {mimeType: 'video/webm;codecs=h264'};
+		} else if (MediaRecorder.isTypeSupported('video/webm')) {
+			var options = {mimeType: 'video/webm'};
+		}
+		log('Using '+options.mimeType);
+		mediaRecorder = new MediaRecorder(localStream, options);
+	}else{
+		log('isTypeSupported is not supported, using default codecs for browser');
+		mediaRecorder = new MediaRecorder(localStream);
+	}
+
+	chunks = [];
+
+	mediaRecorder.ondataavailable = function(e) {
+		log('mediaRecorder.ondataavailable, e.data.size='+e.data.size);
+		if (e.data && e.data.size > 0) {
+			chunks.push(e.data);
+		}
+	};
+
+	mediaRecorder.onerror = function(e){
+		log('mediaRecorder.onerror: ' + e);
+	};
+
+	mediaRecorder.onstart = function(){
+		log('mediaRecorder.onstart, mediaRecorder.state = ' + mediaRecorder.state);
+		
+		localStream.getTracks().forEach(function(track) {
+			if(track.kind == "audio"){
+			log("onstart - Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
+			}
+			if(track.kind == "video"){
+			log("onstart - Video track.readyState="+track.readyState+", track.muted=" + track.muted);
+			}
+		});
+		
+	};
+
+	mediaRecorder.onpause = function(){
+		log('mediaRecorder.onpause, mediaRecorder.state = ' + mediaRecorder.state);
+	}
+
+	mediaRecorder.onresume = function(){
+		log('mediaRecorder.onresume, mediaRecorder.state = ' + mediaRecorder.state);
+	}
+
+	mediaRecorder.onwarning = function(e){
+		log('mediaRecorder.onwarning: ' + e);
+	};
+
+	mediaRecorder.onstop = onRecorderStop;
+
+	mediaRecorder.start(1000);
+
+	localStream.getTracks().forEach(function(track) {
+		log(track.kind+":"+JSON.stringify(track.getSettings()));
+		console.log(track.getSettings());
+	})
+
 }
 
 navigator.mediaDevices.ondevicechange = function(event) {
 	log("mediaDevices.ondevicechange");
 }
 
-function onBtnStopClicked(){
-	mediaRecorder.stop();
+function onRecorderStop() {
+	const blob = new Blob(chunks, {type: mediaRecorder.mimeType});
+	const url = URL.createObjectURL(blob);
+	const ext = containerType == "video/mp4" ? "mp4" : "webm";
+	const name = `${videoFileName}.${ext}`
+
+	downloadLink.hidden = false;
+	downloadLink.href = url;
+	downloadLink.download = name;
+	downloadLink.textContent = `Download recording ${name}`;
+
+	fetch("/stop")
+		.then((res) => res.json())
+		.then((res) => {
+			statusLabel.textContent = res.length
+				? "Recording saved successfully"
+				: "Recording save failed"
+		});
+}
+
+function onStop(){
+	mediaRecorder?.stop();
 	recBtn.disabled = false;
 	recBtn.innerHTML = 'Record';
 	stopBtn.disabled = true;
     deleteBtn.disabled = false;
 }
 
-function onBtnDeteleClicked(){
+function onDelete(){
     fetch("/delete_last")
     .then(res => res.json())
-    .then(res => {
-        var recordingStatus = res;
-        if (recordingStatus){
-            const deleted_files = recordingStatus.join('<br>')
-            statusLabel.innerHTML = `<font color="purple">Last recording deleted:<br>${deleted_files}</font>`;
-            deleteBtn.disabled = true;
-        }
+    .then(files => {
+        if(files.length) {
+			statusLabel.textContent = "Deleted: " + files.join(", ");
+			deleteBtn.disabled = true;
+		}
     })
 }
 
@@ -307,6 +293,25 @@ function log(message){
 	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 	console.log(message)
 }
+
+(async function init() {
+
+	const cfg = await loadConfig();
+	renderRadioButtons(materialsContainter, "materials", cfg.materials);
+	renderRadioButtons(speedsContainer, "speeds", cfg.speeds);
+
+	// for getting devices and permissions
+	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+	stream.getTracks().forEach((t) => t.stop())
+	const devices = await navigator.mediaDevices.enumerateDevices();
+	gotDevices(devices);
+	start();
+
+})();
+
+recBtn.addEventListener("click", onRecord);
+stopBtn.addEventListener("click", onStop);
+deleteBtn.addEventListener("click", onDelete);
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the
