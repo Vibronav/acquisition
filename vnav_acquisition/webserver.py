@@ -51,7 +51,9 @@ def start():
 
 @app.route("/run", methods=["POST"])
 def run():
+    print("Received run/POST request")
     params = request.get_json(force=True)
+    print(f'With params: {params}')
 
     required = ("username", "material", "speed", "iterations")
     if not all(param in params for param in required):

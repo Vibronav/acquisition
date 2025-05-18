@@ -1,6 +1,6 @@
 import time
 import os
-from dobot_api import DobotApiDashboard, DobotApiMove
+from vnav_acquisition.dobot_api import DobotApiDashboard, DobotApiMove
 from openpyxl import Workbook
 
 # ---------------------------------------------

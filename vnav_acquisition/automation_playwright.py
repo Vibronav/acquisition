@@ -2,12 +2,14 @@ import os
 import time
 from playwright.sync_api import sync_playwright
 from vnav_acquisition.config import config
+from vnav_acquisition.comm import on_rec_start, on_rec_stop
 import subprocess
 from datetime import datetime
-from dobot import connect_robot, enable_robot, move_to_position
+from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 
 def start_recording(output_filepath):
     """Starts recording video + audio using ffmpeg via subprocess.Popen."""
+    print("Evecuting 'start_recording': start recording video + audio")
     frame_width = 1920
     frame_height = 1080
     fps = 30
@@ -66,8 +68,9 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
       - Moves the robot and records audio+video, 
       - Adjusts positions after certain iteration counts.
     """
+    print("Executing 'run_automation'")
     setup_json_path = r'C:\Users\ucunb\OneDrive\Masaüstü\acquisition-master2\setup.json'
-    config.load_from_json(setup_json_path)
+    # config.load_from_json(setup_json_path)
     flask_port = get_flask_port()
 
     video_output_dir = os.path.join(os.path.dirname(setup_json_path), "videos")
@@ -75,27 +78,27 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
     print(f"Video directory verified: {video_output_dir}")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(
-            permissions=["camera", "microphone"],
-            record_video_dir=video_output_dir,
-            record_video_size={"width": 1280, "height": 720}
-        )
+        # browser = p.chromium.launch(headless=False)
+        # context = browser.new_context(
+        #     permissions=["camera", "microphone"],
+        #     record_video_dir=video_output_dir,
+        #     record_video_size={"width": 1280, "height": 720}
+        # )
 
-        page = context.new_page()
-        page.goto(f"http://localhost:{flask_port}")
-        page.locator('select#videoSource').select_option(index=1)
-        page.locator('select#audioSource').select_option(index=1)
+        # page = context.new_page()
+        # page.goto(f"http://localhost:{flask_port}")
+        # page.locator('select#videoSource').select_option(index=1)
+        # page.locator('select#audioSource').select_option(index=1)
 
-        page.fill('input#username', username)
-        page.wait_for_selector(f'input[type="radio"][name="material"][value="{material}"]')
-        page.locator(f'input[type="radio"][name="material"][value="{material}"]').check()
+        # page.fill('input#username', username)
+        # page.wait_for_selector(f'input[type="radio"][name="material"][value="{material}"]')
+        # page.locator(f'input[type="radio"][name="material"][value="{material}"]').check()
 
-        if speed is not None:
-            page.wait_for_selector(f'input[type="radio"][name="speed"][value="{speed}"]')
-            page.locator(f'input[type="radio"][name="speed"][value="{speed}"]').check()
+        # if speed is not None:
+        #     page.wait_for_selector(f'input[type="radio"][name="speed"][value="{speed}"]')
+        #     page.locator(f'input[type="radio"][name="speed"][value="{speed}"]').check()
 
-        page.wait_for_timeout(5000)  # Adjust if needed
+        # page.wait_for_timeout(5000)  # Adjust if needed
 
         # Connect to Dobot
         dashboard, move = connect_robot()
@@ -144,9 +147,11 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
                 print(f"Recording {i+1}/{num_iterations} started.")
                 recording_process = start_recording(output_filepath)
 
-                page.wait_for_selector('button#rec', state='visible')
-                page.click('button#rec')
-                print("Record button clicked.")
+                on_rec_start(config['connection'], username, material, speed)
+
+                # page.wait_for_selector('button#rec', state='visible')
+                # page.click('button#rec')
+                # print("Record button clicked.")
 
                 # Skip actual movement for first 2 iterations, just wait
                 if i < 2:
@@ -167,9 +172,10 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
                     #time.sleep(3)
                     
 
-                page.wait_for_selector('button#stop', state='visible')
-                page.click('button#stop')
-                print("Stop button clicked.")
+                on_rec_stop()
+                # page.wait_for_selector('button#stop', state='visible')
+                # page.click('button#stop')
+                # print("Stop button clicked.")
 
                 if i >= 2:  # Start modifying positions after the 3rd iteration (i == 2)
                     if (i + 1) % 35 == 0:
@@ -200,8 +206,8 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
                 print(f"An error occurred in iteration {i+1}: {e}")
 
         dashboard.DisableRobot()
-        context.close()
-        browser.close()
+        # context.close()
+        # browser.close()
         print(f"All {num_iterations} loops completed. Browser closed.")
 
 if __name__ == "__main__":

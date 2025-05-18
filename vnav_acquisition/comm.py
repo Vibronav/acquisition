@@ -28,6 +28,7 @@ def ssh_connect(hostname, port, username, password):
 
 
 def on_rec_start(connection, username, material, speed):
+    print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"

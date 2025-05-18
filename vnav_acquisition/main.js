@@ -141,7 +141,7 @@ function startAutomation() {
 
 	const username = usernameEl.value.trim()
 	const material = document.querySelector('input[name="materials"]:checked')
-	const speeds = document.querySelector('input[name="speeds"]:checked')
+	const speed = document.querySelector('input[name="speeds"]:checked')
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
 
@@ -151,7 +151,7 @@ function startAutomation() {
 	if(!material) {
 		return alert("Please select material");
 	}
-	if(!speeds) {
+	if(!speed) {
 		return alert("Please select speed");
 	}
 	if(iterations <= 0) {
