@@ -7,15 +7,15 @@ import subprocess
 from datetime import datetime
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 
-def start_recording(output_filepath):
+def start_recording(output_filepath, audio_device=None, video_device=None):
     """Starts recording video + audio using ffmpeg via subprocess.Popen."""
     print("Evecuting 'start_recording': start recording video + audio")
     frame_width = 1920
     frame_height = 1080
     fps = 30
     audio_rate = 48000
-    video_source = "Jabra PanaCast 20"  
-    audio_device_name = "Mikrofon (Jabra PanaCast 20)"  
+    video_source = video_device if video_device else "Jabra PanaCast 20"  
+    audio_device_name = audio_device if audio_device else "Mikrofon (Jabra PanaCast 20)"
 
     command = [
         'ffmpeg',
@@ -59,7 +59,7 @@ def get_flask_port():
     else:
         raise Exception("Flask port file not found.")
 
-def run_automation(username, material, speed=None, position_type=None, p1=None, p2=None, p3=None, num_iterations=None):
+def run_automation(username, material, stop_event, speed=None, position_type=None, p1=None, p2=None, p3=None, num_iterations=None, audio_device=None, video_device=None):
     """
     Main automation functions:
       - Launches Playwright, sets up camera/audio,
@@ -145,7 +145,7 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
                 time.sleep(1)
 
                 print(f"Recording {i+1}/{num_iterations} started.")
-                recording_process = start_recording(output_filepath)
+                recording_process = start_recording(output_filepath, audio_device, video_device)
 
                 on_rec_start(config['connection'], username, material, speed)
 
@@ -199,8 +199,11 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
                 time.sleep(2.5)
                 stop_recording(recording_process)
                 if i >= 2:
-                    
                     print(f"Iteration {i+1} completed.")
+
+                if stop_event.is_set():
+                    print("Stop event triggered. Exiting loop.")
+                    break
 
             except Exception as e:
                 print(f"An error occurred in iteration {i+1}: {e}")
@@ -208,7 +211,7 @@ def run_automation(username, material, speed=None, position_type=None, p1=None, 
         dashboard.DisableRobot()
         # context.close()
         # browser.close()
-        print(f"All {num_iterations} loops completed. Browser closed.")
+        print(f"Tests completed.")
 
 if __name__ == "__main__":
     run_automation(

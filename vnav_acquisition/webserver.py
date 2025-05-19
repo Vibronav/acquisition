@@ -18,6 +18,9 @@ PORT_FILE = BASE_DIR / "flask_port.txt"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
 
+automation_thread = None
+stop_event = threading.Event()
+
 
 @app.route("/", methods=['GET'])
 def frontpage():
@@ -31,26 +34,9 @@ def api_config():
         "speeds": config["speeds"]
     })
 
-
-@app.route("/stop", methods=['GET'])
-def stop():
-    print("Received stop/GET request")
-    recording_status = on_rec_stop()
-    print("Received stop/GET request")
-    return jsonify(recording_status)
-
-
-@app.route("/start", methods=['POST'])
-def start():
-    params = json.loads(request.data.decode('utf-8'))  # Get the request data as a string
-    print("Received start/POST request data:")
-    print(params)
-    file_name = on_rec_start(config['connection'], **params)
-    return jsonify(file_name)
-
-
 @app.route("/run", methods=["POST"])
 def run():
+    global automation_thread, stop_event
     print("Received run/POST request")
     params = request.get_json(force=True)
     print(f'With params: {params}')
@@ -59,17 +45,21 @@ def run():
     if not all(param in params for param in required):
         return jsonify({"error": "Missing parameters"}), 400
     
+    stop_event.clear()
     t = threading.Thread(
         target=run_automation,
         kwargs=dict(
             username = params["username"],
             material = params["material"],
+            stop_event = stop_event,
             speed = params["speed"],
             position_type = "Only Up and Down",
             p1 = (300, 0, -20, 0),
             p2 = (0, 0, 0, 0),
             p3 = (300, 0, -90, 0),
-            num_iterations = params["iterations"]
+            num_iterations = params["iterations"],
+            audio_device = params["audioDevice"],
+            video_device = params["videoDevice"],
         ),
         daemon=True
     )
@@ -79,6 +69,11 @@ def run():
     return jsonify({"status": "started"})
 
 
+@app.route("/stop", methods=['POST'])
+def stop():
+    print("Received stop/POST request")
+    stop_event.set()
+    return jsonify({"status": "Will stop after current iteration."})
 
 
 @app.route("/delete_last", methods=['GET'])

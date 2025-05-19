@@ -7,6 +7,7 @@
 const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
 const startAutomationBt = document.getElementById("startTests");
+const stopAutomationBt = document.getElementById("stopTests");
 
 const materialsContainter = document.getElementById("materials");
 const speedsContainer = document.getElementById("speeds");
@@ -137,6 +138,11 @@ function log(message){
 	console.log(message)
 }
 
+function toggleButtons(automation_running) {
+	startAutomationBt.disabled = automation_running;
+	stopAutomationBt.disabled = !automation_running;
+}
+
 function startAutomation() {
 
 	const username = usernameEl.value.trim()
@@ -144,6 +150,8 @@ function startAutomation() {
 	const speed = document.querySelector('input[name="speeds"]:checked')
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
+	const audioDevice = audioInputSelect.value || null;
+	const videoDevice = videoSelect.value || null;
 
 	if(!username) {
 		return alert("Please pass username");
@@ -162,11 +170,12 @@ function startAutomation() {
 		username: username,
 		material: material.value,
 		speed: speed.value,
-		iterations: iterations
+		iterations: iterations,
+		audioDevice: audioDevice,
+		videoDevice: videoDevice,
 	};
 
-	startAutomationBt.disabled = true;
-	startAutomationBt.textContent = "Running...";
+	toggleButtons(true);
 
 	fetch("/run", {
 		method: "POST",
@@ -182,12 +191,26 @@ function startAutomation() {
 		alert("Tests started - you can monitor it by video from camera.");
 	})
 	.catch(err => {
+		toggleButtons(false);
 		console.error(err);
 	})
-	.finally(() => {
-		startAutomationBt.disabled = false;
-		startAutomationBt.textContent = "Start automation";
+
+}
+function stopAutomation() {
+	
+	toggleButtons(false);
+
+	fetch("/stop", {
+		method: "POST"
 	})
+	.then(res => {
+		if(!res.ok) throw new Error("Server error");
+		return res.json();
+	})
+	.then(data => {
+		console.log("Automation stopped: ", data);
+		alert("Tests stopped");
+	});
 
 }
 
@@ -207,7 +230,7 @@ function startAutomation() {
 })();
 
 startAutomationBt.addEventListener("click", startAutomation);
-
+stopAutomationBt.addEventListener("click", stopAutomation);
 
 
 // Meter class that generates a number correlated to audio volume.
