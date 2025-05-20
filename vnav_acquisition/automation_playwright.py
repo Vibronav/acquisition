@@ -14,11 +14,13 @@ def start_recording(output_filepath, audio_device=None, video_device=None):
     frame_height = 1080
     fps = 30
     audio_rate = 48000
-    video_source = video_device if video_device else "Jabra PanaCast 20"  
-    audio_device_name = audio_device if audio_device else "Mikrofon (Jabra PanaCast 20)"
+    # video_source = video_device if video_device else "Jabra PanaCast 20"  
+    # audio_device_name = audio_device if audio_device else "Mikrofon (Jabra PanaCast 20)"
+    video_source = "Jabra PanaCast 20"
+    audio_device_name = "Mikrofon (Jabra PanaCast 20)"
 
     command = [
-        'ffmpeg',
+        '/mnt/c/Users/jakub/ffmpeg-4.3.1/bin/ffmpeg.exe',
         '-f', 'dshow',
         '-rtbufsize', '1G',
         '-video_size', f"{frame_width}x{frame_height}",
@@ -78,31 +80,10 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
     print(f"Video directory verified: {video_output_dir}")
 
     with sync_playwright() as p:
-        # browser = p.chromium.launch(headless=False)
-        # context = browser.new_context(
-        #     permissions=["camera", "microphone"],
-        #     record_video_dir=video_output_dir,
-        #     record_video_size={"width": 1280, "height": 720}
-        # )
-
-        # page = context.new_page()
-        # page.goto(f"http://localhost:{flask_port}")
-        # page.locator('select#videoSource').select_option(index=1)
-        # page.locator('select#audioSource').select_option(index=1)
-
-        # page.fill('input#username', username)
-        # page.wait_for_selector(f'input[type="radio"][name="material"][value="{material}"]')
-        # page.locator(f'input[type="radio"][name="material"][value="{material}"]').check()
-
-        # if speed is not None:
-        #     page.wait_for_selector(f'input[type="radio"][name="speed"][value="{speed}"]')
-        #     page.locator(f'input[type="radio"][name="speed"][value="{speed}"]').check()
-
-        # page.wait_for_timeout(5000)  # Adjust if needed
 
         # Connect to Dobot
-        dashboard, move = connect_robot()
-        enable_robot(dashboard)
+        # dashboard, move = connect_robot()
+        # enable_robot(dashboard)
         time.sleep(2)
 
         if num_iterations is None:
@@ -118,7 +99,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
         elif speed is None:
             speed_value = 15
 
-        dashboard.SpeedFactor(speed_value)
+        # dashboard.SpeedFactor(speed_value)
 
         # Determine positions
         if position_type == "Only Up and Down":
@@ -141,17 +122,13 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 output_filename = f"{username}_{material}_{speed}_{timestamp}.mp4"
                 output_filepath = os.path.join(video_output_dir, output_filename)
 
-                move_to_position(dashboard, move, P1)
+                # move_to_position(dashboard, move, P1)
                 time.sleep(1)
 
                 print(f"Recording {i+1}/{num_iterations} started.")
-                recording_process = start_recording(output_filepath, audio_device, video_device)
+                # recording_process = start_recording(output_filepath, audio_device, video_device)
 
                 on_rec_start(config['connection'], username, material, speed)
-
-                # page.wait_for_selector('button#rec', state='visible')
-                # page.click('button#rec')
-                # print("Record button clicked.")
 
                 # Skip actual movement for first 2 iterations, just wait
                 if i < 2:
@@ -159,23 +136,21 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                     time.sleep(8)  
                 else:
                     if P2:
-                        move_to_position(dashboard, move, P2)
+                        pass
+                        # move_to_position(dashboard, move, P2)
                         #time.sleep(3)
                         
                     # Move to P3
-                    move_to_position(dashboard, move, P3)
+                    # move_to_position(dashboard, move, P3)
                     #time.sleep(3)
                     time.sleep(1)
                     
                     # Move back to P1
-                    move_to_position(dashboard, move, P1)
+                    # move_to_position(dashboard, move, P1)
                     #time.sleep(3)
                     
 
                 on_rec_stop()
-                # page.wait_for_selector('button#stop', state='visible')
-                # page.click('button#stop')
-                # print("Stop button clicked.")
 
                 if i >= 2:  # Start modifying positions after the 3rd iteration (i == 2)
                     if (i + 1) % 35 == 0:
@@ -197,7 +172,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                         print("P2 not used, only P1 and P3 updated.")
 
                 time.sleep(2.5)
-                stop_recording(recording_process)
+                # stop_recording(recording_process)
                 if i >= 2:
                     print(f"Iteration {i+1} completed.")
 
@@ -208,9 +183,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
             except Exception as e:
                 print(f"An error occurred in iteration {i+1}: {e}")
 
-        dashboard.DisableRobot()
-        # context.close()
-        # browser.close()
+        # dashboard.DisableRobot()
         print(f"Tests completed.")
 
 if __name__ == "__main__":

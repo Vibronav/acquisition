@@ -104,24 +104,24 @@ function start() {
     }
     const audioSource = audioInputSelect.value;
     const videoSource = videoSelect.value;
-    const constraints = {
-        audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {
-			deviceId: videoSource ? {exact: videoSource} : undefined,
-			width:{min:640,ideal:1280,max:1280 },
-			height:{ min:480,ideal:720,max:720}, 
-			framerate: 60
-		}
-    };
+    // const constraints = {
+    //     audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+    //     video: {
+	// 		deviceId: videoSource ? {exact: videoSource} : undefined,
+	// 		width:{min:640,ideal:1280,max:1280 },
+	// 		height:{ min:480,ideal:720,max:720}, 
+	// 		framerate: 60
+	// 	}
+    // };
 //    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
-    navigator.mediaDevices.getUserMedia(constraints)
-		.then((stream) => {
-			localStream = stream;
-			liveVideoElement.srcObject = stream;
-			// liveVideoElement.play();
-		})
-		.catch(handleError);
+    // navigator.mediaDevices.getUserMedia(constraints)
+	// 	.then((stream) => {
+	// 		localStream = stream;
+	// 		liveVideoElement.srcObject = stream;
+	// 		// liveVideoElement.play();
+	// 	})
+	// 	.catch(handleError);
 }
 
 audioInputSelect.onchange = start;
@@ -221,10 +221,10 @@ function stopAutomation() {
 	renderRadioButtons(speedsContainer, "speeds", cfg.speeds);
 
 	// for getting devices and permissions
-	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-	stream.getTracks().forEach((t) => t.stop())
-	const devices = await navigator.mediaDevices.enumerateDevices();
-	gotDevices(devices);
+	// const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+	// stream.getTracks().forEach((t) => t.stop())
+	// const devices = await navigator.mediaDevices.enumerateDevices();
+	// gotDevices(devices);
 	start();
 
 })();

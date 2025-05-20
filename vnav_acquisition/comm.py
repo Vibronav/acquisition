@@ -4,6 +4,7 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
+import logging
 
 MIC_NAME = "dmic_sv"
 CHANNEL_FMT = "stereo"
@@ -15,9 +16,22 @@ file_name = ""
 
 def ssh_connect(hostname, port, username, password):
     global ssh
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname, port, username, password)
+    try:
+        ssh = paramiko.SSHClient()
+        paramiko.util.log_to_file('paramiko_debug.log', level=logging.DEBUG)
+        print(config['connection'])
+        print("Connecting to RaspberryPi...")
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(hostname, port, username, password, timeout=10)
+        if not ssh.get_transport() or not ssh.get_transport().is_active():
+            print("SSH transport is not active.")
+            return
+
+        print('CONNECTED TO RASPBERRYPI')
+    except Exception as e:
+        print("SSH connection error:", e)
+        ssh = None
+        return
 
     try:
         with ssh.open_sftp() as sftp:
@@ -28,13 +42,12 @@ def ssh_connect(hostname, port, username, password):
 
 
 def on_rec_start(connection, username, material, speed):
-    print("Executing 'on_rec_start': Starting micro on needle")
+    print("Executing 'on_rec_start': Starting micro on needle || SSH CONNECTION")
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
 
     if ssh is None:
-        print("Connecting to RaspberryPi with SSH")
         ssh_connect(*connection)
         time.sleep(1)
     if ssh:
@@ -46,14 +59,16 @@ def on_rec_start(connection, username, material, speed):
         setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
                         f"CHANNELS=2\nOUTPUT_FILE={remote_path}\nFORMAT=S32_LE' > " \
                         f"{config['remote_dir']}/recording_setup.txt"
-        print("Setup command: \n", setup_command)
+        print("Setup command ====================================================================== \n")
+        print(setup_command)
         ssh.exec_command(setup_command)
         time.sleep(0.01)
 
         start_command = f"bash -c 'source {config['remote_dir']}/recording_setup.txt && nohup arecord " \
                         f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
                         f"$OUTPUT_FILE &'"
-        print("Start command: \n", start_command)
+        print("Start command ===================================================================== \n")
+        print(start_command)
         ssh.exec_command(start_command)
         play_chirp_signal()
     else:
@@ -72,6 +87,7 @@ def on_rec_stop(delete=False):
 
         remote_path = f"{config['remote_dir']}/{file_name}"
         local_path = os.path.join(config["local_dir"], file_name)
+        print(f'Local path for microphone data: {local_path}')
         os.makedirs(config["local_dir"], exist_ok=True)
 
         try:

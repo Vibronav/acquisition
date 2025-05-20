@@ -9,8 +9,11 @@ def generate_chirp_signal(duration=0.2, start_freq=500, end_freq=4000, sample_ra
 
 
 def play_chirp_signal(delay=0, fs=44100):
-    delayed_chirp_signal = np.hstack((np.zeros(int(delay*fs)), _chirp_signal))
-    sd.play(delayed_chirp_signal, fs)
+    try:
+        delayed_chirp_signal = np.hstack((np.zeros(int(delay*fs)), _chirp_signal))
+        sd.play(delayed_chirp_signal, fs)
+    except Exception as e:
+        print(f"Error playing chirp sound: {e}")
 
 
 _chirp_signal = generate_chirp_signal()
