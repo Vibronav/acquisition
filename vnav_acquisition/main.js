@@ -75,7 +75,9 @@ function gotDevices(deviceInfos) {
   deviceInfos.forEach((info) => {
 	const option = document.createElement("option");
 	option.value = info.deviceId
-	option.text = info.label || `${info.kind} ${option.value}`
+	option.text = info.label || `${info.kind}`
+	console.log("label", info.label)
+	console.log("kind", info.kind)
 	if(info.kind == "audioinput") {
 		audioInputSelect.appendChild(option)
 	}
@@ -102,8 +104,8 @@ function start() {
           track.stop();
         });
     }
-    const audioSource = audioInputSelect.value;
-    const videoSource = videoSelect.value;
+    // const audioSource = audioInputSelect.value;
+    // const videoSource = videoSelect.value;
     // const constraints = {
     //     audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
     //     video: {
@@ -119,13 +121,13 @@ function start() {
 	// 	.then((stream) => {
 	// 		localStream = stream;
 	// 		liveVideoElement.srcObject = stream;
-	// 		// liveVideoElement.play();
+	// 		liveVideoElement.play();
 	// 	})
 	// 	.catch(handleError);
 }
 
-audioInputSelect.onchange = start;
-videoSelect.onchange = start;
+// audioInputSelect.onchange = start;
+// videoSelect.onchange = start;
 
 
 navigator.mediaDevices.ondevicechange = function(event) {
@@ -196,6 +198,7 @@ function startAutomation() {
 	})
 
 }
+
 function stopAutomation() {
 	
 	toggleButtons(false);
@@ -225,7 +228,7 @@ function stopAutomation() {
 	// stream.getTracks().forEach((t) => t.stop())
 	// const devices = await navigator.mediaDevices.enumerateDevices();
 	// gotDevices(devices);
-	start();
+	// start();
 
 })();
 

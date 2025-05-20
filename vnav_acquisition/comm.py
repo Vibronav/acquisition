@@ -81,7 +81,7 @@ def on_rec_stop(delete=False):
     global file_name
     recorded_files = []
     if ssh is not None:
-        print("Recording stopped")
+        print("Recording stopped on RaspberryPi")
         stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
         ssh.exec_command(stop_command)
 
@@ -97,7 +97,10 @@ def on_rec_stop(delete=False):
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
         if recording_status:
-            recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
+            try:
+                recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
+            except Exception as e:
+                print(f'Exception during cleaning wav: {e}')
 
         if delete:
             delete_command = f"rm {remote_path}"

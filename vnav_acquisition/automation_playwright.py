@@ -16,18 +16,20 @@ def start_recording(output_filepath, audio_device=None, video_device=None):
     audio_rate = 48000
     # video_source = video_device if video_device else "Jabra PanaCast 20"  
     # audio_device_name = audio_device if audio_device else "Mikrofon (Jabra PanaCast 20)"
-    video_source = "Jabra PanaCast 20"
-    audio_device_name = "Mikrofon (Jabra PanaCast 20)"
+    video_source = "Integrated Camera"
+    audio_device_name = "Zestaw mikrofonów (Realtek(R) Audio)"
 
     command = [
-        '/mnt/c/Users/jakub/ffmpeg-4.3.1/bin/ffmpeg.exe',
+        'ffmpeg',
         '-f', 'dshow',
         '-rtbufsize', '1G',
         '-video_size', f"{frame_width}x{frame_height}",
         '-framerate', str(fps),
-        '-i', f"video={video_source}",
+        '-thread_queue_size', '512',
+        '-i', f'video={video_source}',
         '-f', 'dshow',
-        '-i', f"audio={audio_device_name}",
+        '-thread_queue_size', '512',
+        '-i', f'audio={audio_device_name}',
         '-ar', str(audio_rate),
         '-ac', '1',
         '-c:v', 'libx264',
@@ -45,10 +47,11 @@ def start_recording(output_filepath, audio_device=None, video_device=None):
 
 def stop_recording(process):
     """Stops the ffmpeg recording by sending 'q' to its stdin."""
+    print("Stop recording: Audio + micro from PC")
     if process.stdin:
         process.stdin.write(b'q')
         process.stdin.flush()
-        process.wait(timeout=1)
+        process.wait(timeout=10)
     else:
         print("Error: Process stdin is None")
 
@@ -75,9 +78,9 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
     # config.load_from_json(setup_json_path)
     flask_port = get_flask_port()
 
-    video_output_dir = os.path.join(os.path.dirname(setup_json_path), "videos")
-    os.makedirs(video_output_dir, exist_ok=True)
+    video_output_dir = os.path.join(os.getcwd(), "videos")
     print(f"Video directory verified: {video_output_dir}")
+    os.makedirs(video_output_dir, exist_ok=True)
 
     with sync_playwright() as p:
 
@@ -126,7 +129,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 time.sleep(1)
 
                 print(f"Recording {i+1}/{num_iterations} started.")
-                # recording_process = start_recording(output_filepath, audio_device, video_device)
+                recording_process = start_recording(output_filepath, audio_device, video_device)
 
                 on_rec_start(config['connection'], username, material, speed)
 
@@ -172,7 +175,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                         print("P2 not used, only P1 and P3 updated.")
 
                 time.sleep(2.5)
-                # stop_recording(recording_process)
+                stop_recording(recording_process)
                 if i >= 2:
                     print(f"Iteration {i+1} completed.")
 
