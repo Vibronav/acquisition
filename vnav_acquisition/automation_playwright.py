@@ -2,7 +2,7 @@ import os
 import time
 from playwright.sync_api import sync_playwright
 from vnav_acquisition.config import config
-from vnav_acquisition.comm import on_rec_start, on_rec_stop
+from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 import subprocess
 from datetime import datetime
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
@@ -21,6 +21,7 @@ def start_recording(output_filepath, audio_device=None, video_device=None):
 
     command = [
         'ffmpeg',
+        '-loglevel', 'warning',
         '-f', 'dshow',
         '-rtbufsize', '1G',
         '-video_size', f"{frame_width}x{frame_height}",
@@ -51,7 +52,7 @@ def stop_recording(process):
     if process.stdin:
         process.stdin.write(b'q')
         process.stdin.flush()
-        process.wait(timeout=10)
+        process.wait(timeout=3)
     else:
         print("Error: Process stdin is None")
 
@@ -121,6 +122,11 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
 
         for i in range(num_iterations):
             try:
+
+                if stop_event.is_set():
+                    print("Stop event triggered. Exiting loop.")
+                    break
+
                 timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
                 output_filename = f"{username}_{material}_{speed}_{timestamp}.mp4"
                 output_filepath = os.path.join(video_output_dir, output_filename)
@@ -131,7 +137,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 print(f"Recording {i+1}/{num_iterations} started.")
                 recording_process = start_recording(output_filepath, audio_device, video_device)
 
-                on_rec_start(config['connection'], username, material, speed)
+                # on_rec_start(config['connection'], username, material, speed)
 
                 # Skip actual movement for first 2 iterations, just wait
                 if i < 2:
@@ -153,7 +159,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                     #time.sleep(3)
                     
 
-                on_rec_stop()
+                # on_rec_stop()
 
                 if i >= 2:  # Start modifying positions after the 3rd iteration (i == 2)
                     if (i + 1) % 35 == 0:
@@ -179,12 +185,10 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 if i >= 2:
                     print(f"Iteration {i+1} completed.")
 
-                if stop_event.is_set():
-                    print("Stop event triggered. Exiting loop.")
-                    break
-
             except Exception as e:
-                print(f"An error occurred in iteration {i+1}: {e}")
+                # kill_rasp_process()
+                stop_recording(recording_process)
+                print(f"An error occurred in iteration {i+1}: {e} xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
         # dashboard.DisableRobot()
         print(f"Tests completed.")

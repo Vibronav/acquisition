@@ -13,6 +13,11 @@ SAMPLING_RATE = 48000
 ssh: paramiko.SSHClient = None
 file_name = ""
 
+def is_ssh_connected():
+    global ssh
+    if ssh is not None and ssh.get_transport() and ssh.get_transport().is_active():
+        return True
+    return False
 
 def ssh_connect(hostname, port, username, password):
     global ssh
@@ -75,6 +80,11 @@ def on_rec_start(connection, username, material, speed):
         print("SSH connection failed.")
     return os.path.splitext(file_name)[0]
 
+def kill_rasp_process():
+    if ssh is not None:
+        print("Killing process on RaspberryPi")
+        stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
+        ssh.exec_command(stop_command)
 
 def on_rec_stop(delete=False):
     global ssh
@@ -95,12 +105,10 @@ def on_rec_stop(delete=False):
                 sftp.get(remote_path, local_path)
         except Exception as e:
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
+            raise
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
         if recording_status:
-            try:
-                recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
-            except Exception as e:
-                print(f'Exception during cleaning wav: {e}')
+            recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
 
         if delete:
             delete_command = f"rm {remote_path}"

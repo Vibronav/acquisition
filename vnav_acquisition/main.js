@@ -8,6 +8,8 @@ const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
 const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
+const raspberryStatusEl = document.getElementById("raspberryStatus");
+const automationStatusEl = document.getElementById("automationStatus");
 
 const materialsContainter = document.getElementById("materials");
 const speedsContainer = document.getElementById("speeds");
@@ -104,30 +106,30 @@ function start() {
           track.stop();
         });
     }
-    // const audioSource = audioInputSelect.value;
-    // const videoSource = videoSelect.value;
-    // const constraints = {
-    //     audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-    //     video: {
-	// 		deviceId: videoSource ? {exact: videoSource} : undefined,
-	// 		width:{min:640,ideal:1280,max:1280 },
-	// 		height:{ min:480,ideal:720,max:720}, 
-	// 		framerate: 60
-	// 	}
-    // };
+    const audioSource = audioInputSelect.value;
+    const videoSource = videoSelect.value;
+    const constraints = {
+        audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+        video: {
+			deviceId: videoSource ? {exact: videoSource} : undefined,
+			width:{min:640,ideal:1280,max:1280 },
+			height:{ min:480,ideal:720,max:720}, 
+			framerate: 60
+		}
+    };
 //    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
-    // navigator.mediaDevices.getUserMedia(constraints)
-	// 	.then((stream) => {
-	// 		localStream = stream;
-	// 		liveVideoElement.srcObject = stream;
-	// 		liveVideoElement.play();
-	// 	})
-	// 	.catch(handleError);
+    navigator.mediaDevices.getUserMedia(constraints)
+		.then((stream) => {
+			localStream = stream;
+			liveVideoElement.srcObject = stream;
+			liveVideoElement.play();
+		})
+		.catch(handleError);
 }
 
-// audioInputSelect.onchange = start;
-// videoSelect.onchange = start;
+audioInputSelect.onchange = start;
+videoSelect.onchange = start;
 
 
 navigator.mediaDevices.ondevicechange = function(event) {
@@ -177,7 +179,6 @@ function startAutomation() {
 		videoDevice: videoDevice,
 	};
 
-	toggleButtons(true);
 
 	fetch("/run", {
 		method: "POST",
@@ -190,6 +191,7 @@ function startAutomation() {
 	})
 	.then(data => {
 		console.log("Automation started: ", data);
+		updateAutomationStatus("running");
 		alert("Tests started - you can monitor it by video from camera.");
 	})
 	.catch(err => {
@@ -201,7 +203,6 @@ function startAutomation() {
 
 function stopAutomation() {
 	
-	toggleButtons(false);
 
 	fetch("/stop", {
 		method: "POST"
@@ -212,9 +213,48 @@ function stopAutomation() {
 	})
 	.then(data => {
 		console.log("Automation stopped: ", data);
+		updateAutomationStatus("idle");
 		alert("Tests stopped");
 	});
 
+}
+
+function updateRaspberryStatus(status) {
+	raspberryStatusEl.textContent = `RaspberryPi status: ${status}`;
+	raspberryStatusEl.style.color = status === "connected" ? "green" : "red";
+}
+
+async function getRaspberryStatus() {
+	try {
+		const res = await fetch("/raspberry-status");
+		const data = await res.json();
+		updateRaspberryStatus(data.status);
+	} catch (err) {
+		console.error("Error fetching RaspberryPi status: ", err);
+		updateRaspberryStatus("Not connected");
+	}
+
+}
+
+function updateAutomationStatus(status) {
+	automationStatusEl.textContent = `Automation status: ${status}`;
+	automationStatusEl.style.color = status === "running" ? "green" : "red";
+	if(status === "running") {
+		toggleButtons(true);
+	} else {
+		toggleButtons(false);
+	}
+}
+
+async function getAutomationStatus() {
+	try {
+		const res = await fetch("/automation-status");
+		const data = await res.json();
+		updateAutomationStatus(data.status);
+	} catch (err) {
+		console.error("Error fetching automation status: ", err);
+		updateAutomationStatus("idle");
+	}
 }
 
 (async function init() {
@@ -224,16 +264,18 @@ function stopAutomation() {
 	renderRadioButtons(speedsContainer, "speeds", cfg.speeds);
 
 	// for getting devices and permissions
-	// const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-	// stream.getTracks().forEach((t) => t.stop())
-	// const devices = await navigator.mediaDevices.enumerateDevices();
-	// gotDevices(devices);
-	// start();
+	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+	stream.getTracks().forEach((t) => t.stop())
+	const devices = await navigator.mediaDevices.enumerateDevices();
+	gotDevices(devices);
+	start();
 
 })();
 
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
+setInterval(getRaspberryStatus, 5000);
+setInterval(getAutomationStatus, 3000);
 
 
 // Meter class that generates a number correlated to audio volume.

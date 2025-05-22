@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response, stream_with_context
+from werkzeug.serving import WSGIRequestHandler
 from vnav_acquisition.interface import get_html
-from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording
+from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording, is_ssh_connected
 from vnav_acquisition.config import config
 from vnav_acquisition.automation_playwright import run_automation
 import random
@@ -10,6 +11,12 @@ import argparse
 import json
 import os   # Berke 16.09.2024
 from pathlib import Path
+import requests
+
+class CustomRequestHandler(WSGIRequestHandler):
+    def log_request(self, code = "-", size = "-"):
+        if self.path not in ["/raspberry-status", "/automation-status"]:
+            return super().log_request(code, size)
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
@@ -46,7 +53,7 @@ def run():
         return jsonify({"error": "Missing parameters"}), 400
     
     stop_event.clear()
-    t = threading.Thread(
+    automation_thread = threading.Thread(
         target=run_automation,
         kwargs=dict(
             username = params["username"],
@@ -64,9 +71,26 @@ def run():
         daemon=True
     )
 
-    t.start()
+    automation_thread.start()
 
     return jsonify({"status": "started"})
+
+@app.route("/automation-status", methods=['GET'])
+def automation_status():
+    global automation_thread
+    
+    import logging
+    werkzeug_log = logging.getLogger('werkzeug')
+    prev_level = werkzeug_log.level
+    werkzeug_log.setLevel(logging.ERROR)
+
+    try:
+        if automation_thread and automation_thread.is_alive():
+            return jsonify({"status": "running"})
+        else:
+            return jsonify({"status": "idle"})
+    finally:
+        werkzeug_log.setLevel(prev_level)
 
 
 @app.route("/stop", methods=['POST'])
@@ -81,6 +105,23 @@ def delete_last():
     deleted_files = delete_last_recording()
     print("Received delete_last/GET request")
     return jsonify(deleted_files)
+
+@app.route("/raspberry-status", methods=['GET'])
+def check_connection():
+    import logging
+    werkzeug_log = logging.getLogger('werkzeug')
+    prev_level = werkzeug_log.level
+    werkzeug_log.setLevel(logging.ERROR)
+
+    try:
+        is_connected = is_ssh_connected()
+        if is_connected:
+            return jsonify({"status": "connected"})
+        else:
+            return jsonify({"status": "not connected"})
+    finally:
+        werkzeug_log.setLevel(prev_level)
+
 
 
 def parse_args():
@@ -107,7 +148,7 @@ def main():
     if args.open_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url), ).start()
     
-    app.run(port=port, debug=False)
+    app.run(port=port, debug=False, request_handler=CustomRequestHandler)
 
 
 if __name__ == '__main__':
