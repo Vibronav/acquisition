@@ -6,6 +6,7 @@ from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 import subprocess
 from datetime import datetime
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
+import socketio
 
 def start_recording(output_filepath, audio_device=None, video_device=None):
     """Starts recording video + audio using ffmpeg via subprocess.Popen."""
@@ -79,6 +80,10 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
     # config.load_from_json(setup_json_path)
     flask_port = get_flask_port()
 
+    sio = socketio.Client(logger=True, engineio_logger=True)
+    sio.sleep(1)
+    sio.connect(f'http://localhost:5000', wait_timeout=2)
+
     video_output_dir = os.path.join(os.getcwd(), "videos")
     print(f"Video directory verified: {video_output_dir}")
     os.makedirs(video_output_dir, exist_ok=True)
@@ -135,7 +140,11 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 time.sleep(1)
 
                 print(f"Recording {i+1}/{num_iterations} started.")
-                recording_process = start_recording(output_filepath, audio_device, video_device)
+                # recording_process = start_recording(output_filepath, audio_device, video_device)
+                sio.emit("record", {
+                    "action": "start",
+                    "filename": output_filename
+                })
 
                 # on_rec_start(config['connection'], username, material, speed)
 
@@ -181,13 +190,18 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                         print("P2 not used, only P1 and P3 updated.")
 
                 time.sleep(2.5)
-                stop_recording(recording_process)
+                # stop_recording(recording_process)
+
+                sio.emit("record", {
+                    "action": "stop"
+                })
+
                 if i >= 2:
                     print(f"Iteration {i+1} completed.")
 
             except Exception as e:
                 # kill_rasp_process()
-                stop_recording(recording_process)
+                # stop_recording(recording_process)
                 print(f"An error occurred in iteration {i+1}: {e} xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
         # dashboard.DisableRobot()

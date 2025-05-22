@@ -20,14 +20,75 @@ const selectors = [audioInputSelect, videoSelect];
 
 const liveVideoElement = document.getElementById('video');
 
-
 liveVideoElement.controls = false;
 
 let localStream = null;
 let mediaRecorder = null;
-let chunks = [];
+let recordedChunks = [];
 let containerType = "video/webm";
 let videoFileName = "";
+
+const socket = io();
+socket.on("connect", () => {
+	console.log("Socket.io connected from browser")
+})
+
+socket.on("record", async (msg) => {
+
+	const action = msg.action;
+	const filename = msg.filename;
+	console.log(action)
+	console.log("mediaRecorder: ", mediaRecorder);
+	console.log("state: ", mediaRecorder?.state);
+
+	if(!localStream) {
+		console.warn("No media stream available to record");
+		return;
+	}
+
+	if(action === "start") {
+
+		if(mediaRecorder && mediaRecorder.state === "recording") {
+			console.warn("Already recording");
+			return;			
+		}
+
+		recordedChunks = [];
+
+		mediaRecorder = new MediaRecorder(localStream, {
+			mimeType: "video/webm; codecs=vp9"
+		})
+
+		mediaRecorder.ondataavailable = (event) => {
+			if(event.data.size > 0) {
+				recordedChunks.push(event.data);
+			}
+		}
+
+		mediaRecorder.onstop = async () => {
+			console.log('stopping')
+			const blob = new Blob(recordedChunks, { type: "video/webm" });
+			const formData = new FormData();
+			formData.append("file", blob, filename);
+
+			await fetch("/upload", {
+				method: "POST",
+				body: formData
+			});
+
+		}
+
+		mediaRecorder.start();
+		console.log("Browser started recording");
+
+	}
+
+	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording") {
+		mediaRecorder.stop();
+		console.log("Browser stopped recording");
+	}
+
+})
 
 // Helper for now, should be deleted later
 const DEFAULT_CONFIG = {
@@ -78,8 +139,7 @@ function gotDevices(deviceInfos) {
 	const option = document.createElement("option");
 	option.value = info.deviceId
 	option.text = info.label || `${info.kind}`
-	console.log("label", info.label)
-	console.log("kind", info.kind)
+
 	if(info.kind == "audioinput") {
 		audioInputSelect.appendChild(option)
 	}
@@ -127,6 +187,7 @@ function start() {
 		})
 		.catch(handleError);
 }
+
 
 audioInputSelect.onchange = start;
 videoSelect.onchange = start;

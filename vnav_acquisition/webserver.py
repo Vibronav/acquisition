@@ -1,4 +1,7 @@
-from flask import Flask, request, jsonify, send_from_directory, Response, stream_with_context
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.serving import WSGIRequestHandler
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording, is_ssh_connected
@@ -11,12 +14,8 @@ import argparse
 import json
 import os   # Berke 16.09.2024
 from pathlib import Path
-import requests
+from flask_socketio import SocketIO, emit
 
-class CustomRequestHandler(WSGIRequestHandler):
-    def log_request(self, code = "-", size = "-"):
-        if self.path not in ["/raspberry-status", "/automation-status"]:
-            return super().log_request(code, size)
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
@@ -25,8 +24,33 @@ PORT_FILE = BASE_DIR / "flask_port.txt"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
 
+socketio = SocketIO(app, cors_allowed_origins="*")
+
 automation_thread = None
 stop_event = threading.Event()
+
+
+@socketio.on('connect')
+def handle_connect():
+    print("WebSocket connected")
+
+@socketio.on('record')
+def handle_recorded(data):
+    print(f'Received record event from backend: {data}')
+    emit('record', data, broadcast=True)
+
+## TODO: Logic should be moved to another file, shouldn't be saving in webserver
+@app.route("/upload", methods=['POST'])
+def upload_video():
+    print(f'Received upload request')
+    file = request.files['file']
+    filename = file.filename
+    video_output_dir = os.path.join(os.getcwd(), "videos")
+    os.makedirs(video_output_dir, exist_ok=True)
+    file_path = os.path.join(video_output_dir, filename)
+    file.save(file_path)
+    print(f"File saved to {file_path}")
+    return jsonify({"status": "ok", "filename": filename})
 
 
 @app.route("/", methods=['GET'])
@@ -148,7 +172,8 @@ def main():
     if args.open_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url), ).start()
     
-    app.run(port=port, debug=False, request_handler=CustomRequestHandler)
+    # app.run(port=port, debug=False, request_handler=CustomRequestHandler)
+    socketio.run(app, port=port, debug=False)
 
 
 if __name__ == '__main__':
