@@ -10,6 +10,7 @@ const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
+const iterationCounterEl = document.getElementById("iterationCounter");
 
 const materialsContainter = document.getElementById("materials");
 const speedsContainer = document.getElementById("speeds");
@@ -25,8 +26,6 @@ liveVideoElement.controls = false;
 let localStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
-let containerType = "video/webm";
-let videoFileName = "";
 
 const socket = io();
 socket.on("connect", () => {
@@ -88,9 +87,27 @@ socket.on("record", async (msg) => {
 		console.log("Browser stopped recording");
 	}
 
-})
+});
 
-// Helper for now, should be deleted later
+socket.on("automation-status", (msg) => {
+	const status = msg.status;
+	automationStatusEl.textContent = `Automation status: ${status}`;
+	automationStatusEl.style.color = status === "running" ? "green" : "red";
+	if(status === "running") {
+		toggleButtons(true);
+	} else {
+		toggleButtons(false);
+		iterationCounterEl.textContent = `Iteration: -`
+	}
+});
+
+socket.on("iteration", (msg) => {
+	const iterInput = iterEl.value;
+	const maxIterations = iterInput ? parseInt(iterInput, 10) || 1 : 1
+	const currentIteration = msg.iteration;
+	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
+});
+
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
 	speeds: ["slow", "medium", "fast"]
@@ -252,7 +269,6 @@ function startAutomation() {
 	})
 	.then(data => {
 		console.log("Automation started: ", data);
-		updateAutomationStatus("running");
 		alert("Tests started - you can monitor it by video from camera.");
 	})
 	.catch(err => {
@@ -274,7 +290,6 @@ function stopAutomation() {
 	})
 	.then(data => {
 		console.log("Automation stopped: ", data);
-		updateAutomationStatus("idle");
 		alert("Tests stopped");
 	});
 
@@ -297,27 +312,6 @@ async function getRaspberryStatus() {
 
 }
 
-function updateAutomationStatus(status) {
-	automationStatusEl.textContent = `Automation status: ${status}`;
-	automationStatusEl.style.color = status === "running" ? "green" : "red";
-	if(status === "running") {
-		toggleButtons(true);
-	} else {
-		toggleButtons(false);
-	}
-}
-
-async function getAutomationStatus() {
-	try {
-		const res = await fetch("/automation-status");
-		const data = await res.json();
-		updateAutomationStatus(data.status);
-	} catch (err) {
-		console.error("Error fetching automation status: ", err);
-		updateAutomationStatus("idle");
-	}
-}
-
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -336,7 +330,6 @@ async function getAutomationStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 5000);
-setInterval(getAutomationStatus, 3000);
 
 
 // Meter class that generates a number correlated to audio volume.

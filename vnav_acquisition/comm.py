@@ -19,6 +19,8 @@ def is_ssh_connected():
         return True
     return False
 
+
+## I think we shouldn't try except here. If we cannot connect we should pass exception to caller function up to run_automation and we should stop automating
 def ssh_connect(hostname, port, username, password):
     global ssh
     try:

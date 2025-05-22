@@ -6,7 +6,7 @@ from werkzeug.serving import WSGIRequestHandler
 from vnav_acquisition.interface import get_html
 from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording, is_ssh_connected
 from vnav_acquisition.config import config
-from vnav_acquisition.automation_playwright import run_automation
+from vnav_acquisition.automation_playwright import safe_run_automation
 import random
 import threading
 import webbrowser
@@ -38,6 +38,16 @@ def handle_connect():
 def handle_recorded(data):
     print(f'Received record event from backend: {data}')
     emit('record', data, broadcast=True)
+
+@socketio.on('automation-status')
+def handle_automation_status(data):
+    print(f'Received automation status event from backend: {data}')
+    emit('automation-status', data, broadcast=True)
+
+@socketio.on('iteration')
+def handle_iteration_count(data):
+    print(f'Received iteration count event from backend: {data}')
+    emit('iteration', data, broadcast=True)
 
 ## TODO: Logic should be moved to another file, shouldn't be saving in webserver
 @app.route("/upload", methods=['POST'])
@@ -78,7 +88,7 @@ def run():
     
     stop_event.clear()
     automation_thread = threading.Thread(
-        target=run_automation,
+        target=safe_run_automation,
         kwargs=dict(
             username = params["username"],
             material = params["material"],
@@ -98,23 +108,6 @@ def run():
     automation_thread.start()
 
     return jsonify({"status": "started"})
-
-@app.route("/automation-status", methods=['GET'])
-def automation_status():
-    global automation_thread
-    
-    import logging
-    werkzeug_log = logging.getLogger('werkzeug')
-    prev_level = werkzeug_log.level
-    werkzeug_log.setLevel(logging.ERROR)
-
-    try:
-        if automation_thread and automation_thread.is_alive():
-            return jsonify({"status": "running"})
-        else:
-            return jsonify({"status": "idle"})
-    finally:
-        werkzeug_log.setLevel(prev_level)
 
 
 @app.route("/stop", methods=['POST'])
