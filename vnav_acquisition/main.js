@@ -12,8 +12,8 @@ const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
 
-const materialsContainter = document.getElementById("materials");
-const speedsContainer = document.getElementById("speeds");
+const materialsContainter = document.getElementById("material");
+const speedsContainer = document.getElementById("speed");
 
 const audioInputSelect  = document.getElementById("audioSource");
 const videoSelect = document.getElementById("videoSource");
@@ -113,25 +113,15 @@ const DEFAULT_CONFIG = {
 	speeds: ["slow", "medium", "fast"]
 };
 
-function renderRadioButtons(wrapper, name, values) {
+function renderSelectOptions(selectElement, values) {
 
-	wrapper.innerHTML = "";
-	values.forEach((val, idx) => {
-		const id = `${name}-${idx}`;
-		const label = document.createElement("label");
-		label.setAttribute("for", id);
-		label.textContent = val;
-
-		const input = document.createElement("input");
-		input.type = "radio";
-		input.name = name;
-		input.id = id;
-		input.value = val;
-
-		wrapper.appendChild(input);
-		wrapper.appendChild(label);
-		wrapper.appendChild(document.createElement("br"));
-	});
+	selectElement.innerHTML = "";
+	values.forEach(val => {
+		const option = document.createElement("option");
+		option.value = val;
+		option.textContent = val;
+		selectElement.appendChild(option);
+	})
 }
 
 async function loadConfig() {
@@ -228,8 +218,8 @@ function toggleButtons(automation_running) {
 function startAutomation() {
 
 	const username = usernameEl.value.trim()
-	const material = document.querySelector('input[name="materials"]:checked')
-	const speed = document.querySelector('input[name="speeds"]:checked')
+	const material = materialsContainter.value;
+	const speed = speedsContainer.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
 	const audioDevice = audioInputSelect.value || null;
@@ -250,8 +240,8 @@ function startAutomation() {
 
 	const payload = {
 		username: username,
-		material: material.value,
-		speed: speed.value,
+		material: material,
+		speed: speed,
 		iterations: iterations,
 		audioDevice: audioDevice,
 		videoDevice: videoDevice,
@@ -268,6 +258,7 @@ function startAutomation() {
 		return res.json();
 	})
 	.then(data => {
+		startAutomationBt.disabled = true;
 		console.log("Automation started: ", data);
 		alert("Tests started - you can monitor it by video from camera.");
 	})
@@ -289,8 +280,9 @@ function stopAutomation() {
 		return res.json();
 	})
 	.then(data => {
+		stopAutomationBt.disabled = true;
 		console.log("Automation stopped: ", data);
-		alert("Tests stopped");
+		alert("Tests will be stopped after this iteration.");
 	});
 
 }
@@ -315,8 +307,8 @@ async function getRaspberryStatus() {
 (async function init() {
 
 	const cfg = await loadConfig();
-	renderRadioButtons(materialsContainter, "materials", cfg.materials);
-	renderRadioButtons(speedsContainer, "speeds", cfg.speeds);
+	renderSelectOptions(materialsContainter, cfg.materials);
+	renderSelectOptions(speedsContainer, cfg.speeds);
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});

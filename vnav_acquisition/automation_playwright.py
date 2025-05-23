@@ -3,59 +3,8 @@ import time
 from playwright.sync_api import sync_playwright
 from vnav_acquisition.config import config
 from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
-import subprocess
-from datetime import datetime
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 import socketio
-
-def start_recording(output_filepath, audio_device=None, video_device=None):
-    """Starts recording video + audio using ffmpeg via subprocess.Popen."""
-    print("Evecuting 'start_recording': start recording video + audio")
-    frame_width = 1920
-    frame_height = 1080
-    fps = 30
-    audio_rate = 48000
-    # video_source = video_device if video_device else "Jabra PanaCast 20"  
-    # audio_device_name = audio_device if audio_device else "Mikrofon (Jabra PanaCast 20)"
-    video_source = "Integrated Camera"
-    audio_device_name = "Zestaw mikrofonów (Realtek(R) Audio)"
-
-    command = [
-        'ffmpeg',
-        '-loglevel', 'warning',
-        '-f', 'dshow',
-        '-rtbufsize', '1G',
-        '-video_size', f"{frame_width}x{frame_height}",
-        '-framerate', str(fps),
-        '-thread_queue_size', '512',
-        '-i', f'video={video_source}',
-        '-f', 'dshow',
-        '-thread_queue_size', '512',
-        '-i', f'audio={audio_device_name}',
-        '-ar', str(audio_rate),
-        '-ac', '1',
-        '-c:v', 'libx264',
-        '-c:a', 'libopus',
-        '-b:a', '256k',
-        '-preset', 'fast',
-        '-filter:a', 'loudnorm',
-        '-async', '1',
-        '-strict', 'experimental',
-        output_filepath
-    ]
-
-    process = subprocess.Popen(command, stdin=subprocess.PIPE)
-    return process
-
-def stop_recording(process):
-    """Stops the ffmpeg recording by sending 'q' to its stdin."""
-    print("Stop recording: Audio + micro from PC")
-    if process.stdin:
-        process.stdin.write(b'q')
-        process.stdin.flush()
-        process.wait(timeout=3)
-    else:
-        print("Error: Process stdin is None")
 
 def get_flask_port():
     """Reads the Flask port number from flask_port.txt (in the same directory)."""
@@ -174,7 +123,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 "filename": output_filename
             })
 
-            on_rec_start(config['connection'], username, material, speed)
+            # on_rec_start(config['connection'], username, material, speed)
 
             # Skip actual movement for first 2 iterations, just wait
             if i < 2:
@@ -196,7 +145,7 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 #time.sleep(3)
                 
 
-            on_rec_stop()
+            # on_rec_stop()
 
             if i >= 2:  # Start modifying positions after the 3rd iteration (i == 2)
                 if (i + 1) % 35 == 0:
