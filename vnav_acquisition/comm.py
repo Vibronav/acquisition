@@ -31,6 +31,7 @@ def ssh_connect(hostname, port, username, password):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname, port, username, password, timeout=10)
         if not ssh.get_transport() or not ssh.get_transport().is_active():
+            ssh = None
             print("SSH transport is not active.")
             return
 
@@ -46,10 +47,11 @@ def ssh_connect(hostname, port, username, password):
             print(f"SFPT setup upload completed.")
     except Exception as e:
         print(f"SFPT setup upload error.", e)
+        ssh = None
 
 
 def on_rec_start(connection, username, material, speed):
-    print("Executing 'on_rec_start': Starting micro on needle || SSH CONNECTION")
+    print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
@@ -57,6 +59,7 @@ def on_rec_start(connection, username, material, speed):
     if ssh is None:
         ssh_connect(*connection)
         time.sleep(1)
+
     if ssh:
         print("Recording started")
         remote_path = f"{config['remote_dir']}/{file_name}"
@@ -79,8 +82,9 @@ def on_rec_start(connection, username, material, speed):
         ssh.exec_command(start_command)
         play_chirp_signal()
     else:
-        print("SSH connection failed.")
-    return os.path.splitext(file_name)[0]
+        return False
+    
+    return True
 
 def kill_rasp_process():
     if ssh is not None:
@@ -99,7 +103,6 @@ def on_rec_stop(delete=False):
 
         remote_path = f"{config['remote_dir']}/{file_name}"
         local_path = os.path.join(config["local_dir"], file_name)
-        print(f'Local path for microphone data: {local_path}')
         os.makedirs(config["local_dir"], exist_ok=True)
 
         try:
@@ -107,7 +110,7 @@ def on_rec_stop(delete=False):
                 sftp.get(remote_path, local_path)
         except Exception as e:
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
-            raise
+
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
         if recording_status:
             recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
@@ -116,8 +119,11 @@ def on_rec_stop(delete=False):
             delete_command = f"rm {remote_path}"
             ssh.exec_command(delete_command)
     else:
-        print("SSH not connected")
-    return recorded_files
+        print("SSH not connected during stopping recording")
+        return False
+    
+    print(len(recorded_files))
+    return len(recorded_files) > 0
 
 
 def delete_last_recording():

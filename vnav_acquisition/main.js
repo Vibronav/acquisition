@@ -26,6 +26,7 @@ liveVideoElement.controls = false;
 let localStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
+let shouldUpload = true;
 
 const socket = io();
 socket.on("connect", () => {
@@ -36,9 +37,7 @@ socket.on("record", async (msg) => {
 
 	const action = msg.action;
 	const filename = msg.filename;
-	console.log(action)
-	console.log("mediaRecorder: ", mediaRecorder);
-	console.log("state: ", mediaRecorder?.state);
+	console.log(action);
 
 	if(!localStream) {
 		console.warn("No media stream available to record");
@@ -65,16 +64,21 @@ socket.on("record", async (msg) => {
 		}
 
 		mediaRecorder.onstop = async () => {
-			console.log('stopping')
-			const blob = new Blob(recordedChunks, { type: "video/webm" });
-			const formData = new FormData();
-			formData.append("file", blob, filename);
+			console.log('stopping');
 
-			await fetch("/upload", {
-				method: "POST",
-				body: formData
-			});
+			if(shouldUpload) {
+				const blob = new Blob(recordedChunks, { type: "video/webm" });
+				const formData = new FormData();
+				formData.append("file", blob, filename);
 
+				await fetch("/upload", {
+					method: "POST",
+					body: formData
+				});
+			} else {
+				console.warn("Backend forced not to upload video");
+			}
+		
 		}
 
 		mediaRecorder.start();
@@ -83,6 +87,7 @@ socket.on("record", async (msg) => {
 	}
 
 	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording") {
+		shouldUpload = msg.shouldUpload;
 		mediaRecorder.stop();
 		console.log("Browser stopped recording");
 	}

@@ -32,7 +32,8 @@ def safe_run_automation(**kwargs):
             "status": "idle",
         })
         sio.emit("record", {
-            "action": "stop"
+            "action": "stop",
+            "shouldUpload": False
         })
 
 
@@ -118,12 +119,19 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
             time.sleep(1)
 
             print(f"Recording {i+1}/{num_iterations} started.")
+            
             sio.emit("record", {
                 "action": "start",
                 "filename": output_filename
             })
 
-            # on_rec_start(config['connection'], username, material, speed)
+            is_started = on_rec_start(config['connection'], username, material, speed)
+            if not is_started:
+                sio.emit("record", {
+                    "action": "stop",
+                    "shouldUpload": False
+                })
+                continue
 
             # Skip actual movement for first 2 iterations, just wait
             if i < 2:
@@ -145,8 +153,6 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 #time.sleep(3)
                 
 
-            # on_rec_stop()
-
             if i >= 2:  # Start modifying positions after the 3rd iteration (i == 2)
                 if (i + 1) % 35 == 0:
                     # Increase Y by 3 and reset X to initial value after every n iterations
@@ -166,11 +172,18 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
                 else:
                     print("P2 not used, only P1 and P3 updated.")
 
-            time.sleep(2.5)
-
-            sio.emit("record", {
-                "action": "stop"
-            })
+            is_recorded = on_rec_stop()
+            if not is_recorded:
+                sio.emit("record", {
+                    "action": "stop",
+                    "shouldUpload": False
+                })
+            else:
+                time.sleep(2.5)
+                sio.emit("record", {
+                    "action": "stop",
+                    "shouldUpload": True
+                })
 
             if i >= 2:
                 print(f"Iteration {i+1} completed.")

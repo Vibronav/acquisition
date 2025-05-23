@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.serving import WSGIRequestHandler
 from vnav_acquisition.interface import get_html
-from vnav_acquisition.comm import on_rec_stop, on_rec_start, delete_last_recording, is_ssh_connected
+from vnav_acquisition.comm import delete_last_recording, is_ssh_connected
 from vnav_acquisition.config import config
 from vnav_acquisition.automation_playwright import safe_run_automation
 import random
