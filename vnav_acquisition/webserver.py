@@ -94,13 +94,11 @@ def run():
             material = params["material"],
             stop_event = stop_event,
             speed = params["speed"],
-            position_type = "Only Up and Down",
-            p1 = (300, 0, -20, 0),
-            p2 = (0, 0, 0, 0),
-            p3 = (300, 0, -90, 0),
-            num_iterations = params["iterations"],
-            audio_device = params["audioDevice"],
-            video_device = params["videoDevice"],
+            motion_type = params["motionType"],
+            p1 = tuple(params["p1"]),
+            p2 = tuple(params["p2"]),
+            p3 = tuple(params["p3"]),
+            num_iterations = params["iterations"]
         ),
         daemon=True
     )
@@ -116,12 +114,6 @@ def stop():
     stop_event.set()
     return jsonify({"status": "Will stop after current iteration."})
 
-
-@app.route("/delete_last", methods=['GET'])
-def delete_last():
-    deleted_files = delete_last_recording()
-    print("Received delete_last/GET request")
-    return jsonify(deleted_files)
 
 @app.route("/raspberry-status", methods=['GET'])
 def check_connection():

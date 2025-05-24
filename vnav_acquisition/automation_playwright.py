@@ -37,7 +37,7 @@ def safe_run_automation(**kwargs):
         })
 
 
-def run_automation(username, material, stop_event, speed=None, position_type=None, p1=None, p2=None, p3=None, num_iterations=None, audio_device=None, video_device=None):
+def run_automation(username, material, stop_event, speed=None, motion_type=None, p1=None, p2=None, p3=None, num_iterations=None):
     """
     Main automation functions:
       - Launches Playwright, sets up camera/audio,
@@ -87,11 +87,11 @@ def run_automation(username, material, stop_event, speed=None, position_type=Non
         # dashboard.SpeedFactor(speed_value)
 
         # Determine positions
-        if position_type == "Only Up and Down":
+        if motion_type == "Only Up and Down":
             P1 = p1
             P2 = None
             P3 = p3
-        elif position_type == "Up, Down, Forward":
+        elif motion_type == "Up, Down, Forward":
             P1 = p1
             P2 = p2
             P3 = p3
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         username="test_user",
         material=config["materials"][0],
         speed=config["speeds"][1],
-        position_type=None,
+        motion_type=None,
         p1=None,
         p2=None,
         p3=None,

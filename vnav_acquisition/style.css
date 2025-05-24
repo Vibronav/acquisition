@@ -3,7 +3,7 @@ body {
     font-size: 14px;
     background-color: #F0F2F5;
     margin: 0;
-    padding: 10px;
+    padding: 6px;
 }
 
 .container {
@@ -11,12 +11,12 @@ body {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .head {
     background: #fff;
-    padding: 10px 14px;
+    padding: 8px 12px;
     border-radius: 6px;
     box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px;
     position: relative;
@@ -52,7 +52,7 @@ input[type="number"] {
 
 .form-section {
     background: #fff;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-radius: 6px;
     box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px;
 }
@@ -74,7 +74,7 @@ input[type="number"] {
 #controls {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 8px;
     flex-wrap: wrap;
 }
 
@@ -118,9 +118,49 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.param-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.param-group input[type="number"] {
+    width: 100%;
+    max-width: 60px;
+    padding: 4px 6px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    text-align: right;
+}
+
+.radio-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 3px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: normal;
+    cursor: pointer;
+    gap: 6px;
+}
+
+.radio-group input[type="radio"] {
+    accent-color: #4CAF50;
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
 .video {
     background: #fff;
-    padding: 8px;
+    padding: 6px;
     border-radius: 6px;
     box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px;
     display: flex;

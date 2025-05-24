@@ -189,7 +189,6 @@ function start() {
 			framerate: 60
 		}
     };
-//    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
     navigator.mediaDevices.getUserMedia(constraints)
 		.then((stream) => {
@@ -211,7 +210,6 @@ navigator.mediaDevices.ondevicechange = function(event) {
 
 
 function log(message){
-	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 	console.log(message)
 }
 
@@ -227,8 +225,10 @@ function startAutomation() {
 	const speed = speedsContainer.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
-	const audioDevice = audioInputSelect.value || null;
-	const videoDevice = videoSelect.value || null;
+	const p1 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p1_${i}`).value, 10));
+	const p2 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p2_${i}`).value, 10));
+	const p3 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p3_${i}`).value, 10));
+	const motionType = document.querySelector('input[name="motionType"]:checked').value;
 
 	if(!username) {
 		return alert("Please pass username");
@@ -248,8 +248,10 @@ function startAutomation() {
 		material: material,
 		speed: speed,
 		iterations: iterations,
-		audioDevice: audioDevice,
-		videoDevice: videoDevice,
+		p1: p1,
+		p2: p2,
+		p3: p3,
+		motionType: motionType,
 	};
 
 
