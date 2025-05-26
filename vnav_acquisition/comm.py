@@ -122,7 +122,6 @@ def on_rec_stop(delete=False):
         print("SSH not connected during stopping recording")
         return False
     
-    print(len(recorded_files))
     return len(recorded_files) > 0
 
 

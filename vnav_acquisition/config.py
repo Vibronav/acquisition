@@ -3,7 +3,7 @@ import json
 
 class Configurator:
     _DEFAULT_CONFIG = {
-        'connection': ["192.168.248.55", 22, "pi", "VibroNav"],
+        'connection': ["192.168.0.110", 22, "pi", "VibroNav"],
         'materials': ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
                       "African (silk)"],
         'speeds': ["slow", "medium", "fast"],
