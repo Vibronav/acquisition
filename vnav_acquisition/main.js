@@ -28,6 +28,11 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let shouldUpload = true;
 
+const DEFAULT_CONFIG = {
+	materials: ["slime", "Silicone", "Chicken"],
+	speeds: ["slow", "medium", "fast"]
+};
+
 const socket = io();
 socket.on("connect", () => {
 	console.log("Socket.io connected from browser")
@@ -112,11 +117,6 @@ socket.on("iteration", (msg) => {
 	const currentIteration = msg.iteration;
 	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
 });
-
-const DEFAULT_CONFIG = {
-	materials: ["slime", "Silicone", "Chicken"],
-	speeds: ["slow", "medium", "fast"]
-};
 
 function renderSelectOptions(selectElement, values) {
 
@@ -328,7 +328,7 @@ async function getRaspberryStatus() {
 
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
-setInterval(getRaspberryStatus, 5000);
+setInterval(getRaspberryStatus, 3000);
 
 
 // Meter class that generates a number correlated to audio volume.
