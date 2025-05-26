@@ -13,14 +13,25 @@
 
 **Option A**
 
-git clone [https://github.com/Vibronav/acquisition.git]
-(https://github.com/Vibronav/acquisition.git)
+``` bash
+git clone https://github.com/Vibronav/acquisition.git
+```
+
+After cloning go to the project
+
+``` bash
+cd acquisition
+```
 
 **Option B**
 
 Download ZIP from Github (https://github.com/Vibronav/acquisition.git) and extract
 
+Then also go to the project folder `acquisition`
+
 2. **Install packages**
+
+When you are in `acquisition` folder
 
 ```bash
 pip install -r requirements.txt
