@@ -144,7 +144,6 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
             # Move to P3
             move_to_position(dashboard, move, P3)
             time.sleep(3)
-            time.sleep(1)
             
             # Move back to P1
             move_to_position(dashboard, move, P1)

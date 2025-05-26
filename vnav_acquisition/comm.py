@@ -25,7 +25,6 @@ def ssh_connect(hostname, port, username, password):
     global ssh
     try:
         ssh = paramiko.SSHClient()
-        paramiko.util.log_to_file('paramiko_debug.log', level=logging.DEBUG)
         print(config['connection'])
         print("Connecting to RaspberryPi...")
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
