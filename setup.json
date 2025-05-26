@@ -1,7 +1,7 @@
 {
     "connection": ["192.168.0.110", 22, "pi", "VibroNav"],
     "materials": ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
-                    "African (silk)"],
+                    "African (silk)", "Test"],
     "speeds": ["slow", "medium", "fast"],
     "local_dir": "micro_data",
     "remote_dir": "vnav_acquisition"

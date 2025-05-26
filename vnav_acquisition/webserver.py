@@ -151,7 +151,7 @@ def main():
     PORT_FILE.write_text(str(port), encoding="utf-8")
 
     if args.open_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(url), ).start()
+        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
     # app.run(port=port, debug=False, request_handler=CustomRequestHandler)
     socketio.run(app, port=port, debug=False)

@@ -48,8 +48,6 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
       - Adjusts positions after certain iteration counts.
     """
     print("Executing 'run_automation'")
-    setup_json_path = r'C:\Users\jakub\Desktop\ncn\acquisition\setup.json'
-    config.load_from_json(setup_json_path)
     flask_port = get_flask_port()
     print('BEGENNING AUTOMATION')
 
