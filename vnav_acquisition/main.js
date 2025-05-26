@@ -208,7 +208,6 @@ navigator.mediaDevices.ondevicechange = function(event) {
 	log("mediaDevices.ondevicechange");
 }
 
-
 function log(message){
 	console.log(message)
 }
