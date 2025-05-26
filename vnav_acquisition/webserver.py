@@ -2,16 +2,12 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, send_from_directory
-from werkzeug.serving import WSGIRequestHandler
-from vnav_acquisition.interface import get_html
-from vnav_acquisition.comm import delete_last_recording, is_ssh_connected
+from vnav_acquisition.comm import is_ssh_connected
 from vnav_acquisition.config import config
 from vnav_acquisition.automation_playwright import safe_run_automation
-import random
 import threading
 import webbrowser
 import argparse
-import json
 import os   # Berke 16.09.2024
 from pathlib import Path
 from flask_socketio import SocketIO, emit
@@ -49,7 +45,6 @@ def handle_iteration_count(data):
     print(f'Received iteration count event from backend: {data}')
     emit('iteration', data, broadcast=True)
 
-## TODO: Logic should be moved to another file, shouldn't be saving in webserver
 @app.route("/upload", methods=['POST'])
 def upload_video():
     print(f'Received upload request')
@@ -57,6 +52,7 @@ def upload_video():
     filename = file.filename
     video_output_dir = os.path.join(os.getcwd(), "videos")
     os.makedirs(video_output_dir, exist_ok=True)
+
     file_path = os.path.join(video_output_dir, filename)
     file.save(file_path)
     print(f"File saved to {file_path}")

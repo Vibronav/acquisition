@@ -24,9 +24,10 @@ def safe_run_automation(**kwargs):
     except Exception as e:
         print(f'AUTOMATION STOPPED WITH ERROR: {e}')
         kill_rasp_process()
+        flask_port = get_flask_port()
         sio = socketio.Client()
         sio.sleep(1)
-        sio.connect(f'http://localhost:5000', wait_timeout=2)
+        sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
         sio.sleep(1)
         sio.emit("automation-status", {
             "status": "idle",
@@ -47,22 +48,18 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
       - Adjusts positions after certain iteration counts.
     """
     print("Executing 'run_automation'")
-    setup_json_path = r'C:\Users\ucunb\OneDrive\Masaüstü\acquisition-master2\setup.json'
-    # config.load_from_json(setup_json_path)
+    setup_json_path = r'C:\Users\jakub\Desktop\ncn\acquisition\setup.json'
+    config.load_from_json(setup_json_path)
     flask_port = get_flask_port()
     print('BEGENNING AUTOMATION')
 
     sio = socketio.Client()
     sio.sleep(1)
-    sio.connect(f'http://localhost:5000', wait_timeout=2)
+    sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
     sio.sleep(1)
     sio.emit("automation-status", {
         "status": "running",
     })
-
-    video_output_dir = os.path.join(os.getcwd(), "videos")
-    print(f"Video directory verified: {video_output_dir}")
-    os.makedirs(video_output_dir, exist_ok=True)
 
     # Connect to Dobot
     dashboard, move = connect_robot()
@@ -111,7 +108,6 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
 
         timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
         output_filename = f"{username}_{material}_{speed}_{timestamp}.mp4"
-        output_filepath = os.path.join(video_output_dir, output_filename)
 
         move_to_position(dashboard, move, P1)
         time.sleep(1)
