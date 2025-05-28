@@ -1,19 +1,10 @@
-import os
+from vnav_acquisition.utils import get_flask_port
 import time
 from playwright.sync_api import sync_playwright
 from vnav_acquisition.config import config
 from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 import socketio
-
-def get_flask_port():
-    """Reads the Flask port number from flask_port.txt (in the same directory)."""
-    port_file_path = os.path.join(os.path.dirname(__file__), 'flask_port.txt')
-    if os.path.exists(port_file_path):
-        with open(port_file_path, 'r') as f:
-            return f.read().strip()
-    else:
-        raise Exception("Flask port file not found.")
     
 def safe_run_automation(**kwargs):
     """

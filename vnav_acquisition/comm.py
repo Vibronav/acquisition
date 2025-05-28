@@ -3,14 +3,19 @@ import time
 import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
+from vnav_acquisition.utils import get_flask_port
 from .config import config
 import logging
+import socket
+import threading
+import socketio
 
 MIC_NAME = "dmic_sv"
 CHANNEL_FMT = "stereo"
 SAMPLING_RATE = 48000
 
 ssh: paramiko.SSHClient = None
+micro_signal_thread = None
 file_name = ""
 
 def is_ssh_connected():
@@ -21,7 +26,7 @@ def is_ssh_connected():
 
 
 def ssh_connect(hostname, port, username, password):
-    global ssh
+    global ssh, micro_signal_thread
     try:
         ssh = paramiko.SSHClient()
         print(config['connection'])
@@ -32,6 +37,14 @@ def ssh_connect(hostname, port, username, password):
             ssh = None
             print("SSH transport is not active.")
             return
+        
+        if not micro_signal_thread or not micro_signal_thread.is_alive():
+            flask_port = get_flask_port()
+            sio = socketio.Client()
+            sio.sleep(1)
+            sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
+            sio.sleep(1)
+            listen_for_micro_signals(sio)
 
         print('CONNECTED TO RASPBERRYPI')
     except Exception as e:
@@ -136,3 +149,24 @@ def delete_last_recording():
             print(file, "does not exist")
     return deleted
 
+def listen_for_micro_signals(sio):
+        global micro_signal_thread
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(('0.0.0.0', 5001))
+        s.listen(1)
+        print("Microphone signal server started, waiting for connection...")
+
+        conn, addr = s.accept()
+        print(f"Connection from {addr}")
+        micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
+
+def receive_and_send_micro_signals(conn, sio):
+        while True:
+            try:
+                data = conn.recv(4096)  # Read 4096 bytes
+                if not data:
+                    break
+                sio.emit('micro-signal', {'data': data.hex()})
+            except Exception as e:
+                break
+        conn.close()
