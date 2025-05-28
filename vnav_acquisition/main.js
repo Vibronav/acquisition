@@ -17,15 +17,21 @@ const speedsContainer = document.getElementById("speed");
 
 const audioInputSelect  = document.getElementById("audioSource");
 const videoSelect = document.getElementById("videoSource");
-const selectors = [audioInputSelect, videoSelect];
+const videoSelect2 = document.getElementById("videoSource2");
+const selectors = [audioInputSelect, videoSelect, videoSelect2];
 
 const liveVideoElement = document.getElementById('video');
+const liveVideoElement2 = document.getElementById('video2');
 
 liveVideoElement.controls = false;
+liveVideoElement2.controls = false;
 
 let localStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
+let localStream2 = null;
+let mediaRecorder2 = null;
+let recordedChunks2 = [];
 let shouldUpload = true;
 
 const DEFAULT_CONFIG = {
@@ -44,56 +50,34 @@ socket.on("record", async (msg) => {
 	const filename = msg.filename;
 	console.log(action);
 
-	if(!localStream) {
+	if(!localStream || !localStream2) {
 		console.warn("No media stream available to record");
 		return;
 	}
 
 	if(action === "start") {
 
-		if(mediaRecorder && mediaRecorder.state === "recording") {
-			console.warn("Already recording");
-			return;			
-		}
-
-		recordedChunks = [];
-
-		mediaRecorder = new MediaRecorder(localStream, {
-			mimeType: "video/webm; codecs=vp9"
-		})
-
-		mediaRecorder.ondataavailable = (event) => {
-			if(event.data.size > 0) {
-				recordedChunks.push(event.data);
-			}
-		}
-
-		mediaRecorder.onstop = async () => {
-			console.log('stopping');
-
-			if(shouldUpload) {
-				const blob = new Blob(recordedChunks, { type: "video/webm" });
-				const formData = new FormData();
-				formData.append("file", blob, filename);
-
-				await fetch("/upload", {
-					method: "POST",
-					body: formData
-				});
-			} else {
-				console.warn("Backend forced not to upload video");
-			}
-		
-		}
-
-		mediaRecorder.start();
+		onRecordStart({
+			filename: addSuffix(filename, "_cam1"),
+			stream: localStream,
+			setRecorder: (recorder) => mediaRecorder = recorder,
+			setChunks: (chunks) => recordedChunks = chunks,
+		});
+		onRecordStart({
+			filename: addSuffix(filename, "_cam2"),
+			stream: localStream2,
+			setRecorder: (recorder) => mediaRecorder2 = recorder,
+			setChunks: (chunks) => recordedChunks2 = chunks,
+		});
 		console.log("Browser started recording");
 
 	}
 
-	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording") {
+	console.log(mediaRecorder, mediaRecorder2);
+	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
 		shouldUpload = msg.shouldUpload;
 		mediaRecorder.stop();
+		mediaRecorder2.stop();
 		console.log("Browser stopped recording");
 	}
 
@@ -117,6 +101,52 @@ socket.on("iteration", (msg) => {
 	const currentIteration = msg.iteration;
 	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
 });
+
+function addSuffix(filename, suffix) {
+	const dotIndex = filename.lastIndexOf('.');
+	if (dotIndex === -1) {
+		return filename + suffix;
+	}
+	return filename.slice(0, dotIndex) + suffix + filename.slice(dotIndex);
+}
+
+function onRecordStart({filename, stream, setRecorder, setChunks}) {
+
+	const chunks = [];
+
+	const recorder = new MediaRecorder(stream, {
+		mimeType: "video/webm; codecs=vp9"
+	})
+
+	recorder.ondataavailable = (event) => {
+		if(event.data.size > 0) {
+			chunks.push(event.data);
+		}
+	}
+
+	recorder.onstop = async () => {
+		console.log('stopping');
+
+		if(shouldUpload) {
+			const blob = new Blob(chunks, { type: "video/webm" });
+			const formData = new FormData();
+			formData.append("file", blob, filename);
+
+			await fetch("/upload", {
+				method: "POST",
+				body: formData
+			});
+		} else {
+			console.warn("Backend forced not to upload video");
+		}
+	
+	}
+
+	recorder.start();
+	setRecorder(recorder);
+	setChunks(chunks);
+
+}
 
 function renderSelectOptions(selectElement, values) {
 
@@ -156,7 +186,10 @@ function gotDevices(deviceInfos) {
 		audioInputSelect.appendChild(option)
 	}
 	if(info.kind == "videoinput") {
-		videoSelect.appendChild(option)
+		const option1 = option.cloneNode(true);
+		const option2 = option.cloneNode(true);
+		videoSelect.appendChild(option1)
+		videoSelect2.appendChild(option2)
 	}
   });
 
@@ -172,7 +205,7 @@ function handleError(error) {
 }
 
 // https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output
-function start() {
+function startFirstCamera() {
     if (window.stream) {
         window.stream.getTracks().forEach(track => {
           track.stop();
@@ -199,9 +232,37 @@ function start() {
 		.catch(handleError);
 }
 
+function startSecondCamera() {
+    if (window.stream) {
+        window.stream.getTracks().forEach(track => {
+          track.stop();
+        });
+    }
+	const audioSource = audioInputSelect.value;
+    const videoSource2 = videoSelect2.value;
+    const constraints2 = {
+		audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+        video: {
+			deviceId: videoSource2 ? {exact: videoSource2} : undefined,
+			width:{min:640,ideal:1280,max:1280 },
+			height:{ min:480,ideal:720,max:720}, 
+			framerate: 60
+		}
+    };
 
-audioInputSelect.onchange = start;
-videoSelect.onchange = start;
+    navigator.mediaDevices.getUserMedia(constraints2)
+		.then((stream) => {
+			localStream2 = stream;
+			liveVideoElement2.srcObject = stream;
+			liveVideoElement2.play();
+		})
+		.catch(handleError);
+}
+
+
+audioInputSelect.onchange = startFirstCamera;
+videoSelect.onchange = startFirstCamera;
+videoSelect2.onchange = startSecondCamera;
 
 
 navigator.mediaDevices.ondevicechange = function(event) {
@@ -321,7 +382,8 @@ async function getRaspberryStatus() {
 	stream.getTracks().forEach((t) => t.stop())
 	const devices = await navigator.mediaDevices.enumerateDevices();
 	gotDevices(devices);
-	start();
+	startFirstCamera();
+	startSecondCamera();
 
 })();
 
