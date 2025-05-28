@@ -9,10 +9,12 @@
 
 ## Instruction
 
-1. **Clone or Download**
+### 1. **Clone or Download**
+&nbsp;
 
 **Option A**
 
+===========================================================================
 ``` bash
 git clone https://github.com/Vibronav/acquisition.git
 ```
@@ -22,14 +24,30 @@ After cloning go to the project
 ``` bash
 cd acquisition
 ```
+============================================================================
+
+&nbsp;
 
 **Option B**
 
+===========================================================================
+
 Download ZIP from Github (https://github.com/Vibronav/acquisition.git) and extract
+
+===========================================================================
+
+&nbsp;
+
+**For now after cloning you have to go to VNAV-232 branch, command below**
+``` bash
+git checkout VNAV-232
+```
 
 Then also go to the project folder `acquisition`
 
-2. **Install packages**
+&nbsp;
+
+### 2. **Install packages**
 
 When you are in `acquisition` folder
 
@@ -37,11 +55,11 @@ When you are in `acquisition` folder
 pip install -r requirements.txt
 ```
 
-3. **Add setup file** (Optional)
+### 3. **Add setup file** (Optional)
 
 Your can add your own setup.json file. Then in next point you can run program with path to this file as parameter
 
-4. **Run program**
+### 4. **Run program**
 
 Without your own setup file:
 
