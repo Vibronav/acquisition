@@ -27,3 +27,14 @@ pcm.dmic_sv {
 	min_dB -3.0
 	max_dB 30.0
 }
+
+pcm.dmic_sv_shared {
+	type dsnoop
+	ipc_key 2048
+	slave {
+		pcm "dmic_hw"
+		channels 2
+		rate 48000
+		format S32_LE
+	}
+}

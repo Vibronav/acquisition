@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, send_from_directory
-from vnav_acquisition.comm import is_ssh_connected
+from vnav_acquisition.comm import is_ssh_connected, ssh_connect
 from vnav_acquisition.config import config
 from vnav_acquisition.automation_playwright import safe_run_automation
 import threading
@@ -131,6 +131,9 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
+
+    ssh_connect(*config['connection'], socketio_instance=socketio)
+
 
     if args.open_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()

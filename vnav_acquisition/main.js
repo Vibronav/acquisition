@@ -22,9 +22,21 @@ const selectors = [audioInputSelect, videoSelect, videoSelect2];
 
 const liveVideoElement = document.getElementById('video');
 const liveVideoElement2 = document.getElementById('video2');
-const signalContainer = document.getElementById("micSignal");
+const chartLeft = new SmoothieChart();
+const chartRight = new SmoothieChart();
 
-const ctx = signalContainer.getContext("2d");
+const tsLeft = new TimeSeries();
+const tsRight = new TimeSeries();
+
+const spectrogram = document.getElementById('spectrogram');
+const ctx = spectrogram.getContext('2d');
+const fftSize = 512;
+
+chartLeft.addTimeSeries(tsLeft, { strokeStyle: 'blue', lineWidth: 2 });
+chartRight.addTimeSeries(tsRight, { strokeStyle: 'red', lineWidth: 2 });
+
+chartLeft.streamTo(document.getElementById('micSignalLeft'), 100);
+chartRight.streamTo(document.getElementById('micSignalRight'), 100);
 
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
@@ -36,6 +48,10 @@ let localStream2 = null;
 let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
+
+let specBuffer = [];
+
+const fft = new FFT(fftSize, 48000);
 
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
@@ -106,34 +122,87 @@ socket.on("iteration", (msg) => {
 });
 
 socket.on("micro-signal", (msg) => {
-	const buffer = hexToInt32Array(msg.data);
+	const bufferLeft = hexToInt32Array(msg.left);
+	const bufferRight = hexToInt32Array(msg.right);
+	
+	const now = Date.now();
+	const max = Math.max(...bufferLeft);
+	const min = Math.min(...bufferLeft);
+	console.log("max", max, "min", min);
+
+	if (bufferLeft && bufferLeft.length > 0) {
+		const sample = average(bufferLeft);
+		console.log("avg", sample);
+		tsLeft.append(now, sample / Math.pow(2, 24))
+	}
+	if (bufferRight && bufferRight.length > 0) {
+		const sample = average(bufferRight);
+		tsRight.append(now, sample / Math.pow(2, 24))
+	}
+
+	if( bufferLeft && bufferLeft.length > 0) {
+		processAndDrawSpectrogram(bufferLeft);
+	}
+
 })
 
-function hexToInt32Array(hexString) {
-	const len = hexString.length / 2;
-	const bytes = new Uint8Array(len);
-	for (let i=0; i<len; i++) {
-		bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
+function average(arr) {
+	let sum = 0;
+	for (let i=0; i<arr.length; i++) {
+		sum += arr[i];
 	}
-	return new Int32Array(bytes.buffer);
+	return sum / arr.length;
+}
+
+function hexToInt32Array(hexString) {
+
+	const len = hexString.length / 8;
+	const buffer = new ArrayBuffer(len * 4);
+	const view = new DataView(buffer);
+
+	for(let i=0; i<len; i++) {
+		const hex = hexString.slice(i * 8, i * 8 + 8);
+		const int = parseInt(hex, 16);
+		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
+		view.setInt32(i * 4, value, true);
+	}
+
+	return new Int32Array(buffer);
 
 }
 
-function drawMicroSignal(signal) {
-	const width = signalContainer.width;
-	const height = signalContainer.height;
-	ctx.clearRect(0, 0, width, height);
-	ctx.beginPath();
-	ctx.moveTo(0, height / 2);
-	const step = Math.ceil(signal.length / width);
-	for (let i=0; o<width; i++) {
-		const sampleIndex = i * step;
-		const sample = signal[sampleIndex] || 0;
-		const y = height / 2 - (sample / Math.pow(2, 24));
-		ctx.lineTo(i, y);
+function processAndDrawSpectrogram(samples) {
+	specBuffer = specBuffer.concat(Array.from(samples));
+
+	while(specBuffer.length >= fftSize) {
+		const chunk = specBuffer.slice(0, fftSize);
+		specBuffer = specBuffer.slice(fftSize / 2);
+
+		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 31)));
+		fft.forward(input);
+		drawColumn(fft.spectrum);
 	}
-	ctx.strokeStyle = "blue";
-	ctx.stroke();
+}
+
+function drawColumn(spectrum) {
+	const imageData = ctx.getImageData(1, 0, spectrogram.width - 1, spectrogram.height);
+	ctx.putImageData(imageData, 0, 0);
+
+	for (let y=0; y<spectrogram.height; y++) {
+		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
+		const value = Math.log10(spectrum[idx] * 10000 + 1) * 100; // Convert to dB scale
+		const color = valueToRGB(value);
+		ctx.fillStyle = color;
+		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
+	}
+}
+
+function valueToRGB(value) {
+	const clamped = Math.max(0, Math.min(255, value));
+	const r = clamped;
+	const g = clamped * 0.6;
+	const b = clamped * 0.2;
+	return `rgb(${r},${g},${b})`;
 }
 
 function addSuffix(filename, suffix) {

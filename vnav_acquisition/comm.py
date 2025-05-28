@@ -9,8 +9,9 @@ import logging
 import socket
 import threading
 import socketio
+import numpy as np
 
-MIC_NAME = "dmic_sv"
+MIC_NAME = "dmic_sv_shared"
 CHANNEL_FMT = "stereo"
 SAMPLING_RATE = 48000
 
@@ -37,9 +38,6 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
             ssh = None
             print("SSH transport is not active.")
             return
-        
-        if not micro_signal_thread or not micro_signal_thread.is_alive():
-            listen_for_micro_signals(socketio_instance)
 
         print('CONNECTED TO RASPBERRYPI')
     except Exception as e:
@@ -50,10 +48,16 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     try:
         with ssh.open_sftp() as sftp:
             sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
+            sftp.put(os.path.join(os.path.dirname(__file__), "micro_signal_sender.py"), "/home/pi/micro_signal_sender.py")
             print(f"SFPT setup upload completed.")
     except Exception as e:
         print(f"SFPT setup upload error.", e)
         ssh = None
+
+    start_micro_signal_sending()
+
+    if not micro_signal_thread or not micro_signal_thread.is_alive():
+        listen_for_micro_signals(socketio_instance)
 
 
 def on_rec_start(connection, username, material, speed, socketio_instance):
@@ -144,6 +148,10 @@ def delete_last_recording():
             print(file, "does not exist")
     return deleted
 
+def start_micro_signal_sending():
+    command = "python3 -u /home/pi/micro_signal_sender.py"
+    ssh.exec_command(command)
+
 def listen_for_micro_signals(sio):
         global micro_signal_thread
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -161,7 +169,15 @@ def receive_and_send_micro_signals(conn, sio):
                 data = conn.recv(4096)  # Read 4096 bytes
                 if not data:
                     break
-                sio.emit('micro-signal', {'data': data.hex()})
+
+                arr = np.frombuffer(data, dtype=np.int32)
+                left = arr[::2]
+                right = arr[1::2]
+                sio.emit('micro-signal', {
+                    'left': left.tobytes().hex(),
+                    'right': right.tobytes().hex(),
+                })
+                time.sleep(0.3)
             except Exception as e:
                 break
         conn.close()
