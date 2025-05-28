@@ -26,25 +26,6 @@ automation_thread = None
 stop_event = threading.Event()
 
 
-@socketio.on('connect')
-def handle_connect():
-    print("WebSocket connected")
-
-@socketio.on('record')
-def handle_recorded(data):
-    print(f'Received record event from backend: {data}')
-    emit('record', data, broadcast=True)
-
-@socketio.on('automation-status')
-def handle_automation_status(data):
-    print(f'Received automation status event from backend: {data}')
-    emit('automation-status', data, broadcast=True)
-
-@socketio.on('iteration')
-def handle_iteration_count(data):
-    print(f'Received iteration count event from backend: {data}')
-    emit('iteration', data, broadcast=True)
-
 @app.route("/upload", methods=['POST'])
 def upload_video():
     print(f'Received upload request')
@@ -94,7 +75,8 @@ def run():
             p1 = tuple(params["p1"]),
             p2 = tuple(params["p2"]),
             p3 = tuple(params["p3"]),
-            num_iterations = params["iterations"]
+            num_iterations = params["iterations"],
+            socketio_instance=socketio
         ),
         daemon=True
     )

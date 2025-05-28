@@ -25,7 +25,7 @@ def is_ssh_connected():
     return False
 
 
-def ssh_connect(hostname, port, username, password):
+def ssh_connect(hostname, port, username, password, socketio_instance):
     global ssh, micro_signal_thread
     try:
         ssh = paramiko.SSHClient()
@@ -39,12 +39,7 @@ def ssh_connect(hostname, port, username, password):
             return
         
         if not micro_signal_thread or not micro_signal_thread.is_alive():
-            flask_port = get_flask_port()
-            sio = socketio.Client()
-            sio.sleep(1)
-            sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
-            sio.sleep(1)
-            listen_for_micro_signals(sio)
+            listen_for_micro_signals(socketio_instance)
 
         print('CONNECTED TO RASPBERRYPI')
     except Exception as e:
@@ -61,14 +56,14 @@ def ssh_connect(hostname, port, username, password):
         ssh = None
 
 
-def on_rec_start(connection, username, material, speed):
+def on_rec_start(connection, username, material, speed, socketio_instance):
     print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
 
     if ssh is None:
-        ssh_connect(*connection)
+        ssh_connect(*connection, socketio_instance=socketio_instance)
         time.sleep(1)
 
     if ssh:

@@ -6,30 +6,25 @@ from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 import socketio
     
-def safe_run_automation(**kwargs):
+def safe_run_automation(socketio_instance, **kwargs):
     """
     Wrapper function to run the automation, handle any exception and proceed actions that is needed when automation stopped working
     """
     try:
-        run_automation(**kwargs)
+        run_automation(**kwargs, socketio_instance=socketio_instance)
     except Exception as e:
         print(f'AUTOMATION STOPPED WITH ERROR: {e}')
         kill_rasp_process()
-        flask_port = get_flask_port()
-        sio = socketio.Client()
-        sio.sleep(1)
-        sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
-        sio.sleep(1)
-        sio.emit("automation-status", {
+        socketio_instance.emit("automation-status", {
             "status": "idle",
         })
-        sio.emit("record", {
+        socketio_instance.emit("record", {
             "action": "stop",
             "shouldUpload": False
         })
 
 
-def run_automation(username, material, stop_event, speed=None, motion_type=None, p1=None, p2=None, p3=None, num_iterations=None):
+def run_automation(username, material, stop_event, speed=None, motion_type=None, p1=None, p2=None, p3=None, num_iterations=None, socketio_instance=None):
     """
     Main automation functions:
       - Launches Playwright, sets up camera/audio,
@@ -39,14 +34,8 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
       - Adjusts positions after certain iteration counts.
     """
     print("Executing 'run_automation'")
-    flask_port = get_flask_port()
-    print('BEGENNING AUTOMATION')
 
-    sio = socketio.Client()
-    sio.sleep(1)
-    sio.connect(f'http://localhost:{flask_port}', wait_timeout=2)
-    sio.sleep(1)
-    sio.emit("automation-status", {
+    socketio_instance.emit("automation-status", {
         "status": "running",
     })
 
@@ -91,7 +80,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
             print("Stop event triggered. Exiting loop.")
             break
 
-        sio.emit("iteration", {
+        socketio_instance.emit("iteration", {
             "iteration": i+1
         })
 
@@ -103,15 +92,15 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
 
         print(f"Recording {i+1}/{num_iterations} started.")
         
-        sio.emit("record", {
+        socketio_instance.emit("record", {
             "action": "start",
             "filename": output_filename
         })
 
-        # is_started = on_rec_start(config['connection'], username, material, speed)
+        # is_started = on_rec_start(config['connection'], username, material, speed, socketio_instance)
         is_started = True
         if not is_started:
-            sio.emit("record", {
+            socketio_instance.emit("record", {
                 "action": "stop",
                 "shouldUpload": False
             })
@@ -158,13 +147,13 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         # is_recorded = on_rec_stop()
         is_recorded = True
         if not is_recorded:
-            sio.emit("record", {
+            socketio_instance.emit("record", {
                 "action": "stop",
                 "shouldUpload": False
             })
         else:
             time.sleep(2.5)
-            sio.emit("record", {
+            socketio_instance.emit("record", {
                 "action": "stop",
                 "shouldUpload": True
             })
@@ -173,7 +162,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
             print(f"Iteration {i+1} completed.")
 
     # dashboard.DisableRobot()
-    sio.emit("automation-status", {
+    socketio_instance.emit("automation-status", {
         "status": "idle",
     })
     print(f"Tests completed.")
