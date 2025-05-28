@@ -22,6 +22,9 @@ const selectors = [audioInputSelect, videoSelect, videoSelect2];
 
 const liveVideoElement = document.getElementById('video');
 const liveVideoElement2 = document.getElementById('video2');
+const signalContainer = document.getElementById("micSignal");
+
+const ctx = signalContainer.getContext("2d");
 
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
@@ -101,6 +104,37 @@ socket.on("iteration", (msg) => {
 	const currentIteration = msg.iteration;
 	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
 });
+
+socket.on("micro-signal", (msg) => {
+	const buffer = hexToInt32Array(msg.data);
+})
+
+function hexToInt32Array(hexString) {
+	const len = hexString.length / 2;
+	const bytes = new Uint8Array(len);
+	for (let i=0; i<len; i++) {
+		bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
+	}
+	return new Int32Array(bytes.buffer);
+
+}
+
+function drawMicroSignal(signal) {
+	const width = signalContainer.width;
+	const height = signalContainer.height;
+	ctx.clearRect(0, 0, width, height);
+	ctx.beginPath();
+	ctx.moveTo(0, height / 2);
+	const step = Math.ceil(signal.length / width);
+	for (let i=0; o<width; i++) {
+		const sampleIndex = i * step;
+		const sample = signal[sampleIndex] || 0;
+		const y = height / 2 - (sample / Math.pow(2, 24));
+		ctx.lineTo(i, y);
+	}
+	ctx.strokeStyle = "blue";
+	ctx.stroke();
+}
 
 function addSuffix(filename, suffix) {
 	const dotIndex = filename.lastIndexOf('.');
