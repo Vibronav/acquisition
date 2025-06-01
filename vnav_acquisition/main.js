@@ -57,6 +57,8 @@ const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
 	speeds: ["slow", "medium", "fast"]
 };
+const LABEL_WIDTH = 55;
+
 
 const socket = io();
 socket.on("connect", () => {
@@ -146,12 +148,61 @@ socket.on("micro-signal", (msg) => {
 
 })
 
+function mockMicroSignal() {
+
+	const freq = Math.random() * 100 + 1000; // Random frequency between 100 and 1100 Hz
+	const sampleRate = 48000;
+	const intArray = Int32Array.from({length: fftSize}, (_, i) => {
+		return Math.floor(Math.sin(2 * Math.PI * freq * i / sampleRate) * (2 ** 23))
+	});
+
+	const hexLeft = intArrayToHex(intArray);
+	const hexRight = intArrayToHex(intArray);
+
+	const bufferLeft = hexToInt32Array(hexLeft);
+	const bufferRight = hexToInt32Array(hexRight);
+	
+	const now = Date.now();
+	const max = Math.max(...bufferLeft);
+	const min = Math.min(...bufferLeft);
+
+	if (bufferLeft && bufferLeft.length > 0) {
+		// const sample = average(bufferLeft);
+		const sample = Math.max(...bufferLeft.map(Math.abs));
+		console.log(sample / Math.pow(2, 24));
+		tsLeft.append(now, sample / Math.pow(2, 24))
+	}
+	if (bufferRight && bufferRight.length > 0) {
+		// const sample = average(bufferRight);
+		const sample = Math.max(...bufferRight.map(Math.abs));
+		tsRight.append(now, sample / Math.pow(2, 24))
+	}
+
+	if( bufferLeft && bufferLeft.length > 0) {
+		processAndDrawSpectrogram(bufferLeft);
+	}
+}
+
 function average(arr) {
 	let sum = 0;
 	for (let i=0; i<arr.length; i++) {
 		sum += arr[i];
 	}
 	return sum / arr.length;
+}
+
+function intArrayToHex(intArray) {
+	let hexString = "";
+	const view = new DataView(new ArrayBuffer(4));
+	for(let i=0; i<intArray.length; i++) {
+		view.setInt32(0, intArray[i], true);
+		const hex = [...new Uint8Array(view.buffer)]
+			.map(b => b.toString(16).padStart(2, "0"))
+			.reverse()
+			.join("");
+		hexString += hex;
+	}
+	return hexString;
 }
 
 function hexToInt32Array(hexString) {
@@ -178,15 +229,15 @@ function processAndDrawSpectrogram(samples) {
 		const chunk = specBuffer.slice(0, fftSize);
 		specBuffer = specBuffer.slice(fftSize / 2);
 
-		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 31)));
+		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 24)));
 		fft.forward(input);
 		drawColumn(fft.spectrum);
 	}
 }
 
 function drawColumn(spectrum) {
-	const imageData = ctx.getImageData(1, 0, spectrogram.width - 1, spectrogram.height);
-	ctx.putImageData(imageData, 0, 0);
+	const imageData = ctx.getImageData(LABEL_WIDTH + 1, 0, spectrogram.width - LABEL_WIDTH - 1, spectrogram.height);
+	ctx.putImageData(imageData, LABEL_WIDTH, 0);
 
 	for (let y=0; y<spectrogram.height; y++) {
 		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
@@ -195,6 +246,44 @@ function drawColumn(spectrum) {
 		ctx.fillStyle = color;
 		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
 	}
+	drawFrequencyLabels();
+}
+
+function drawFrequencyLabels() {
+	const sampleRate = 48000;
+	const fontSize = 10;
+	const numTicks = 5;
+	const nyquist = sampleRate / 2;
+	const padding = 10;
+	const labelOffsetX = 2
+	const spectrogramWidth = spectrogram.width;
+	const spectrogramHeight = spectrogram.height;
+	const availableHeight = spectrogramHeight - 2 * padding;
+
+	ctx.font = `${fontSize}px sans-serif`;
+	ctx.textAlign = "left";
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+	ctx.fillRect(0, 0, LABEL_WIDTH, spectrogram.height);
+
+	ctx.fillStyle = "white";
+
+	ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+	ctx.lineWidth = 1;
+
+	for (let i = 0; i <= numTicks; i++) {
+		const rel = i / (numTicks - 1);
+		const y = padding + (1 - rel) * availableHeight;
+		const freq = Math.round(rel * nyquist);
+
+		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
+
+		ctx.beginPath();
+		ctx.moveTo(LABEL_WIDTH, y);
+		ctx.lineTo(spectrogramWidth, y);
+		ctx.stroke();
+	}
+
 }
 
 function valueToRGB(value) {
@@ -493,6 +582,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
+setInterval(mockMicroSignal, 100);
 
 
 // Meter class that generates a number correlated to audio volume.
