@@ -171,7 +171,7 @@ def receive_and_send_micro_signals(conn, sio):
 
         while True:
             try:
-                data = conn.recv(16384)  # Read 8192 bytes
+                data = conn.recv(16384)
                 if not data:
                     break
 

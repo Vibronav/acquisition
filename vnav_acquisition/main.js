@@ -51,7 +51,8 @@ let shouldUpload = true;
 
 let specBuffer = [];
 
-const fft = new FFT(fftSize, 48000);
+const sampleRate = 48000
+const fft = new FFT(fftSize, sampleRate);
 
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
@@ -127,27 +128,19 @@ socket.on("micro-signal", (msg) => {
 
 	const bufferLeft = new Int32Array(msg.left);
 	const bufferRight = new Int32Array(msg.right);
-
 	
 	const now = Date.now();
-	const maxAbs = Math.max(...bufferLeft.map(Math.abs));
-	const avg = average(bufferLeft);
-	console.log(`Max absolute value: ${maxAbs}, Average: ${avg}`);
-	
 
 	if (bufferLeft && bufferLeft.length > 0) {
 		const mean = average(bufferLeft);
 		const centered = bufferLeft.map(x => x - mean);
 		const maxAbs = Math.max(...centered.map(Math.abs));
-		console.log(`Sample left: ${maxAbs / Math.pow(2, 24)}`);
-		// const sample = average(bufferLeft);
 		tsLeft.append(now, maxAbs / Math.pow(2, 24))
 	}
 	if (bufferRight && bufferRight.length > 0) {
 		const mean = average(bufferRight);
 		const centered = bufferRight.map(x => x - mean);
 		const maxAbs = Math.max(...centered.map(Math.abs));
-		// const sample = average(bufferRight);
 		tsRight.append(now, maxAbs / Math.pow(2, 24))
 	}
 
@@ -157,78 +150,12 @@ socket.on("micro-signal", (msg) => {
 
 })
 
-function mockMicroSignal() {
-
-	const freq = Math.random() * 100 + 1000; // Random frequency between 100 and 1100 Hz
-	const sampleRate = 48000;
-	const intArray = Int32Array.from({length: fftSize}, (_, i) => {
-		return Math.floor(Math.sin(2 * Math.PI * freq * i / sampleRate) * (2 ** 23))
-	});
-
-	const hexLeft = intArrayToHex(intArray);
-	const hexRight = intArrayToHex(intArray);
-
-	const bufferLeft = hexToInt32Array(hexLeft);
-	const bufferRight = hexToInt32Array(hexRight);
-	
-	const now = Date.now();
-	const max = Math.max(...bufferLeft);
-	const min = Math.min(...bufferLeft);
-
-	if (bufferLeft && bufferLeft.length > 0) {
-		// const sample = average(bufferLeft);
-		const sample = Math.max(...bufferLeft.map(Math.abs));
-		console.log(sample / Math.pow(2, 24));
-		tsLeft.append(now, sample / Math.pow(2, 24))
-	}
-	if (bufferRight && bufferRight.length > 0) {
-		// const sample = average(bufferRight);
-		const sample = Math.max(...bufferRight.map(Math.abs));
-		tsRight.append(now, sample / Math.pow(2, 24))
-	}
-
-	if( bufferLeft && bufferLeft.length > 0) {
-		processAndDrawSpectrogram(bufferLeft);
-	}
-}
-
 function average(arr) {
 	let sum = 0;
 	for (let i=0; i<arr.length; i++) {
 		sum += arr[i];
 	}
 	return sum / arr.length;
-}
-
-function intArrayToHex(intArray) {
-	let hexString = "";
-	const view = new DataView(new ArrayBuffer(4));
-	for(let i=0; i<intArray.length; i++) {
-		view.setInt32(0, intArray[i], true);
-		const hex = [...new Uint8Array(view.buffer)]
-			.map(b => b.toString(16).padStart(2, "0"))
-			.reverse()
-			.join("");
-		hexString += hex;
-	}
-	return hexString;
-}
-
-function hexToInt32Array(hexString) {
-
-	const len = hexString.length / 8;
-	const buffer = new ArrayBuffer(len * 4);
-	const view = new DataView(buffer);
-
-	for(let i=0; i<len; i++) {
-		const hex = hexString.slice(i * 8, i * 8 + 8);
-		const int = parseInt(hex, 16);
-		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
-		view.setInt32(i * 4, value, true);
-	}
-
-	return new Int32Array(buffer);
-
 }
 
 function processAndDrawSpectrogram(samples) {
@@ -253,9 +180,10 @@ function drawColumn(spectrum) {
 
 	for (let y=0; y<spectrogram.height; y++) {
 		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
-		const db = 20 * Math.log10(spectrum[idx] + 1e-8)
+		const db = 20 * Math.log10(spectrum[idx] + 1e-6)
 		const value = Math.max(0, Math.min(255, db + 100))
-		const color = valueToRGB(value);
+		const freq = idx * sampleRate / fftSize
+		const color = valueToHSL(value, freq);
 		ctx.fillStyle = color;
 		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
 	}
@@ -299,12 +227,14 @@ function drawFrequencyLabels() {
 
 }
 
-function valueToRGB(value) {
+function valueToHSL(value, freq) {
 	const clamped = Math.max(0, Math.min(255, value));
-	const r = clamped;
-	const g = clamped * 0.3;
-	const b = clamped * 0.1;
-	return `rgb(${r},${g},${b})`;
+	
+	const hue = (freq / sampleRate) * sampleRate / 100;
+	const saturation = 100;
+	const lightness = (clamped / 255) * 50 + 10;
+
+	return `hsl(${hue},${saturation}%,${lightness}%)`;
 }
 
 function addSuffix(filename, suffix) {
