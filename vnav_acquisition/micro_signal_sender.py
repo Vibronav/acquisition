@@ -2,7 +2,7 @@ import alsaaudio
 import socket
 import time
 
-SERVER_IP = '192.168.0.102'
+SERVER_IP = '192.168.0.100'
 PORT = 5001
 CHUNK = 512
 RATE = 48000

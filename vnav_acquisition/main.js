@@ -124,22 +124,31 @@ socket.on("iteration", (msg) => {
 });
 
 socket.on("micro-signal", (msg) => {
-	const bufferLeft = hexToInt32Array(msg.left);
-	const bufferRight = hexToInt32Array(msg.right);
+
+	const bufferLeft = new Int32Array(msg.left);
+	const bufferRight = new Int32Array(msg.right);
+
 	
 	const now = Date.now();
-	const max = Math.max(...bufferLeft);
-	const min = Math.min(...bufferLeft);
-	console.log("max", max, "min", min);
+	const maxAbs = Math.max(...bufferLeft.map(Math.abs));
+	const avg = average(bufferLeft);
+	console.log(`Max absolute value: ${maxAbs}, Average: ${avg}`);
+	
 
 	if (bufferLeft && bufferLeft.length > 0) {
-		const sample = average(bufferLeft);
-		console.log("avg", sample);
-		tsLeft.append(now, sample / Math.pow(2, 24))
+		const mean = average(bufferLeft);
+		const centered = bufferLeft.map(x => x - mean);
+		const maxAbs = Math.max(...centered.map(Math.abs));
+		console.log(`Sample left: ${maxAbs / Math.pow(2, 24)}`);
+		// const sample = average(bufferLeft);
+		tsLeft.append(now, maxAbs / Math.pow(2, 24))
 	}
 	if (bufferRight && bufferRight.length > 0) {
-		const sample = average(bufferRight);
-		tsRight.append(now, sample / Math.pow(2, 24))
+		const mean = average(bufferRight);
+		const centered = bufferRight.map(x => x - mean);
+		const maxAbs = Math.max(...centered.map(Math.abs));
+		// const sample = average(bufferRight);
+		tsRight.append(now, maxAbs / Math.pow(2, 24))
 	}
 
 	if( bufferLeft && bufferLeft.length > 0) {
@@ -229,7 +238,10 @@ function processAndDrawSpectrogram(samples) {
 		const chunk = specBuffer.slice(0, fftSize);
 		specBuffer = specBuffer.slice(fftSize / 2);
 
-		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 24)));
+		const mean = chunk.reduce((sum, x) => sum + x, 0) / chunk.length;
+		const centered = chunk.map(x => x - mean);
+
+		const input = new Float32Array(centered.map(x => x / Math.pow(2, 24)));
 		fft.forward(input);
 		drawColumn(fft.spectrum);
 	}
@@ -241,7 +253,8 @@ function drawColumn(spectrum) {
 
 	for (let y=0; y<spectrogram.height; y++) {
 		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
-		const value = Math.log10(spectrum[idx] * 10000 + 1) * 100; // Convert to dB scale
+		const db = 20 * Math.log10(spectrum[idx] + 1e-8)
+		const value = Math.max(0, Math.min(255, db + 100))
 		const color = valueToRGB(value);
 		ctx.fillStyle = color;
 		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
@@ -289,8 +302,8 @@ function drawFrequencyLabels() {
 function valueToRGB(value) {
 	const clamped = Math.max(0, Math.min(255, value));
 	const r = clamped;
-	const g = clamped * 0.6;
-	const b = clamped * 0.2;
+	const g = clamped * 0.3;
+	const b = clamped * 0.1;
 	return `rgb(${r},${g},${b})`;
 }
 
@@ -582,7 +595,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
-setInterval(mockMicroSignal, 100);
+// setInterval(mockMicroSignal, 100);
 
 
 // Meter class that generates a number correlated to audio volume.

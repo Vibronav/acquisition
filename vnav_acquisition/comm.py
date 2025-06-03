@@ -157,27 +157,40 @@ def listen_for_micro_signals(sio):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(('0.0.0.0', 5001))
         s.listen(1)
-        print("Microphone signal server started, waiting for connection...")
+        print("Waiting for connection to micro signal server...")
 
         conn, addr = s.accept()
         print(f"Connection from {addr}")
         micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
 
 def receive_and_send_micro_signals(conn, sio):
+        
+        buffer = b''
+        frame_size = 512 * 8
+        batch_frames = 25
+
         while True:
             try:
-                data = conn.recv(4096)  # Read 4096 bytes
+                data = conn.recv(16384)  # Read 8192 bytes
                 if not data:
                     break
 
-                arr = np.frombuffer(data, dtype=np.int32)
-                left = arr[::2]
-                right = arr[1::2]
-                sio.emit('micro-signal', {
-                    'left': left.tobytes().hex(),
-                    'right': right.tobytes().hex(),
-                })
-                time.sleep(0.3)
+                buffer += data
+                
+                while len(buffer) >= frame_size * batch_frames:
+                    chunk = buffer[:frame_size * batch_frames]
+                    buffer = buffer[frame_size * batch_frames:]
+
+                    arr = np.frombuffer(chunk, dtype=np.int32)
+                    left = arr[::2]
+                    right = arr[1::2]
+    
+                    sio.emit('micro-signal', {
+                        'left': left.tobytes(),
+                        'right': right.tobytes(),
+                    })    
+
+                # time.sleep(0.3)
             except Exception as e:
                 break
         conn.close()

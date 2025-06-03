@@ -132,7 +132,7 @@ def main():
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
 
-    # ssh_connect(*config['connection'], socketio_instance=socketio)
+    ssh_connect(*config['connection'], socketio_instance=socketio)
 
 
     if args.open_browser:
