@@ -30,7 +30,7 @@ const tsRight = new TimeSeries();
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
-const fftSize = 512;
+const fftSize = 1024;
 
 chartLeft.addTimeSeries(tsLeft, { strokeStyle: 'blue', lineWidth: 2 });
 chartRight.addTimeSeries(tsRight, { strokeStyle: 'red', lineWidth: 2 });

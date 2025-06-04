@@ -40,8 +40,8 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
     })
 
     # Connect to Dobot
-    # dashboard, move = connect_robot()
-    # enable_robot(dashboard)
+    dashboard, move = connect_robot()
+    enable_robot(dashboard)
     time.sleep(2)
 
     if num_iterations is None:
@@ -57,7 +57,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
     elif speed is None:
         speed_value = 15
 
-    # dashboard.SpeedFactor(speed_value)
+    dashboard.SpeedFactor(speed_value)
 
     # Determine positions
     if motion_type == "Only Up and Down":
@@ -87,7 +87,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
         output_filename = f"{username}_{material}_{speed}_{timestamp}.mp4"
 
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         time.sleep(1)
 
         print(f"Recording {i+1}/{num_iterations} started.")
@@ -113,15 +113,15 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         else:
             if P2:
                 pass
-                # move_to_position(dashboard, move, P2)
+                move_to_position(dashboard, move, P2)
                 time.sleep(3)
                 
             # Move to P3
-            # move_to_position(dashboard, move, P3)
+            move_to_position(dashboard, move, P3)
             time.sleep(3)
             
             # Move back to P1
-            # move_to_position(dashboard, move, P1)
+            move_to_position(dashboard, move, P1)
             time.sleep(3)
             
 
@@ -161,7 +161,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         if i >= 2:
             print(f"Iteration {i+1} completed.")
 
-    # dashboard.DisableRobot()
+    dashboard.DisableRobot()
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })
