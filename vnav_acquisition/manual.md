@@ -59,7 +59,30 @@ pip install -r requirements.txt
 
 Your can add your own setup.json file. Then in next point you can run program with path to this file as parameter
 
-### 4. **Run program**
+
+### 4. **Configure IP for micro signals preview**
+
+You need to set correct IP address in one file: `micro_signal_sender.py`. There is line:
+```
+SERVER_IP = '<your ip address>'
+```
+
+To get this address you can open terminal and then run:
+``` bash
+ifconfig
+```
+or
+``` bash
+ipconfig
+```
+Then you need to find there Ipv4 Address and put it to `micro_signal_sender.py`
+Example:
+```
+SERVER_IP = '192.168.0.102'
+```
+
+
+### 5. **Run program**
 
 Without your own setup file:
 
