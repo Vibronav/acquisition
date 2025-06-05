@@ -25,7 +25,7 @@ const liveVideoElement2 = document.getElementById('video2');
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
-const fftSize = 1024;
+const fftSize = 4096;
 
 const waveformCanvasLeft = document.getElementById('micSignalLeft');
 const waveformCanvasRight = document.getElementById('micSignalRight');
@@ -223,36 +223,30 @@ function updateBuffer(buffer, newChunk) {
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
+	const fullScale = Math.pow(2, 23);
 
-	const samplesPerPixel = Math.floor(MAX_BUFFOR_SIZE / width);
+	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
+	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
+
+	const samplesPerPixel = Math.floor(MAX_BUFFOR_SIZE / width)
 
 	const availableSamples = buffer.length;
-	const availablePixels = Math.floor(availableSamples / samplesPerPixel);
 
-	ctx.clearRect(0, 0, width, height);
-
-	drawWaveformLabels(canvas, ctx);
+	drawWaveformLabels(canvas, ctx, fullScale);
 
 	ctx.beginPath();
 
-	for(let i=0; i<availablePixels; i++) {
-		const x = width - 1 - i;
+	const start = availableSamples - samplesPerPixel;
+	const end = start + samplesPerPixel;
+	const segment = buffer.slice(start, end);
+	const min = Math.min(...segment);
+	const max = Math.max(...segment);
 
-		const start = availableSamples - (i + 1) * samplesPerPixel;
-		const end = start + samplesPerPixel;
-		const segment = buffer.slice(start, end);
+	const yMax = (1 - max / fullScale) * height / 2;
+	const yMin = (1 - min / fullScale) * height / 2;
 
-		const min = Math.min(...segment);
-		const max = Math.max(...segment);
-
-		const fullScale = Math.pow(2, 23)
-		const yMax = (1 - max / fullScale) * height / 2;
-		const yMin = (1 - min / fullScale) * height / 2;
-
-		ctx.moveTo(x, yMin);
-		ctx.lineTo(x, yMax);
-
-	}
+	ctx.moveTo(canvas.width - 5, yMin);
+	ctx.lineTo(canvas.width - 5, yMax);
 
 	ctx.strokeStyle = "blue";
 	ctx.lineWidth = 1;
@@ -260,13 +254,14 @@ function drawWaveform(buffer, canvas, ctx) {
 
 }
 
-function drawWaveformLabels(canvas, ctx) {
+function drawWaveformLabels(canvas, ctx, fullScale) {
 
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 23);
 	const paddingY = 10;
 	
+	ctx.clearRect(0, 0, YAXIS_WAVEFORM_WIDTH, height);
+
 	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
 	ctx.font = "10px sans-serif";
 	ctx.textAlign = "right";
@@ -282,52 +277,14 @@ function drawWaveformLabels(canvas, ctx) {
 
 		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
 
-		ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+		ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(YAXIS_WAVEFORM_WIDTH, y);
 		ctx.lineTo(width, y);
 		ctx.stroke();
 	}
 
-}
-
-function intArrayToHex(intArray) {
-	let hexString = "";
-	const view = new DataView(new ArrayBuffer(4));
-	for(let i=0; i<intArray.length; i++) {
-		view.setInt32(0, intArray[i], true);
-		const hex = [...new Uint8Array(view.buffer)]
-			.map(b => b.toString(16).padStart(2, "0"))
-			.reverse()
-			.join("");
-		hexString += hex;
-	}
-	return hexString;
-}
-
-function hexToInt32Array(hexString) {
-
-	const len = hexString.length / 8;
-	const buffer = new ArrayBuffer(len * 4);
-	const view = new DataView(buffer);
-
-	for(let i=0; i<len; i++) {
-		const hex = hexString.slice(i * 8, i * 8 + 8);
-		const int = parseInt(hex, 16);
-		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
-		view.setInt32(i * 4, value, true);
-	}
-
-	return new Int32Array(buffer);
-
-}
-
-function average(arr) {
-	let sum = 0;
-	for (let i=0; i<arr.length; i++) {
-		sum += arr[i];
-	}
-	return sum / arr.length;
 }
 
 function processAndDrawSpectrogram(samples) {
@@ -397,6 +354,45 @@ function drawFrequencyLabels() {
 		ctx.stroke();
 	}
 
+}
+
+function intArrayToHex(intArray) {
+	let hexString = "";
+	const view = new DataView(new ArrayBuffer(4));
+	for(let i=0; i<intArray.length; i++) {
+		view.setInt32(0, intArray[i], true);
+		const hex = [...new Uint8Array(view.buffer)]
+			.map(b => b.toString(16).padStart(2, "0"))
+			.reverse()
+			.join("");
+		hexString += hex;
+	}
+	return hexString;
+}
+
+function hexToInt32Array(hexString) {
+
+	const len = hexString.length / 8;
+	const buffer = new ArrayBuffer(len * 4);
+	const view = new DataView(buffer);
+
+	for(let i=0; i<len; i++) {
+		const hex = hexString.slice(i * 8, i * 8 + 8);
+		const int = parseInt(hex, 16);
+		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
+		view.setInt32(i * 4, value, true);
+	}
+
+	return new Int32Array(buffer);
+
+}
+
+function average(arr) {
+	let sum = 0;
+	for (let i=0; i<arr.length; i++) {
+		sum += arr[i];
+	}
+	return sum / arr.length;
 }
 
 function valueToHSL(value, freq) {
