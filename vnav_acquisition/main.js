@@ -22,21 +22,20 @@ const selectors = [audioInputSelect, videoSelect, videoSelect2];
 
 const liveVideoElement = document.getElementById('video');
 const liveVideoElement2 = document.getElementById('video2');
-const chartLeft = new SmoothieChart();
-const chartRight = new SmoothieChart();
-
-const tsLeft = new TimeSeries();
-const tsRight = new TimeSeries();
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
 const fftSize = 1024;
 
-chartLeft.addTimeSeries(tsLeft, { strokeStyle: 'blue', lineWidth: 2 });
-chartRight.addTimeSeries(tsRight, { strokeStyle: 'red', lineWidth: 2 });
+const waveformCanvasLeft = document.getElementById('micSignalLeft');
+const waveformCanvasRight = document.getElementById('micSignalRight');
+const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
+const waveformCtxRight = waveformCanvasRight.getContext('2d');
 
-chartLeft.streamTo(document.getElementById('micSignalLeft'), 100);
-chartRight.streamTo(document.getElementById('micSignalRight'), 100);
+const sampleRate = 48000;
+const chunkSize = 24000;
+const DURATION_SECONDS = 10;
+const MAX_BUFFOR_SIZE = sampleRate * DURATION_SECONDS;
 
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
@@ -50,16 +49,19 @@ let recordedChunks2 = [];
 let shouldUpload = true;
 
 let specBuffer = [];
+let leftWaveformBuffer = new Float32Array(0);
+let rightWaveformBuffer = new Float32Array(0);
 
-const sampleRate = 48000
+const interval = 100;
+
 const fft = new FFT(fftSize, sampleRate);
 
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
 	speeds: ["slow", "medium", "fast"]
 };
-const LABEL_WIDTH = 55;
-
+const YAXIS_SPECTROGRAM_WIDTH = 55;
+const YAXIS_WAVEFORM_WIDTH = 35;
 
 const socket = io();
 socket.on("connect", () => {
@@ -132,23 +134,193 @@ socket.on("micro-signal", (msg) => {
 	const now = Date.now();
 
 	if (bufferLeft && bufferLeft.length > 0) {
-		const mean = average(bufferLeft);
-		const centered = bufferLeft.map(x => x - mean);
-		const maxAbs = Math.max(...centered.map(Math.abs));
-		tsLeft.append(now, maxAbs / Math.pow(2, 24))
+
 	}
-	if (bufferRight && bufferRight.length > 0) {
-		const mean = average(bufferRight);
-		const centered = bufferRight.map(x => x - mean);
-		const maxAbs = Math.max(...centered.map(Math.abs));
-		tsRight.append(now, maxAbs / Math.pow(2, 24))
-	}
+	// if (bufferRight && bufferRight.length > 0) {
+	// 	drawWaveform(bufferRight, 'micSignalRight', 'red');
+	// }
 
 	if( bufferLeft && bufferLeft.length > 0) {
 		processAndDrawSpectrogram(bufferLeft);
 	}
 
 })
+
+function mockMicroSignal() {
+
+	const stereo = generateMockStereoSamples();
+
+	const bufferLeft = stereo.filter((_, i) => i % 2 === 0);
+	const bufferRight = stereo.filter((_, i) => i % 2 === 1);
+
+
+	if (bufferLeft && bufferLeft.length > 0) {
+		leftWaveformBuffer = updateBuffer(leftWaveformBuffer, bufferLeft);
+		drawWaveform(leftWaveformBuffer, waveformCanvasLeft, waveformCtxLeft);
+	}
+	if (bufferRight && bufferRight.length > 0) {
+		rightWaveformBuffer = updateBuffer(rightWaveformBuffer, bufferRight);
+		drawWaveform(rightWaveformBuffer, waveformCanvasRight, waveformCtxRight);
+	}
+
+	if( bufferLeft && bufferLeft.length > 0) {
+		processAndDrawSpectrogram(bufferLeft);
+	}
+}
+
+function generateMockStereoSamples() {
+	const sampleRate = 48000;
+	const monoSamples = Math.floor(sampleRate * interval / 1000);
+	const totalSamples = monoSamples * 2;
+	const stereo = new Int32Array(totalSamples);
+
+	const freqLeft = Math.random() * 300 + 400;
+	const ampLeft = Math.random() * 0.5 + 0.2;
+	const phaseLeft = Math.random() * 2 * Math.PI;
+
+	const freqRight = Math.random() * 300 + 900;
+	const ampRight = Math.random() * 0.5 + 0.2;
+	const phaseRight = Math.random() * 2 * Math.PI;
+
+	for (let i = 0; i < monoSamples; i++) {
+		const t = i / sampleRate;
+
+		const valLeft = Math.sin(2 * Math.PI * freqLeft * t + phaseLeft);
+		const valRight = Math.sin(2 * Math.PI * freqRight * t + phaseRight);
+
+		const noiseL = (Math.random() - 0.5) * 0.05;
+		const noiseR = (Math.random() - 0.5) * 0.05;
+
+		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 23));
+		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 23));
+
+		stereo[i * 2] = sampleLeft;
+		stereo[i * 2 + 1] = sampleRight;
+	}
+
+	return stereo;
+}
+
+function updateBuffer(buffer, newChunk) {
+
+	const normFactor = Math.pow(2, 23);
+
+	const normalizedChunk = new Float32Array(newChunk.length);
+	for(let i=0; i<newChunk.length; i++) {
+		normalizedChunk[i] = newChunk[i];
+	}
+
+	let update = new Float32Array(buffer.length + normalizedChunk.length);
+	update.set(buffer);
+	update.set(normalizedChunk, buffer.length);
+
+	if(update.length > MAX_BUFFOR_SIZE) {
+		update = update.slice(update.length - MAX_BUFFOR_SIZE);
+	}
+	return update;
+}
+
+function drawWaveform(buffer, canvas, ctx) {
+	const width = canvas.width;
+	const height = canvas.height;
+
+	const samplesPerPixel = Math.floor(MAX_BUFFOR_SIZE / width);
+
+	const availableSamples = buffer.length;
+	const availablePixels = Math.floor(availableSamples / samplesPerPixel);
+
+	ctx.clearRect(0, 0, width, height);
+
+	drawWaveformLabels(canvas, ctx);
+
+	ctx.beginPath();
+
+	for(let i=0; i<availablePixels; i++) {
+		const x = width - 1 - i;
+
+		const start = availableSamples - (i + 1) * samplesPerPixel;
+		const end = start + samplesPerPixel;
+		const segment = buffer.slice(start, end);
+
+		const min = Math.min(...segment);
+		const max = Math.max(...segment);
+
+		const fullScale = Math.pow(2, 23)
+		const yMax = (1 - max / fullScale) * height / 2;
+		const yMin = (1 - min / fullScale) * height / 2;
+
+		ctx.moveTo(x, yMin);
+		ctx.lineTo(x, yMax);
+
+	}
+
+	ctx.strokeStyle = "blue";
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
+}
+
+function drawWaveformLabels(canvas, ctx) {
+
+	const width = canvas.width;
+	const height = canvas.height;
+	const fullScale = Math.pow(2, 23);
+	const paddingY = 10;
+	
+	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+	ctx.font = "10px sans-serif";
+	ctx.textAlign = "right";
+	ctx.textBaseline = "middle";
+
+	const ticks = [-fullScale, -fullScale / 2, 0, fullScale / 2, fullScale];
+
+	for(let i=0; i<ticks.length; i++) {
+		const val = ticks[i];
+		
+		const rel = val / fullScale;
+		const y = paddingY + (1 - (rel + 1) / 2) * (height - 2 * paddingY);
+
+		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
+
+		ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+		ctx.beginPath();
+		ctx.moveTo(YAXIS_WAVEFORM_WIDTH, y);
+		ctx.lineTo(width, y);
+		ctx.stroke();
+	}
+
+}
+
+function intArrayToHex(intArray) {
+	let hexString = "";
+	const view = new DataView(new ArrayBuffer(4));
+	for(let i=0; i<intArray.length; i++) {
+		view.setInt32(0, intArray[i], true);
+		const hex = [...new Uint8Array(view.buffer)]
+			.map(b => b.toString(16).padStart(2, "0"))
+			.reverse()
+			.join("");
+		hexString += hex;
+	}
+	return hexString;
+}
+
+function hexToInt32Array(hexString) {
+
+	const len = hexString.length / 8;
+	const buffer = new ArrayBuffer(len * 4);
+	const view = new DataView(buffer);
+
+	for(let i=0; i<len; i++) {
+		const hex = hexString.slice(i * 8, i * 8 + 8);
+		const int = parseInt(hex, 16);
+		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
+		view.setInt32(i * 4, value, true);
+	}
+
+	return new Int32Array(buffer);
+
+}
 
 function average(arr) {
 	let sum = 0;
@@ -175,8 +347,8 @@ function processAndDrawSpectrogram(samples) {
 }
 
 function drawColumn(spectrum) {
-	const imageData = ctx.getImageData(LABEL_WIDTH + 1, 0, spectrogram.width - LABEL_WIDTH - 1, spectrogram.height);
-	ctx.putImageData(imageData, LABEL_WIDTH, 0);
+	const imageData = ctx.getImageData(YAXIS_SPECTROGRAM_WIDTH + 1, 0, spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1, spectrogram.height);
+	ctx.putImageData(imageData, YAXIS_SPECTROGRAM_WIDTH, 0);
 
 	for (let y=0; y<spectrogram.height; y++) {
 		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
@@ -205,7 +377,7 @@ function drawFrequencyLabels() {
 	ctx.textAlign = "left";
 	ctx.textBaseline = "middle";
 	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-	ctx.fillRect(0, 0, LABEL_WIDTH, spectrogram.height);
+	ctx.fillRect(0, 0, YAXIS_SPECTROGRAM_WIDTH, spectrogram.height);
 
 	ctx.fillStyle = "white";
 
@@ -220,7 +392,7 @@ function drawFrequencyLabels() {
 		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
 
 		ctx.beginPath();
-		ctx.moveTo(LABEL_WIDTH, y);
+		ctx.moveTo(YAXIS_SPECTROGRAM_WIDTH, y);
 		ctx.lineTo(spectrogramWidth, y);
 		ctx.stroke();
 	}
@@ -525,7 +697,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
-// setInterval(mockMicroSignal, 100);
+setInterval(mockMicroSignal, interval);
 
 
 // Meter class that generates a number correlated to audio volume.
