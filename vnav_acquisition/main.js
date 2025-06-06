@@ -32,11 +32,6 @@ const waveformCanvasRight = document.getElementById('micSignalRight');
 const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
 const waveformCtxRight = waveformCanvasRight.getContext('2d');
 
-const sampleRate = 48000;
-const chunkSize = 24000;
-const DURATION_SECONDS = 10;
-const MAX_BUFFOR_SIZE = sampleRate * DURATION_SECONDS;
-
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
 
@@ -48,12 +43,10 @@ let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
 
-let specBuffer = [];
-let leftWaveformBuffer = new Float32Array(0);
-let rightWaveformBuffer = new Float32Array(0);
+let specBuffer = []
 
-const interval = 100;
-
+const interval = 300;
+const sampleRate = 48000;
 const fft = new FFT(fftSize, sampleRate);
 
 const DEFAULT_CONFIG = {
@@ -61,7 +54,7 @@ const DEFAULT_CONFIG = {
 	speeds: ["slow", "medium", "fast"]
 };
 const YAXIS_SPECTROGRAM_WIDTH = 55;
-const YAXIS_WAVEFORM_WIDTH = 35;
+const YAXIS_WAVEFORM_WIDTH = 75;
 
 const socket = io();
 socket.on("connect", () => {
@@ -128,20 +121,25 @@ socket.on("iteration", (msg) => {
 
 socket.on("micro-signal", (msg) => {
 
+	console.log(typeof msg.left[0]);
 	const bufferLeft = new Int32Array(msg.left);
 	const bufferRight = new Int32Array(msg.right);
 	
-	const now = Date.now();
+	const meanLeft = average(bufferLeft);
+	const bufferLeftDC = bufferLeft.map((x) => x - meanLeft);
+	const meanRight = average(bufferRight);
+	const bufferRightDC = bufferRight.map((x) => x - meanRight);
 
-	if (bufferLeft && bufferLeft.length > 0) {
 
+	if (bufferLeftDC && bufferLeftDC.length > 0) {
+		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
 	}
-	// if (bufferRight && bufferRight.length > 0) {
-	// 	drawWaveform(bufferRight, 'micSignalRight', 'red');
-	// }
+	if (bufferRightDC && bufferRightDC.length > 0) {
+		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
+	}
 
-	if( bufferLeft && bufferLeft.length > 0) {
-		processAndDrawSpectrogram(bufferLeft);
+	if( bufferLeftDC && bufferLeftDC.length > 0) {
+		processAndDrawSpectrogram(bufferLeftDC);
 	}
 
 })
@@ -155,12 +153,10 @@ function mockMicroSignal() {
 
 
 	if (bufferLeft && bufferLeft.length > 0) {
-		leftWaveformBuffer = updateBuffer(leftWaveformBuffer, bufferLeft);
-		drawWaveform(leftWaveformBuffer, waveformCanvasLeft, waveformCtxLeft);
+		drawWaveform(bufferLeft, waveformCanvasLeft, waveformCtxLeft);
 	}
 	if (bufferRight && bufferRight.length > 0) {
-		rightWaveformBuffer = updateBuffer(rightWaveformBuffer, bufferRight);
-		drawWaveform(rightWaveformBuffer, waveformCanvasRight, waveformCtxRight);
+		drawWaveform(bufferRight, waveformCanvasRight, waveformCtxRight);
 	}
 
 	if( bufferLeft && bufferLeft.length > 0) {
@@ -169,7 +165,6 @@ function mockMicroSignal() {
 }
 
 function generateMockStereoSamples() {
-	const sampleRate = 48000;
 	const monoSamples = Math.floor(sampleRate * interval / 1000);
 	const totalSamples = monoSamples * 2;
 	const stereo = new Int32Array(totalSamples);
@@ -201,46 +196,25 @@ function generateMockStereoSamples() {
 	return stereo;
 }
 
-function updateBuffer(buffer, newChunk) {
-
-	const normFactor = Math.pow(2, 23);
-
-	const normalizedChunk = new Float32Array(newChunk.length);
-	for(let i=0; i<newChunk.length; i++) {
-		normalizedChunk[i] = newChunk[i];
-	}
-
-	let update = new Float32Array(buffer.length + normalizedChunk.length);
-	update.set(buffer);
-	update.set(normalizedChunk, buffer.length);
-
-	if(update.length > MAX_BUFFOR_SIZE) {
-		update = update.slice(update.length - MAX_BUFFOR_SIZE);
-	}
-	return update;
-}
-
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 23);
+	const fullScale = Math.pow(2, 31);
+	// const fullScale = 1.0; // For normalized values
 
 	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
-
-	const samplesPerPixel = Math.floor(MAX_BUFFOR_SIZE / width)
-
-	const availableSamples = buffer.length;
 
 	drawWaveformLabels(canvas, ctx, fullScale);
 
 	ctx.beginPath();
 
-	const start = availableSamples - samplesPerPixel;
-	const end = start + samplesPerPixel;
-	const segment = buffer.slice(start, end);
-	const min = Math.min(...segment);
-	const max = Math.max(...segment);
+	// const normalized = Float32Array.from(buffer).map(x => x / Math.pow(2, 31));
+	// console.log("Normalized buffer:", normalized);
+	const min = Math.min(...buffer);
+	const max = Math.max(...buffer);
+
+	console.log("Waveform min:", min, "max:", max);
 
 	const yMax = (1 - max / fullScale) * height / 2;
 	const yMin = (1 - min / fullScale) * height / 2;
@@ -271,9 +245,12 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 
 	for(let i=0; i<ticks.length; i++) {
 		const val = ticks[i];
-		
 		const rel = val / fullScale;
-		const y = paddingY + (1 - (rel + 1) / 2) * (height - 2 * paddingY);
+
+		const availableHeight = height - 2 * paddingY;
+
+		const centerY = height / 2;
+		const y = centerY - rel * (availableHeight / 2);
 
 		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
 
@@ -294,10 +271,7 @@ function processAndDrawSpectrogram(samples) {
 		const chunk = specBuffer.slice(0, fftSize);
 		specBuffer = specBuffer.slice(fftSize / 2);
 
-		const mean = chunk.reduce((sum, x) => sum + x, 0) / chunk.length;
-		const centered = chunk.map(x => x - mean);
-
-		const input = new Float32Array(centered.map(x => x / Math.pow(2, 24)));
+		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 31))); // Normalize to have cleaner spectrogram
 		fft.forward(input);
 		drawColumn(fft.spectrum);
 	}
@@ -693,8 +667,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
-setInterval(mockMicroSignal, interval);
-
+// setInterval(mockMicroSignal, interval);
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the
