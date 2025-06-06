@@ -186,8 +186,8 @@ function generateMockStereoSamples() {
 		const noiseL = (Math.random() - 0.5) * 0.05;
 		const noiseR = (Math.random() - 0.5) * 0.05;
 
-		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 23));
-		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 23));
+		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 31));
+		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 31));
 
 		stereo[i * 2] = sampleLeft;
 		stereo[i * 2 + 1] = sampleRight;
@@ -200,7 +200,6 @@ function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
 	const fullScale = Math.pow(2, 31);
-	// const fullScale = 1.0; // For normalized values
 
 	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
@@ -209,8 +208,6 @@ function drawWaveform(buffer, canvas, ctx) {
 
 	ctx.beginPath();
 
-	// const normalized = Float32Array.from(buffer).map(x => x / Math.pow(2, 31));
-	// console.log("Normalized buffer:", normalized);
 	const min = Math.min(...buffer);
 	const max = Math.max(...buffer);
 
@@ -667,7 +664,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
-// setInterval(mockMicroSignal, interval);
+setInterval(mockMicroSignal, interval);
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the
