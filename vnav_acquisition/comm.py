@@ -50,6 +50,7 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     except Exception as e:
         print(f"SFPT setup upload error.", e)
         ssh = None
+        return
 
     start_micro_signal_sending()
 
