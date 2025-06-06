@@ -1,5 +1,4 @@
 import time
-import os
 from vnav_acquisition.dobot_api import DobotApiDashboard, DobotApiMove
 from openpyxl import Workbook
 

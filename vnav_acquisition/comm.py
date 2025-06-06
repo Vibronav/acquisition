@@ -3,12 +3,9 @@ import time
 import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
-from vnav_acquisition.utils import get_flask_port
 from .config import config
-import logging
 import socket
 import threading
-import socketio
 import numpy as np
 
 MIC_NAME = "dmic_sv_shared"

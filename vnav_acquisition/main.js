@@ -39,8 +39,8 @@ const ctx = spectrogram.getContext('2d');
 
 const interval = 300;
 const sampleRate = 48000;
-const fft = new FFT(fftSize, sampleRate);
 const fftSize = 4096;
+const fft = new FFT(fftSize, sampleRate);
 let specBuffer = []
 
 const waveformCanvasLeft = document.getElementById('micSignalLeft');
@@ -144,6 +144,7 @@ socket.on("micro-signal", (msg) => {
 
 })
 
+// Mock functions will be deleted before merge
 function mockMicroSignal() {
 
 	const stereo = generateMockStereoSamples();
@@ -210,8 +211,6 @@ function drawWaveform(buffer, canvas, ctx) {
 
 	const min = Math.min(...buffer);
 	const max = Math.max(...buffer);
-
-	console.log("Waveform min:", min, "max:", max);
 
 	const yMax = (1 - max / fullScale) * height / 2;
 	const yMin = (1 - min / fullScale) * height / 2;
