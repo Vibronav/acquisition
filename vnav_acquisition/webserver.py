@@ -10,7 +10,7 @@ import webbrowser
 import argparse
 import os   # Berke 16.09.2024
 from pathlib import Path
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -132,6 +132,7 @@ def main():
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
 
+    # uncomment before merge
     # ssh_connect(*config['connection'], socketio_instance=socketio)
 
 
