@@ -24,7 +24,6 @@ def safe_run_automation(socketio_instance, **kwargs):
 def run_automation(username, material, stop_event, speed=None, motion_type=None, p1=None, p2=None, p3=None, num_iterations=None, socketio_instance=None):
     """
     Main automation functions:
-      - Launches Playwright, sets up camera/audio,
       - Connects to the Dobot Mg400,
       - Iterates through the given number of loops,
       - Moves the robot and records audio+video, 
