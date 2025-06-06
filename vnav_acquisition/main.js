@@ -23,15 +23,6 @@ const selectors = [audioInputSelect, videoSelect, videoSelect2];
 const liveVideoElement = document.getElementById('video');
 const liveVideoElement2 = document.getElementById('video2');
 
-const spectrogram = document.getElementById('spectrogram');
-const ctx = spectrogram.getContext('2d');
-const fftSize = 4096;
-
-const waveformCanvasLeft = document.getElementById('micSignalLeft');
-const waveformCanvasRight = document.getElementById('micSignalRight');
-const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
-const waveformCtxRight = waveformCanvasRight.getContext('2d');
-
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
 
@@ -43,11 +34,20 @@ let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
 
-let specBuffer = []
+const spectrogram = document.getElementById('spectrogram');
+const ctx = spectrogram.getContext('2d');
 
 const interval = 300;
 const sampleRate = 48000;
 const fft = new FFT(fftSize, sampleRate);
+const fftSize = 4096;
+let specBuffer = []
+
+const waveformCanvasLeft = document.getElementById('micSignalLeft');
+const waveformCanvasRight = document.getElementById('micSignalRight');
+const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
+const waveformCtxRight = waveformCanvasRight.getContext('2d');
+
 
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
