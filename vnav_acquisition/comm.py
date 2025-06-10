@@ -15,6 +15,7 @@ SAMPLING_RATE = 48000
 ssh: paramiko.SSHClient = None
 micro_signal_thread = None
 file_name = ""
+broadcast_received = False
 
 def is_ssh_connected():
     global ssh
@@ -53,10 +54,14 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
         ssh = None
         return
 
-    start_micro_signal_sending()
+    threading.Thread(target=broadcast_ip, daemon=True).start()
 
     if not micro_signal_thread or not micro_signal_thread.is_alive():
         listen_for_micro_signals(socketio_instance)
+
+    time.sleep(1)
+    start_micro_signal_sending()
+    
 
 
 def on_rec_start(connection, username, material, speed, socketio_instance):
@@ -151,8 +156,20 @@ def start_micro_signal_sending():
     command = "python3 -u /home/pi/micro_signal_sender.py"
     ssh.exec_command(command)
 
+def broadcast_ip():
+    global broadcast_received
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    
+    while not broadcast_received:
+        message = b'server'
+        sock.sendto(message, ('<broadcast>', 54545))
+        time.sleep(1)
+
+    print("Broadcasting finished")
+
 def listen_for_micro_signals(sio):
-        global micro_signal_thread
+        global micro_signal_thread, broadcast_received
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(('0.0.0.0', 5001))
         s.listen(1)
@@ -160,6 +177,7 @@ def listen_for_micro_signals(sio):
 
         conn, addr = s.accept()
         print(f"Connection from {addr}")
+        broadcast_received = True
         micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
 
 def receive_and_send_micro_signals(conn, sio):
