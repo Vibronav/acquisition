@@ -2,7 +2,7 @@ import alsaaudio
 import socket
 import time
 
-IP_FILE = "home/pi/pc_ip.txt"
+IP_FILE = "/home/pi/pc_ip.txt"
 
 def read_server_ip():
     try:
