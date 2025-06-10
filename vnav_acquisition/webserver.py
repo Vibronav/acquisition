@@ -16,6 +16,7 @@ from flask_socketio import SocketIO
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
 PORT_FILE = BASE_DIR / "flask_port.txt"
+IP_FILE = BASE_DIR / "pc_ip.txt"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
@@ -117,7 +118,6 @@ def parse_args():
     parser.add_argument("--setup", help="Path to setup JSON file (if not provided or some fields are missing, default "
                                         "configuration is used.)", default="")
     parser.add_argument("--port", type=int, help="Port (default 5000)", default=5000)
-    parser.add_argument("--open-browser", action="store_true", help="Open browser after start")
     return parser.parse_args()
 
 def main():
@@ -131,12 +131,11 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
+    IP_FILE.write_text(str(config['pc_ipv4']), encoding="utf-8")
 
     # uncomment before merge
     # ssh_connect(*config['connection'], socketio_instance=socketio)
 
-
-    # if args.open_browser:
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
     # app.run(port=port, debug=False, request_handler=CustomRequestHandler)

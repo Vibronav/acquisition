@@ -2,7 +2,17 @@ import alsaaudio
 import socket
 import time
 
-SERVER_IP = '192.168.0.100'
+IP_FILE = "home/pi/pc_ip.txt"
+
+def read_server_ip():
+    try:
+        with open(IP_FILE, "r") as f:
+            return f.read().strip()
+    except IOError as e:
+        print(f"Error reading IP file: {e}")
+        return None
+
+SERVER_IP = read_server_ip()
 PORT = 5001
 CHUNK = 512
 RATE = 48000
