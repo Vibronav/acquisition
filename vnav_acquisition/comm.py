@@ -57,7 +57,7 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     threading.Thread(target=broadcast_ip, daemon=True).start()
 
     if not micro_signal_thread or not micro_signal_thread.is_alive():
-        listen_for_micro_signals(socketio_instance)
+        threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
 
     time.sleep(1)
     start_micro_signal_sending()
@@ -179,6 +179,7 @@ def listen_for_micro_signals(sio):
         print(f"Connection from {addr}")
         broadcast_received = True
         micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
+        print("Finished thread for listening to connection from raspberrypi")
 
 def receive_and_send_micro_signals(conn, sio):
         
