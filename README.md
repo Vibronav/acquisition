@@ -5,15 +5,15 @@ Tools for synchronous acquisition of audio (from rasberry_pi/banana_pi devboard)
 ## vnav_acquisition
 
 ```commandline
-usage: vnav_acquisition [-h] [--setup SETUP]
+usage: vnav_acquisition --setup SETUP [-h] [--port number]
 
 Web browser interface for synchronous acquisition of audio (from
 rasberry_pi/banana_pi devboard) and video from webcam
 
 options:
   -h, --help     show this help message and exit
-  --setup SETUP  Path to setup JSON file (if not provided or some fields are
-                 missing, default configuration is used.)
+  --setup SETUP  Path to setup JSON file. This is required.
+  --port number        Number of port attached to app. (Optional)
 ```
 
 Run in commandline:
@@ -21,20 +21,29 @@ Run in commandline:
 vnav_acquisition --setup /path/to/setup.json
 ```
 This runs application in Python and opens web interface in web browser. Stop application with Ctrl+C in commandline.
-Setup JSON file format:
+Full setup JSON file format:
 ```
 {
     "connection": ["hostname", port_number, "username", "password"], 
     "materials": ["material_1", "material_2"],
     "speeds": ["speed_1", "speed_2", "speed_3"],
     'local_dir': r"c:\vnav_acquisition",
-    'remote_dir': "vnav_acquisition"    
+    'remote_dir': "vnav_acquisition",
+    'pc_ipv4': "192.168.0.100"
+}
+```
+Minimal required setup JSON file format:
+```
+{
+    'pc_ipv4': "192.168.0.100"
 }
 ```
 
 Recordings from microphone(s) are recorded at RasberryPi device in directory `/home/pi/$remote_dir$` 
 and downloaded locally to `$local_dir$`. Audio recording is postprocessed to
 remove low frequency components and normalize amplitude. Original recording is renamed to extension `.raw.wav`.
+
+`pc_ipv4` is IP of your PC. You can check it by executing `ipconfig` in your terminal and read Wi-Fi ipv4 address.
 
 ## vnav_wav_process
 
