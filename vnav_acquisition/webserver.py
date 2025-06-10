@@ -136,8 +136,8 @@ def main():
     # ssh_connect(*config['connection'], socketio_instance=socketio)
 
 
-    if args.open_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
+    # if args.open_browser:
+    threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
     # app.run(port=port, debug=False, request_handler=CustomRequestHandler)
     socketio.run(app, port=port, debug=False)
