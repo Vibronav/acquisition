@@ -28,22 +28,13 @@ Full setup JSON file format:
     "materials": ["material_1", "material_2"],
     "speeds": ["speed_1", "speed_2", "speed_3"],
     'local_dir': r"c:\vnav_acquisition",
-    'remote_dir': "vnav_acquisition",
-    'pc_ipv4': "192.168.0.100"
-}
-```
-Minimal required setup JSON file format:
-```
-{
-    'pc_ipv4': "192.168.0.100"
+    'remote_dir': "vnav_acquisition"
 }
 ```
 
 Recordings from microphone(s) are recorded at RasberryPi device in directory `/home/pi/$remote_dir$` 
 and downloaded locally to `$local_dir$`. Audio recording is postprocessed to
 remove low frequency components and normalize amplitude. Original recording is renamed to extension `.raw.wav`.
-
-`pc_ipv4` is IP of your PC. You can check it by executing `ipconfig` in your terminal and read Wi-Fi ipv4 address.
 
 ## vnav_wav_process
 
