@@ -16,7 +16,6 @@ from flask_socketio import SocketIO
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
 PORT_FILE = BASE_DIR / "flask_port.txt"
-IP_FILE = BASE_DIR / "pc_ip.txt"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
@@ -126,19 +125,15 @@ def main():
     if args.setup:
         config.load_from_json(args.setup)
 
-    # port = 5000 + random.randint(0, 999)
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
-    # IP_FILE.write_text(str(config['pc_ipv4']), encoding="utf-8")
 
-    # uncomment before merge
     ssh_connect(*config['connection'], socketio_instance=socketio)
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
-    # app.run(port=port, debug=False, request_handler=CustomRequestHandler)
     socketio.run(app, port=port, debug=False)
 
 

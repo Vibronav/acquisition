@@ -6,14 +6,22 @@ BROADCAST_PORT = 54545
 
 def find_server_ip():
     udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     udp_sock.bind(('', BROADCAST_PORT))
 
-    data, addr = udp_sock.recvfrom(1024)
-    return addr[0]
+    print("Waiting for broadcast from server...")
+
+    while True:
+        try:
+            data, addr = udp_sock.recvfrom(1024)
+            print(f"Received broadcast from {addr[0]}: {data.decode()}")        
+            return addr[0]
+        except Exception as e:
+            print(f"Error receiving broadcast: {e}")
 
 
-SERVER_IP = '192.168.0.100'
+SERVER_IP = find_server_ip()
 PORT = 5001
 CHUNK = 512
 RATE = 48000

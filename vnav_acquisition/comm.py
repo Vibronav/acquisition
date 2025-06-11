@@ -7,6 +7,7 @@ from .config import config
 import socket
 import threading
 import numpy as np
+from .utils import get_broadcast_address
 
 MIC_NAME = "dmic_sv_shared"
 CHANNEL_FMT = "stereo"
@@ -153,6 +154,7 @@ def delete_last_recording():
     return deleted
 
 def start_micro_signal_sending():
+    print("Starting micro signal sending on RaspberryPi")
     command = "python3 -u /home/pi/micro_signal_sender.py"
     ssh.exec_command(command)
 
@@ -164,7 +166,8 @@ def broadcast_ip():
     
     while not broadcast_received:
         message = b'server'
-        sock.sendto(message, ('<broadcast>', 54545))
+        print(get_broadcast_address())
+        sock.sendto(message, (get_broadcast_address(), 54545))
         time.sleep(1)
 
     print("Broadcasting finished")
