@@ -131,10 +131,10 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
 
     PORT_FILE.write_text(str(port), encoding="utf-8")
-    IP_FILE.write_text(str(config['pc_ipv4']), encoding="utf-8")
+    # IP_FILE.write_text(str(config['pc_ipv4']), encoding="utf-8")
 
     # uncomment before merge
-    # ssh_connect(*config['connection'], socketio_instance=socketio)
+    ssh_connect(*config['connection'], socketio_instance=socketio)
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     

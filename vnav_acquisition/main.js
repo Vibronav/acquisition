@@ -663,7 +663,7 @@ async function getRaspberryStatus() {
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 setInterval(getRaspberryStatus, 3000);
-setInterval(mockMicroSignal, interval);
+// setInterval(mockMicroSignal, interval);
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the

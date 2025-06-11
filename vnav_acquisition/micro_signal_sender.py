@@ -13,7 +13,7 @@ def find_server_ip():
     return addr[0]
 
 
-SERVER_IP = find_server_ip()
+SERVER_IP = '192.168.0.100'
 PORT = 5001
 CHUNK = 512
 RATE = 48000

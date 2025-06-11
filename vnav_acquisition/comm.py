@@ -46,7 +46,7 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     try:
         with ssh.open_sftp() as sftp:
             sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
-            sftp.put(os.path.join(os.path.dirname(__file__), "pc_ip.txt"), "/home/pi/pc_ip.txt")
+            # sftp.put(os.path.join(os.path.dirname(__file__), "pc_ip.txt"), "/home/pi/pc_ip.txt")
             sftp.put(os.path.join(os.path.dirname(__file__), "micro_signal_sender.py"), "/home/pi/micro_signal_sender.py")
             print(f"SFPT setup upload completed.")
     except Exception as e:
@@ -158,6 +158,7 @@ def start_micro_signal_sending():
 
 def broadcast_ip():
     global broadcast_received
+    print("Broadcasting IP to raspberry started")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     
