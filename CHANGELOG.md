@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.7.0] - 2025-06-10
+### Added
+- Second camera integration
+- Displaying signals from microphone on live
+- Steering dobot by specifying points to move
+### Changed
+- Run all experiment instead of start recording for 1 iteration by web app
+- Download videos to specified folder
+
 ## [1.6.0]
 ### Added
 - Synchronization for event annotations.

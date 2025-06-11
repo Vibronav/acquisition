@@ -3,77 +3,398 @@
 /* globals MediaRecorder */
 // Spec is at http://dvcs.w3.org/hg/dap/raw-file/tip/media-stream-capture/RecordingProposal.html
 
-var recBtn = document.querySelector('button#rec');
-var stopBtn = document.querySelector('button#stop');
-var deleteBtn = document.querySelector('button#delete');
-var username = document.getElementById('username')
 
-var liveVideoElement = document.querySelector('#video');
-var dataElement = document.querySelector('#data');
-var downloadLink = document.querySelector('a#downloadLink');
-var statusLabel = document.querySelector('div#statusLabel');
+const usernameEl = document.getElementById('username');
+const iterEl = document.getElementById("iterations");
+const startAutomationBt = document.getElementById("startTests");
+const stopAutomationBt = document.getElementById("stopTests");
+const raspberryStatusEl = document.getElementById("raspberryStatus");
+const automationStatusEl = document.getElementById("automationStatus");
+const iterationCounterEl = document.getElementById("iterationCounter");
 
-const audioInputSelect = document.querySelector('select#audioSource');
-const videoSelect = document.querySelector('select#videoSource');
-const selectors = [audioInputSelect, videoSelect];
+const materialsContainter = document.getElementById("material");
+const speedsContainer = document.getElementById("speed");
+
+const audioInputSelect  = document.getElementById("audioSource");
+const videoSelect = document.getElementById("videoSource");
+const videoSelect2 = document.getElementById("videoSource2");
+const selectors = [audioInputSelect, videoSelect, videoSelect2];
+
+const liveVideoElement = document.getElementById('video');
+const liveVideoElement2 = document.getElementById('video2');
 
 liveVideoElement.controls = false;
+liveVideoElement2.controls = false;
 
-var mediaRecorder;
-var chunks = [];
-var count = 0;
-var localStream = null;
-var soundMeter  = null;
-var containerType = "video/webm";
-var videoFileName = ""
+let localStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let localStream2 = null;
+let mediaRecorder2 = null;
+let recordedChunks2 = [];
+let shouldUpload = true;
 
+const spectrogram = document.getElementById('spectrogram');
+const ctx = spectrogram.getContext('2d');
+
+const interval = 300;
+const sampleRate = 48000;
+const fftSize = 4096;
+const fft = new FFT(fftSize, sampleRate);
+let specBuffer = []
+
+const waveformCanvasLeft = document.getElementById('micSignalLeft');
+const waveformCanvasRight = document.getElementById('micSignalRight');
+const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
+const waveformCtxRight = waveformCanvasRight.getContext('2d');
+
+
+const DEFAULT_CONFIG = {
+	materials: ["slime", "Silicone", "Chicken"],
+	speeds: ["slow", "medium", "fast"]
+};
+const YAXIS_SPECTROGRAM_WIDTH = 55;
+const YAXIS_WAVEFORM_WIDTH = 75;
+
+const socket = io();
+socket.on("connect", () => {
+	console.log("Socket.io connected from browser")
+})
+
+socket.on("record", async (msg) => {
+
+	const action = msg.action;
+	const filename = msg.filename;
+	console.log(action);
+
+	if(!localStream || !localStream2) {
+		console.warn("No media stream available to record");
+		return;
+	}
+
+	if(action === "start") {
+
+		onRecordStart({
+			filename: addSuffix(filename, "_cam1"),
+			stream: localStream,
+			setRecorder: (recorder) => mediaRecorder = recorder,
+			setChunks: (chunks) => recordedChunks = chunks,
+		});
+		onRecordStart({
+			filename: addSuffix(filename, "_cam2"),
+			stream: localStream2,
+			setRecorder: (recorder) => mediaRecorder2 = recorder,
+			setChunks: (chunks) => recordedChunks2 = chunks,
+		});
+		console.log("Browser started recording");
+
+	}
+
+	console.log(mediaRecorder, mediaRecorder2);
+	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
+		shouldUpload = msg.shouldUpload;
+		mediaRecorder.stop();
+		mediaRecorder2.stop();
+		console.log("Browser stopped recording");
+	}
+
+});
+
+socket.on("automation-status", (msg) => {
+	const status = msg.status;
+	automationStatusEl.textContent = `Automation status: ${status}`;
+	automationStatusEl.style.color = status === "running" ? "green" : "red";
+	if(status === "running") {
+		toggleButtons(true);
+	} else {
+		toggleButtons(false);
+		iterationCounterEl.textContent = `Iteration: -`
+	}
+});
+
+socket.on("iteration", (msg) => {
+	const iterInput = iterEl.value;
+	const maxIterations = iterInput ? parseInt(iterInput, 10) || 1 : 1
+	const currentIteration = msg.iteration;
+	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
+});
+
+socket.on("micro-signal", (msg) => {
+
+	console.log(typeof msg.left[0]);
+	const bufferLeft = new Int32Array(msg.left);
+	const bufferRight = new Int32Array(msg.right);
+	
+	const meanLeft = average(bufferLeft);
+	const bufferLeftDC = bufferLeft.map((x) => x - meanLeft);
+	const meanRight = average(bufferRight);
+	const bufferRightDC = bufferRight.map((x) => x - meanRight);
+
+
+	if (bufferLeftDC && bufferLeftDC.length > 0) {
+		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
+	}
+	if (bufferRightDC && bufferRightDC.length > 0) {
+		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
+	}
+
+	if( bufferLeftDC && bufferLeftDC.length > 0) {
+		processAndDrawSpectrogram(bufferLeftDC);
+	}
+
+})
+
+function drawWaveform(buffer, canvas, ctx) {
+	const width = canvas.width;
+	const height = canvas.height;
+	const fullScale = Math.pow(2, 31);
+
+	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
+	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
+
+	drawWaveformLabels(canvas, ctx, fullScale);
+
+	ctx.beginPath();
+
+	const min = Math.min(...buffer);
+	const max = Math.max(...buffer);
+
+	const yMax = (1 - max / fullScale) * height / 2;
+	const yMin = (1 - min / fullScale) * height / 2;
+
+	ctx.moveTo(canvas.width - 5, yMin);
+	ctx.lineTo(canvas.width - 5, yMax);
+
+	ctx.strokeStyle = "blue";
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
+}
+
+function drawWaveformLabels(canvas, ctx, fullScale) {
+
+	const width = canvas.width;
+	const height = canvas.height;
+	const paddingY = 10;
+	
+	ctx.clearRect(0, 0, YAXIS_WAVEFORM_WIDTH, height);
+
+	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+	ctx.font = "10px sans-serif";
+	ctx.textAlign = "right";
+	ctx.textBaseline = "middle";
+
+	const ticks = [-fullScale, -fullScale / 2, 0, fullScale / 2, fullScale];
+
+	for(let i=0; i<ticks.length; i++) {
+		const val = ticks[i];
+		const rel = val / fullScale;
+
+		const availableHeight = height - 2 * paddingY;
+
+		const centerY = height / 2;
+		const y = centerY - rel * (availableHeight / 2);
+
+		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
+
+		ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(YAXIS_WAVEFORM_WIDTH, y);
+		ctx.lineTo(width, y);
+		ctx.stroke();
+	}
+
+}
+
+function processAndDrawSpectrogram(samples) {
+	specBuffer = specBuffer.concat(Array.from(samples));
+
+	while(specBuffer.length >= fftSize) {
+		const chunk = specBuffer.slice(0, fftSize);
+		specBuffer = specBuffer.slice(fftSize / 2);
+
+		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 31))); // Normalize to have cleaner spectrogram
+		fft.forward(input);
+		drawColumn(fft.spectrum);
+	}
+}
+
+function drawColumn(spectrum) {
+	const imageData = ctx.getImageData(YAXIS_SPECTROGRAM_WIDTH + 1, 0, spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1, spectrogram.height);
+	ctx.putImageData(imageData, YAXIS_SPECTROGRAM_WIDTH, 0);
+
+	for (let y=0; y<spectrogram.height; y++) {
+		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
+		const db = 20 * Math.log10(spectrum[idx] + 1e-6)
+		const value = Math.max(0, Math.min(255, db + 100))
+		const freq = idx * sampleRate / fftSize
+		const color = valueToHSL(value, freq);
+		ctx.fillStyle = color;
+		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
+	}
+	drawFrequencyLabels();
+}
+
+function drawFrequencyLabels() {
+	const sampleRate = 48000;
+	const fontSize = 10;
+	const numTicks = 5;
+	const nyquist = sampleRate / 2;
+	const padding = 10;
+	const labelOffsetX = 2
+	const spectrogramWidth = spectrogram.width;
+	const spectrogramHeight = spectrogram.height;
+	const availableHeight = spectrogramHeight - 2 * padding;
+
+	ctx.font = `${fontSize}px sans-serif`;
+	ctx.textAlign = "left";
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+	ctx.fillRect(0, 0, YAXIS_SPECTROGRAM_WIDTH, spectrogram.height);
+
+	ctx.fillStyle = "white";
+
+	ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+	ctx.lineWidth = 1;
+
+	for (let i = 0; i <= numTicks; i++) {
+		const rel = i / (numTicks - 1);
+		const y = padding + (1 - rel) * availableHeight;
+		const freq = Math.round(rel * nyquist);
+
+		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
+
+		ctx.beginPath();
+		ctx.moveTo(YAXIS_SPECTROGRAM_WIDTH, y);
+		ctx.lineTo(spectrogramWidth, y);
+		ctx.stroke();
+	}
+
+}
+
+function average(arr) {
+	let sum = 0;
+	for (let i=0; i<arr.length; i++) {
+		sum += arr[i];
+	}
+	return sum / arr.length;
+}
+
+function valueToHSL(value, freq) {
+	const clamped = Math.max(0, Math.min(255, value));
+	
+	const hue = (freq / sampleRate) * sampleRate / 100;
+	const saturation = 100;
+	const lightness = (clamped / 255) * 50 + 10;
+
+	return `hsl(${hue},${saturation}%,${lightness}%)`;
+}
+
+function addSuffix(filename, suffix) {
+	const dotIndex = filename.lastIndexOf('.');
+	if (dotIndex === -1) {
+		return filename + suffix;
+	}
+	return filename.slice(0, dotIndex) + suffix + filename.slice(dotIndex);
+}
+
+function onRecordStart({filename, stream, setRecorder, setChunks}) {
+
+	const chunks = [];
+
+	const recorder = new MediaRecorder(stream, {
+		mimeType: "video/webm; codecs=vp9"
+	})
+
+	recorder.ondataavailable = (event) => {
+		if(event.data.size > 0) {
+			chunks.push(event.data);
+		}
+	}
+
+	recorder.onstop = async () => {
+		console.log('stopping');
+
+		if(shouldUpload) {
+			const blob = new Blob(chunks, { type: "video/webm" });
+			const formData = new FormData();
+			formData.append("file", blob, filename);
+
+			await fetch("/upload", {
+				method: "POST",
+				body: formData
+			});
+		} else {
+			console.warn("Backend forced not to upload video");
+		}
+	
+	}
+
+	recorder.start();
+	setRecorder(recorder);
+	setChunks(chunks);
+
+}
+
+function renderSelectOptions(selectElement, values) {
+
+	selectElement.innerHTML = "";
+	values.forEach(val => {
+		const option = document.createElement("option");
+		option.value = val;
+		option.textContent = val;
+		selectElement.appendChild(option);
+	})
+}
+
+async function loadConfig() {
+	try {
+		const res = await fetch("/config");
+		if(!res.ok) throw new Error();
+		return await res.json();
+	} catch {
+		console.warn("/api/config caused error. Default config to be used")
+		return DEFAULT_CONFIG
+	}
+}
 
 function gotDevices(deviceInfos) {
   // Handles being called several times to update labels. Preserve values.
   const values = selectors.map(select => select.value);
-  selectors.forEach(select => {
-    while (select.firstChild) {
-      select.removeChild(select.firstChild);
-    }
-  });
+  selectors.forEach((select) => (select.innerHTML = ""));
+
   console.log(deviceInfos)
-  for (let i = 0; i !== deviceInfos.length; ++i) {
-    const deviceInfo = deviceInfos[i];
-    const option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
-    if (deviceInfo.kind === 'audioinput') {
-      console.log(deviceInfo)
-      option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
-      audioInputSelect.appendChild(option);
-    } else if (deviceInfo.kind === 'videoinput') {
-      option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
-      videoSelect.appendChild(option);
-    } else {
-      console.log('Some other kind of source/device: ', deviceInfo);
-    }
-  }
-  selectors.forEach((select, selectorIndex) => {
-    if (Array.prototype.slice.call(select.childNodes).some(n => n.value === values[selectorIndex])) {
-      select.value = values[selectorIndex];
-    }
+
+  deviceInfos.forEach((info) => {
+	const option = document.createElement("option");
+	option.value = info.deviceId
+	option.text = info.label || `${info.kind}`
+
+	if(info.kind == "audioinput") {
+		audioInputSelect.appendChild(option)
+	}
+	if(info.kind == "videoinput") {
+		const option1 = option.cloneNode(true);
+		const option2 = option.cloneNode(true);
+		videoSelect.appendChild(option1)
+		videoSelect2.appendChild(option2)
+	}
+  });
+
+  selectors.forEach((select, idx) => {
+	if([...select.childNodes].some((n) => n.value === values[idx])) {
+		select.value = values[idx];
+	}
   });
 }
-
-navigator.mediaDevices
-    .getUserMedia({ audio: true, video: true })
-    .then((s) => {
-        navigator.mediaDevices.enumerateDevices().then(gotDevices).then(start).catch(handleError);
-    });
-
-audioInputSelect.onchange = start;
-videoSelect.onchange = start;
 
 function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
 
 // https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output
-function start() {
+function startFirstCamera() {
     if (window.stream) {
         window.stream.getTracks().forEach(track => {
           track.stop();
@@ -83,230 +404,182 @@ function start() {
     const videoSource = videoSelect.value;
     const constraints = {
         audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {deviceId: videoSource ? {exact: videoSource} : undefined, width:{min:640,ideal:1280,max:1280 },height:{ min:480,ideal:720,max:720}, framerate: 60}
+        video: {
+			deviceId: videoSource ? {exact: videoSource} : undefined,
+			width:{min:640,ideal:1280,max:1280 },
+			height:{ min:480,ideal:720,max:720}, 
+			framerate: 60
+		}
     };
-//    var constraints = {audio:true,video:{width:{min:640,ideal:640,max:640 },height:{ min:480,ideal:480,max:480},framerate:60}};
 
-    if (!navigator.mediaDevices.getUserMedia){
-        alert('navigator.mediaDevices.getUserMedia not supported on your browser, use the latest version of Firefox or Chrome');
-    } else{
-        if (window.MediaRecorder == undefined) {
-                alert('MediaRecorder not supported on your browser, use the latest version of Firefox or Chrome');
-        }else{
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function(stream) {
-                    localStream = stream;
-
-                    localStream.getTracks().forEach(function(track) {
-                        if(track.kind == "audio"){
-                            track.onended = function(event){
-                                 log("audio track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-                            }
-                        }
-                        if(track.kind == "video"){
-                            track.onended = function(event){
-                                log("video track.onended Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-                            }
-                        }
-                    });
-
-                    liveVideoElement.srcObject = localStream;
-                    liveVideoElement.play();
-
-                    try {
-                        window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                        window.audioContext = new AudioContext();
-                    } catch (e) {
-                        log('Web Audio API not supported.');
-                    }
-
-                    soundMeter = window.soundMeter = new SoundMeter(window.audioContext);
-                    soundMeter.connectToSource(localStream, function(e) {
-                        if (e) {
-                            log(e);
-                            return;
-                        }
-                    });
-
-                }).catch(function(err) {
-                    /* handle the error */
-                    log('navigator.getUserMedia error: '+err);
-                });
-        }
-    }
-}
-
-
-function onBtnRecordClicked(){
-	let material = document.querySelector('input[name="material"]:checked')
-	let speed = document.querySelector('input[name="speed"]:checked')
-	if (localStream == null) {
-		alert('Could not get local stream from mic/camera');
-	} else if (username.value == "") {
-		alert('Please input user name');
-	} else if (material == null) {
-		alert('Please select material');
-	} else if (speed == null) {
-		alert('Please select speed');
-	} else {
-		recBtn.disabled = true;
-		recBtn.innerHTML = 'Recording...';
-        stopBtn.disabled = false;
-        statusLabel.innerHTML = '<font color="orange">Communicating with RaspberryPi...</font>';
-
-		chunks = [];
-
-		/* use the stream */
-		log('Start recording...');
-        fetch("/start", {
-            method: "POST",
-            body: JSON.stringify({
-                username: username.value,
-                material: material.value,
-                speed: speed.value
-            }),
-            headers: {
-                "Content-type": "application/json; charset=UTF-8"
-            }
-        }).then(res => res.json()).then(res => {
-            videoFileName = res;
-            console.log(res)
-            statusLabel.innerHTML = `<font color="blue">Recording started (${res})</font>`;
-        });
-
-		if (typeof MediaRecorder.isTypeSupported == 'function'){
-			/*
-				MediaRecorder.isTypeSupported is a function announced in https://developers.google.com/web/updates/2016/01/mediarecorder and later introduced in the MediaRecorder API spec http://www.w3.org/TR/mediastream-recording/
-			*/
-			if (MediaRecorder.isTypeSupported('video/mp4')) {
-			  //Safari 14.0.2 has an EXPERIMENTAL version of MediaRecorder enabled by default
-			  containerType = "video/mp4";
-			  var options = {mimeType: 'video/mp4'};
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-			  var options = {mimeType: 'video/webm;codecs=vp9'};
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-			  var options = {mimeType: 'video/webm;codecs=h264'};
-			} else if (MediaRecorder.isTypeSupported('video/webm')) {
-			  var options = {mimeType: 'video/webm'};
-			}
-			log('Using '+options.mimeType);
-			mediaRecorder = new MediaRecorder(localStream, options);
-		}else{
-			log('isTypeSupported is not supported, using default codecs for browser');
-			mediaRecorder = new MediaRecorder(localStream);
-		}
-
-		mediaRecorder.ondataavailable = function(e) {
-			log('mediaRecorder.ondataavailable, e.data.size='+e.data.size);
-			if (e.data && e.data.size > 0) {
-				chunks.push(e.data);
-			}
-		};
-
-		mediaRecorder.onerror = function(e){
-			log('mediaRecorder.onerror: ' + e);
-		};
-
-		mediaRecorder.onstart = function(){
-			log('mediaRecorder.onstart, mediaRecorder.state = ' + mediaRecorder.state);
-			
-			localStream.getTracks().forEach(function(track) {
-              if(track.kind == "audio"){
-                log("onstart - Audio track.readyState="+track.readyState+", track.muted=" + track.muted);
-              }
-              if(track.kind == "video"){
-                log("onstart - Video track.readyState="+track.readyState+", track.muted=" + track.muted);
-              }
-            });
-			
-		};
-
-		mediaRecorder.onstop = function(){
-			log('mediaRecorder.onstop, mediaRecorder.state = ' + mediaRecorder.state);
-
-			var recording = new Blob(chunks, {type: mediaRecorder.mimeType});
-			downloadLink.href = URL.createObjectURL(recording);
-
-			var rand =  Math.floor((Math.random() * 10000000));
-			switch(containerType){
-				case "video/mp4":
-					var name  = videoFileName + ".mp4" ;
-					break;
-				default:
-					var name  = videoFileName + ".webm" ;
-			}
-
-			downloadLink.innerHTML = '<br> Download recording '+name;
-
-			downloadLink.setAttribute( "download", name);
-			downloadLink.setAttribute( "name", name);
-			downloadLink.click();
-
-			fetch("/stop").then(res => res.json()).then(res => {
-                var recordingStatus = res;
-                if (recordingStatus.length){
-                    const recorded_files = recordingStatus.join('<br>')
-                    statusLabel.innerHTML = `<font color="green">Recording saved succesfully to local directory:<br>${recorded_files}</font>`;
-                } else {
-                    statusLabel.innerHTML = '<font color="red">Recording save failed.</font>';
-                }
-                console.log(res)
-            });
-		};
-
-		mediaRecorder.onpause = function(){
-			log('mediaRecorder.onpause, mediaRecorder.state = ' + mediaRecorder.state);
-		}
-
-		mediaRecorder.onresume = function(){
-			log('mediaRecorder.onresume, mediaRecorder.state = ' + mediaRecorder.state);
-		}
-
-		mediaRecorder.onwarning = function(e){
-			log('mediaRecorder.onwarning: ' + e);
-		};
-
-		// pauseResBtn.textContent = "Pause";
-
-		mediaRecorder.start(1000);
-
-		localStream.getTracks().forEach(function(track) {
-			log(track.kind+":"+JSON.stringify(track.getSettings()));
-			console.log(track.getSettings());
+    navigator.mediaDevices.getUserMedia(constraints)
+		.then((stream) => {
+			localStream = stream;
+			liveVideoElement.srcObject = stream;
+			liveVideoElement.play();
 		})
-	}
+		.catch(handleError);
 }
+
+function startSecondCamera() {
+    if (window.stream) {
+        window.stream.getTracks().forEach(track => {
+          track.stop();
+        });
+    }
+	const audioSource = audioInputSelect.value;
+    const videoSource2 = videoSelect2.value;
+    const constraints2 = {
+		audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+        video: {
+			deviceId: videoSource2 ? {exact: videoSource2} : undefined,
+			width:{min:640,ideal:1280,max:1280 },
+			height:{ min:480,ideal:720,max:720}, 
+			framerate: 60
+		}
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints2)
+		.then((stream) => {
+			localStream2 = stream;
+			liveVideoElement2.srcObject = stream;
+			liveVideoElement2.play();
+		})
+		.catch(handleError);
+}
+
+
+audioInputSelect.onchange = startFirstCamera;
+videoSelect.onchange = startFirstCamera;
+videoSelect2.onchange = startSecondCamera;
+
 
 navigator.mediaDevices.ondevicechange = function(event) {
 	log("mediaDevices.ondevicechange");
 }
 
-function onBtnStopClicked(){
-	mediaRecorder.stop();
-	recBtn.disabled = false;
-	recBtn.innerHTML = 'Record';
-	stopBtn.disabled = true;
-    deleteBtn.disabled = false;
-}
-
-function onBtnDeteleClicked(){
-    fetch("/delete_last")
-    .then(res => res.json())
-    .then(res => {
-        var recordingStatus = res;
-        if (recordingStatus){
-            const deleted_files = recordingStatus.join('<br>')
-            statusLabel.innerHTML = `<font color="purple">Last recording deleted:<br>${deleted_files}</font>`;
-            deleteBtn.disabled = true;
-        }
-    })
-}
-
-
 function log(message){
-	// dataElement.innerHTML = dataElement.innerHTML+'<br>'+message ;
 	console.log(message)
 }
+
+function toggleButtons(automation_running) {
+	startAutomationBt.disabled = automation_running;
+	stopAutomationBt.disabled = !automation_running;
+}
+
+function startAutomation() {
+
+	const username = usernameEl.value.trim()
+	const material = materialsContainter.value;
+	const speed = speedsContainer.value;
+	const iterInput = iterEl.value;
+	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
+	const p1 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p1_${i}`).value, 10));
+	const p2 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p2_${i}`).value, 10));
+	const p3 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p3_${i}`).value, 10));
+	const motionType = document.querySelector('input[name="motionType"]:checked').value;
+
+	if(!username) {
+		return alert("Please pass username");
+	}
+	if(!material) {
+		return alert("Please select material");
+	}
+	if(!speed) {
+		return alert("Please select speed");
+	}
+	if(iterations <= 0) {
+		return alert("Iterations must be greater then 0");
+	}
+
+	const payload = {
+		username: username,
+		material: material,
+		speed: speed,
+		iterations: iterations,
+		p1: p1,
+		p2: p2,
+		p3: p3,
+		motionType: motionType,
+	};
+
+
+	fetch("/run", {
+		method: "POST",
+		headers: {"Content-Type": "application/json"},
+		body: JSON.stringify(payload)
+	})
+	.then(res => {
+		if(!res.ok) throw new Error("Server error");
+		return res.json();
+	})
+	.then(data => {
+		startAutomationBt.disabled = true;
+		console.log("Automation started: ", data);
+		alert("Tests started - you can monitor it by video from camera.");
+	})
+	.catch(err => {
+		toggleButtons(false);
+		console.error(err);
+	})
+
+}
+
+function stopAutomation() {
+	
+
+	fetch("/stop", {
+		method: "POST"
+	})
+	.then(res => {
+		if(!res.ok) throw new Error("Server error");
+		return res.json();
+	})
+	.then(data => {
+		stopAutomationBt.disabled = true;
+		console.log("Automation stopped: ", data);
+		alert("Tests will be stopped after this iteration.");
+	});
+
+}
+
+function updateRaspberryStatus(status) {
+	raspberryStatusEl.textContent = `RaspberryPi status: ${status}`;
+	raspberryStatusEl.style.color = status === "connected" ? "green" : "red";
+}
+
+async function getRaspberryStatus() {
+	try {
+		const res = await fetch("/raspberry-status");
+		const data = await res.json();
+		updateRaspberryStatus(data.status);
+	} catch (err) {
+		console.error("Error fetching RaspberryPi status: ", err);
+		updateRaspberryStatus("Not connected");
+	}
+
+}
+
+(async function init() {
+
+	const cfg = await loadConfig();
+	renderSelectOptions(materialsContainter, cfg.materials);
+	renderSelectOptions(speedsContainer, cfg.speeds);
+
+	// for getting devices and permissions
+	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+	stream.getTracks().forEach((t) => t.stop())
+	const devices = await navigator.mediaDevices.enumerateDevices();
+	gotDevices(devices);
+	startFirstCamera();
+	startSecondCamera();
+
+})();
+
+startAutomationBt.addEventListener("click", startAutomation);
+stopAutomationBt.addEventListener("click", stopAutomation);
+setInterval(getRaspberryStatus, 3000);
+// setInterval(mockMicroSignal, interval);
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the

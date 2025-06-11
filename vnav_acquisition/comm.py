@@ -4,38 +4,76 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
+import socket
+import threading
+import numpy as np
+from .utils import get_broadcast_address
 
-MIC_NAME = "dmic_sv"
+MIC_NAME = "dmic_sv_shared"
 CHANNEL_FMT = "stereo"
 SAMPLING_RATE = 48000
 
 ssh: paramiko.SSHClient = None
+micro_signal_thread = None
 file_name = ""
+broadcast_received = False
 
-
-def ssh_connect(hostname, port, username, password):
+def is_ssh_connected():
     global ssh
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname, port, username, password)
+    if ssh is not None and ssh.get_transport() and ssh.get_transport().is_active():
+        return True
+    return False
+
+
+def ssh_connect(hostname, port, username, password, socketio_instance):
+    global ssh, micro_signal_thread
+    try:
+        ssh = paramiko.SSHClient()
+        print(config['connection'])
+        print("Connecting to RaspberryPi...")
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(hostname, port, username, password, timeout=10)
+        if not ssh.get_transport() or not ssh.get_transport().is_active():
+            ssh = None
+            print("SSH transport is not active.")
+            return
+
+        print('CONNECTED TO RASPBERRYPI')
+    except Exception as e:
+        print("SSH connection error:", e)
+        ssh = None
+        return
 
     try:
         with ssh.open_sftp() as sftp:
             sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
+            sftp.put(os.path.join(os.path.dirname(__file__), "micro_signal_sender.py"), "/home/pi/micro_signal_sender.py")
             print(f"SFPT setup upload completed.")
     except Exception as e:
         print(f"SFPT setup upload error.", e)
+        ssh = None
+        return
+
+    threading.Thread(target=broadcast_ip, daemon=True).start()
+
+    if not micro_signal_thread or not micro_signal_thread.is_alive():
+        threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
+
+    time.sleep(1)
+    start_micro_signal_sending()
+    
 
 
-def on_rec_start(connection, username, material, speed):
+def on_rec_start(connection, username, material, speed, socketio_instance):
+    print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
     file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
 
     if ssh is None:
-        print("Connecting to RaspberryPi with SSH")
-        ssh_connect(*connection)
+        ssh_connect(*connection, socketio_instance=socketio_instance)
         time.sleep(1)
+
     if ssh:
         print("Recording started")
         remote_path = f"{config['remote_dir']}/{file_name}"
@@ -45,27 +83,35 @@ def on_rec_start(connection, username, material, speed):
         setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
                         f"CHANNELS=2\nOUTPUT_FILE={remote_path}\nFORMAT=S32_LE' > " \
                         f"{config['remote_dir']}/recording_setup.txt"
-        print("Setup command: \n", setup_command)
+        print("Setup command ====================================================================== \n")
+        print(setup_command)
         ssh.exec_command(setup_command)
         time.sleep(0.01)
 
         start_command = f"bash -c 'source {config['remote_dir']}/recording_setup.txt && nohup arecord " \
                         f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
                         f"$OUTPUT_FILE &'"
-        print("Start command: \n", start_command)
+        print("Start command ===================================================================== \n")
+        print(start_command)
         ssh.exec_command(start_command)
         play_chirp_signal()
     else:
-        print("SSH connection failed.")
-    return os.path.splitext(file_name)[0]
+        return False
+    
+    return True
 
+def kill_rasp_process():
+    if ssh is not None:
+        print("Killing process on RaspberryPi")
+        stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
+        ssh.exec_command(stop_command)
 
 def on_rec_stop(delete=False):
     global ssh
     global file_name
     recorded_files = []
     if ssh is not None:
-        print("Recording stopped")
+        print("Recording stopped on RaspberryPi")
         stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
         ssh.exec_command(stop_command)
 
@@ -78,6 +124,7 @@ def on_rec_stop(delete=False):
                 sftp.get(remote_path, local_path)
         except Exception as e:
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
+
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
         if recording_status:
             recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
@@ -86,8 +133,10 @@ def on_rec_stop(delete=False):
             delete_command = f"rm {remote_path}"
             ssh.exec_command(delete_command)
     else:
-        print("SSH not connected")
-    return recorded_files
+        print("SSH not connected during stopping recording")
+        return False
+    
+    return len(recorded_files) > 0
 
 
 def delete_last_recording():
@@ -103,3 +152,71 @@ def delete_last_recording():
             print(file, "does not exist")
     return deleted
 
+def start_micro_signal_sending():
+    print("Starting micro signal sending on RaspberryPi")
+    command = "python3 -u /home/pi/micro_signal_sender.py"
+    ssh.exec_command(command)
+
+def broadcast_ip():
+    global broadcast_received
+    print("Broadcasting IP to raspberry started")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    trials = 0
+
+    while not broadcast_received and trials < 30:
+        message = b'server'
+        sock.sendto(message, (get_broadcast_address(), 54545))
+        time.sleep(1)
+        trials += 1
+
+    print("Broadcasting finished")
+
+def listen_for_micro_signals(sio):
+        global micro_signal_thread, broadcast_received
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(('0.0.0.0', 5001))
+        s.listen(1)
+        print("Waiting for connection to micro signal server...")
+        s.settimeout(10)
+        try:
+            conn, addr = s.accept()
+            print(f"Connection from {addr}")
+            broadcast_received = True
+            micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
+        except socket.timeout:
+            print("No connection received within timeout period.")
+
+        print("Finished thread for listening to connection from raspberrypi")
+
+def receive_and_send_micro_signals(conn, sio):
+        
+        buffer = b''
+        frame_size = 512 * 8
+        batch_frames = 25
+
+        while True:
+            try:
+                data = conn.recv(16384)
+                if not data:
+                    break
+
+                buffer += data
+                
+                while len(buffer) >= frame_size * batch_frames:
+                    chunk = buffer[:frame_size * batch_frames]
+                    buffer = buffer[frame_size * batch_frames:]
+
+                    arr = np.frombuffer(chunk, dtype=np.int32)
+                    left = arr[::2]
+                    right = arr[1::2]
+    
+                    sio.emit('micro-signal', {
+                        'left': left.tobytes(),
+                        'right': right.tobytes(),
+                    })    
+
+                # time.sleep(0.3)
+            except Exception as e:
+                break
+        conn.close()
