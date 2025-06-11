@@ -144,59 +144,6 @@ socket.on("micro-signal", (msg) => {
 
 })
 
-// Mock functions will be deleted before merge
-function mockMicroSignal() {
-
-	const stereo = generateMockStereoSamples();
-
-	const bufferLeft = stereo.filter((_, i) => i % 2 === 0);
-	const bufferRight = stereo.filter((_, i) => i % 2 === 1);
-
-
-	if (bufferLeft && bufferLeft.length > 0) {
-		drawWaveform(bufferLeft, waveformCanvasLeft, waveformCtxLeft);
-	}
-	if (bufferRight && bufferRight.length > 0) {
-		drawWaveform(bufferRight, waveformCanvasRight, waveformCtxRight);
-	}
-
-	if( bufferLeft && bufferLeft.length > 0) {
-		processAndDrawSpectrogram(bufferLeft);
-	}
-}
-
-function generateMockStereoSamples() {
-	const monoSamples = Math.floor(sampleRate * interval / 1000);
-	const totalSamples = monoSamples * 2;
-	const stereo = new Int32Array(totalSamples);
-
-	const freqLeft = Math.random() * 300 + 400;
-	const ampLeft = Math.random() * 0.5 + 0.2;
-	const phaseLeft = Math.random() * 2 * Math.PI;
-
-	const freqRight = Math.random() * 300 + 900;
-	const ampRight = Math.random() * 0.5 + 0.2;
-	const phaseRight = Math.random() * 2 * Math.PI;
-
-	for (let i = 0; i < monoSamples; i++) {
-		const t = i / sampleRate;
-
-		const valLeft = Math.sin(2 * Math.PI * freqLeft * t + phaseLeft);
-		const valRight = Math.sin(2 * Math.PI * freqRight * t + phaseRight);
-
-		const noiseL = (Math.random() - 0.5) * 0.05;
-		const noiseR = (Math.random() - 0.5) * 0.05;
-
-		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 31));
-		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 31));
-
-		stereo[i * 2] = sampleLeft;
-		stereo[i * 2 + 1] = sampleRight;
-	}
-
-	return stereo;
-}
-
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
@@ -323,37 +270,6 @@ function drawFrequencyLabels() {
 		ctx.lineTo(spectrogramWidth, y);
 		ctx.stroke();
 	}
-
-}
-
-function intArrayToHex(intArray) {
-	let hexString = "";
-	const view = new DataView(new ArrayBuffer(4));
-	for(let i=0; i<intArray.length; i++) {
-		view.setInt32(0, intArray[i], true);
-		const hex = [...new Uint8Array(view.buffer)]
-			.map(b => b.toString(16).padStart(2, "0"))
-			.reverse()
-			.join("");
-		hexString += hex;
-	}
-	return hexString;
-}
-
-function hexToInt32Array(hexString) {
-
-	const len = hexString.length / 8;
-	const buffer = new ArrayBuffer(len * 4);
-	const view = new DataView(buffer);
-
-	for(let i=0; i<len; i++) {
-		const hex = hexString.slice(i * 8, i * 8 + 8);
-		const int = parseInt(hex, 16);
-		const value = int > 0x7FFFFFFF ? int - 0x100000000 : int;
-		view.setInt32(i * 4, value, true);
-	}
-
-	return new Int32Array(buffer);
 
 }
 

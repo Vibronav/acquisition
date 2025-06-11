@@ -94,7 +94,6 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         })
 
         is_started = on_rec_start(config['connection'], username, material, speed, socketio_instance)
-        # is_started = True
         if not is_started:
             socketio_instance.emit("record", {
                 "action": "stop",
@@ -141,7 +140,6 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
                 print("P2 not used, only P1 and P3 updated.")
 
         is_recorded = on_rec_stop()
-        # is_recorded = True
         if not is_recorded:
             socketio_instance.emit("record", {
                 "action": "stop",
