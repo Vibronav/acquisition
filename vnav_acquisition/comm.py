@@ -163,12 +163,14 @@ def broadcast_ip():
     print("Broadcasting IP to raspberry started")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    
-    while not broadcast_received:
+    trials = 0
+
+    while not broadcast_received and trials < 30:
         message = b'server'
         print(get_broadcast_address())
-        sock.sendto(message, (get_broadcast_address(), 54545))
+        sock.sendto(message, ('11', 54545))
         time.sleep(1)
+        trials += 1
 
     print("Broadcasting finished")
 
@@ -178,11 +180,15 @@ def listen_for_micro_signals(sio):
         s.bind(('0.0.0.0', 5001))
         s.listen(1)
         print("Waiting for connection to micro signal server...")
+        s.settimeout(10)
+        try:
+            conn, addr = s.accept()
+            print(f"Connection from {addr}")
+            broadcast_received = True
+            micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
+        except socket.timeout:
+            print("No connection received within timeout period.")
 
-        conn, addr = s.accept()
-        print(f"Connection from {addr}")
-        broadcast_received = True
-        micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True).start()
         print("Finished thread for listening to connection from raspberrypi")
 
 def receive_and_send_micro_signals(conn, sio):
