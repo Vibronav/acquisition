@@ -4,8 +4,10 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
+from .runtime_config import runtime_config
 import socket
 import threading
+import sounddevice as sd
 import numpy as np
 from .utils import get_broadcast_address
 
@@ -194,12 +196,43 @@ def receive_and_send_micro_signals(conn, sio):
         buffer = b''
         frame_size = 512 * 8
         batch_frames = 25
+        sample_rate = 48000
 
-        while True:
-            try:
+        current_output_index = None
+        output_stream = None
+
+        def recreate_stream_if_needed():
+            nonlocal output_stream, current_output_index
+            new_index = runtime_config.get['micro_output']
+            if new_index != current_output_index:
+                if output_stream:
+                    output_stream.stop()
+                    output_stream.close()
+                    output_stream = None
+                if new_index is not None:
+                    try:
+                        output_stream = sd.OutputStream(
+                            samplerate=sample_rate,
+                            channels=2,
+                            dtype='float32',
+                            device=new_index,
+                        )
+                        output_stream.start()
+                        print(f'Switched micro output to device index {new_index}')
+                        current_output_index = new_index
+                    except Exception as e:
+                        print(f"Error creating output stream: {e}")
+                        current_output_index = None
+                        output_stream = None
+
+        try:
+            while True:
+                
                 data = conn.recv(16384)
                 if not data:
                     break
+
+                recreate_stream_if_needed()
 
                 buffer += data
                 
@@ -214,9 +247,18 @@ def receive_and_send_micro_signals(conn, sio):
                     sio.emit('micro-signal', {
                         'left': left.tobytes(),
                         'right': right.tobytes(),
-                    })    
+                    })
+
+                    stereo = np.stack([left, right], axis=1).astype(np.float32) / (2**31)
+
+                    if output_stream:
+                        output_stream.write(stereo)
 
                 # time.sleep(0.3)
-            except Exception as e:
-                break
-        conn.close()
+        except Exception as e:
+            print(f"Error receiving or sending micro signals: {e}")
+        finally:
+            conn.close()
+            if output_stream:
+                output_stream.stop()
+                output_stream.close()

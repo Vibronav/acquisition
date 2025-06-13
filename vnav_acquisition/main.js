@@ -16,6 +16,7 @@ const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
 
 const audioInputSelect  = document.getElementById("audioSource");
+const microOutputSelect = document.getElementById("microOutput");
 const videoSelect = document.getElementById("videoSource");
 const videoSelect2 = document.getElementById("videoSource2");
 const selectors = [audioInputSelect, videoSelect, videoSelect2];
@@ -389,6 +390,19 @@ function gotDevices(deviceInfos) {
   });
 }
 
+function setOutputDevices() {
+	fetch('/get-audio-outputs')
+	.then(res => res.json())
+	.then(devices => {
+		devices.forEach(device => {
+			const option = document.createElement("option");
+			option.value = device.name;
+			option.textContent = device.name;
+			microOutputSelect.appendChild(option);
+		})
+	})
+}
+
 function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
@@ -448,10 +462,31 @@ function startSecondCamera() {
 		.catch(handleError);
 }
 
+function selectMicroOutput() {
+	const outputMicro = microOutputSelect.value;
+	const payload = {
+		micro_output: outputMicro
+	}
+
+	fetch('/set-micro-output', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(payload)
+	})
+	.then(res => res.json())
+	.then(data => {
+		console.log("Microphone output set: ", data);
+	})
+	.catch(err => {
+		console.error("Error setting microphone output: ", err);
+	});
+}
+
 
 audioInputSelect.onchange = startFirstCamera;
 videoSelect.onchange = startFirstCamera;
 videoSelect2.onchange = startSecondCamera;
+microOutputSelect.onchange = selectMicroOutput;
 
 
 navigator.mediaDevices.ondevicechange = function(event) {
@@ -571,6 +606,7 @@ async function getRaspberryStatus() {
 	stream.getTracks().forEach((t) => t.stop())
 	const devices = await navigator.mediaDevices.enumerateDevices();
 	gotDevices(devices);
+	setOutputDevices()
 	startFirstCamera();
 	startSecondCamera();
 

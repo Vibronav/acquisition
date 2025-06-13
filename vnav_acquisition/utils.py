@@ -15,3 +15,4 @@ def get_broadcast_address():
                 netmask = int(ipaddress.IPv4Address(addr.netmask))
                 broadcast = ip | (~netmask & 0xFFFFFFFF)
                 return str(ipaddress.IPv4Address(broadcast))
+        
