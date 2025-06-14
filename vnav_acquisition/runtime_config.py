@@ -2,7 +2,7 @@
 
 class RuntimeConfig:
     _DEFAULT_CONFIG = {
-        'micro_output': 0 
+        'micro_output': None
     }
 
     def __init__(self):

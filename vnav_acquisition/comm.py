@@ -9,6 +9,7 @@ import socket
 import threading
 import sounddevice as sd
 import numpy as np
+import queue
 from .utils import get_broadcast_address
 
 MIC_NAME = "dmic_sv_shared"
@@ -198,43 +199,77 @@ def receive_and_send_micro_signals(conn, sio):
         batch_frames = 25
         sample_rate = 48000
 
+        warmup_done = False
+        warmup_target_frames = int(0.3 * sample_rate)
+
         current_output_index = None
         output_stream = None
+        audio_queue = queue.Queue()
 
-        def recreate_stream_if_needed():
+        def audio_callback(outdata, frames, time_info, status):
+            try:
+                data = audio_queue.get_nowait()
+            except queue.Empty:
+                outdata[:] = np.zeros((frames, 2), dtype=np.float32)
+                return
+            
+            if data.shape[0] < frames:
+                outdata[:data.shape[0], :] = data
+                outdata[data.shape[0]:, :] = 0.0
+            else:
+                outdata[:] = data[:frames]
+
+        def recreate_stream_if_needed(new_index):
             nonlocal output_stream, current_output_index
-            new_index = runtime_config.get['micro_output']
-            if new_index != current_output_index:
-                if output_stream:
-                    output_stream.stop()
-                    output_stream.close()
-                    output_stream = None
-                if new_index is not None:
-                    try:
-                        output_stream = sd.OutputStream(
-                            samplerate=sample_rate,
-                            channels=2,
-                            dtype='float32',
-                            device=new_index,
-                        )
-                        output_stream.start()
-                        print(f'Switched micro output to device index {new_index}')
-                        current_output_index = new_index
-                    except Exception as e:
-                        print(f"Error creating output stream: {e}")
-                        current_output_index = None
-                        output_stream = None
+            if output_stream:
+                output_stream.stop()
+                output_stream.close()
+                output_stream = None
+            try:
+                output_stream = sd.OutputStream(
+                    samplerate=sample_rate,
+                    channels=2,
+                    dtype='float32',
+                    device=new_index,
+                    callback=audio_callback,
+                    latency='high',
+                    blocksize=11000
+                )
+                print(f'Switched micro output to device index {new_index}')
+                current_output_index = new_index
+            except Exception as e:
+                print(f"Error creating output stream: {e}")
+                current_output_index = None
+                output_stream = None
 
         try:
+            last_sent = time.time()
             while True:
                 
-                data = conn.recv(16384)
-                if not data:
-                    break
-
-                recreate_stream_if_needed()
+                if conn is None:
+                    now = time.time()
+                    if now - last_sent < 0.023:
+                        time.sleep(0.001)
+                        continue
+                    last_sent = now
+                    num_samples = 16384 // 4
+                    amplitude = int(0.5 * (2**31))
+                    mock_signal = np.random.randint(-amplitude, amplitude, size=num_samples, dtype=np.int32)
+                    data = mock_signal.tobytes()
+                else:
+                    data = conn.recv(16384)
+                    if not data:
+                        break
+                
+                new_index = runtime_config['micro_output']
+                if new_index is not None and new_index != current_output_index:
+                    recreate_stream_if_needed(new_index)
 
                 buffer += data
+
+                if output_stream and warmup_done and time.time() % 3 < 0.05:
+                    total_frames = sum(a.shape[0] for a in list(audio_queue.queue))
+                    print(f"[AUDIO BUFFER] Frames in queue: {total_frames}")
                 
                 while len(buffer) >= frame_size * batch_frames:
                     chunk = buffer[:frame_size * batch_frames]
@@ -249,16 +284,27 @@ def receive_and_send_micro_signals(conn, sio):
                         'right': right.tobytes(),
                     })
 
-                    stereo = np.stack([left, right], axis=1).astype(np.float32) / (2**31)
+                    stereo = (np.stack([left, right], axis=1) / (2**32)).astype(np.float32)
 
                     if output_stream:
-                        output_stream.write(stereo)
+                        audio_queue.put(stereo)
+
+                        if not warmup_done:
+                            total_frames = sum(audio.shape[0] for audio in list(audio_queue.queue))
+                            if total_frames >= warmup_target_frames:
+                                try:
+                                    output_stream.start()
+                                    warmup_done = True
+                                    print("Warmup done, output stream started")
+                                except Exception as e:
+                                    print(f"Error starting output stream: {e}")
+                                    warmup_done = False
 
                 # time.sleep(0.3)
         except Exception as e:
             print(f"Error receiving or sending micro signals: {e}")
         finally:
-            conn.close()
+            # conn.close()
             if output_stream:
                 output_stream.stop()
                 output_stream.close()

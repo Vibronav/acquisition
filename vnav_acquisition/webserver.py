@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, send_from_directory
-from vnav_acquisition.comm import is_ssh_connected, ssh_connect
+from vnav_acquisition.comm import is_ssh_connected, ssh_connect, receive_and_send_micro_signals
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
@@ -164,7 +164,8 @@ def main():
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
 
-    ssh_connect(*config['connection'], socketio_instance=socketio)
+    # ssh_connect(*config['connection'], socketio_instance=socketio)
+    threading.Thread(target=receive_and_send_micro_signals, args=(None, socketio,), daemon=True).start()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
