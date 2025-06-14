@@ -6,6 +6,7 @@ from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, o
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
+from .record import start_recording, stop_recording
 import threading
 import webbrowser
 import argparse
@@ -152,29 +153,19 @@ def start_recording():
     print("Received start-recording/POST request")
     timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
     output_filename = f"{timestamp}.mp4"
-    socketio.emit("record", {
-        "action": "start",
-        "filename": output_filename
-    })
 
-    is_started = on_rec_start(config['connection'], socketio)
+    is_started = start_recording(output_filename, socketio)
     if not is_started:
-        socketio.emit("record", {
-            "action": "stop",
-            "shouldUpload": False
-        })
         return jsonify({"error": "Recording could not be started"}), 400
-
+    
     return jsonify({"status": "ok"})
+
 
 @app.route('/stop-recording', methods=['POST'])
 def stop_recording():
     print("Received stop-recording/POST request")
-    socketio.emit("record", {
-        "action": "stop",
-        "shouldUpload": True
-    })
-    on_rec_stop(config['connection'], socketio)
+    
+    stop_recording(socketio)
     return jsonify({"status": "ok"})
 
 

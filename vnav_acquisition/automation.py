@@ -2,6 +2,7 @@ import time
 from vnav_acquisition.config import config
 from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
+from .record import start_recording, stop_recording
     
 def safe_run_automation(socketio_instance, **kwargs):
     """
@@ -88,17 +89,9 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
 
         print(f"Recording {i+1}/{num_iterations} started.")
         
-        socketio_instance.emit("record", {
-            "action": "start",
-            "filename": output_filename
-        })
+        is_started = start_recording(output_filename, socketio_instance, username=username, material=material, speed=speed)
 
-        is_started = on_rec_start(config['connection'], socketio_instance, username, material, speed)
         if not is_started:
-            socketio_instance.emit("record", {
-                "action": "stop",
-                "shouldUpload": False
-            })
             continue
 
         # Skip actual movement for first 2 iterations, just wait
@@ -139,18 +132,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
             else:
                 print("P2 not used, only P1 and P3 updated.")
 
-        is_recorded = on_rec_stop()
-        if not is_recorded:
-            socketio_instance.emit("record", {
-                "action": "stop",
-                "shouldUpload": False
-            })
-        else:
-            time.sleep(2.5)
-            socketio_instance.emit("record", {
-                "action": "stop",
-                "shouldUpload": True
-            })
+        stop_recording(socketio_instance)
 
         if i >= 2:
             print(f"Iteration {i+1} completed.")
