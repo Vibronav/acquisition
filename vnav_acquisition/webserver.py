@@ -149,7 +149,7 @@ def get_audio_outputs():
     return jsonify(outputs)
 
 @app.route('/start-recording', methods=['POST'])
-def start_recording():
+def post_start_recording():
     print("Received start-recording/POST request")
     timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
     output_filename = f"{timestamp}.mp4"
@@ -162,7 +162,7 @@ def start_recording():
 
 
 @app.route('/stop-recording', methods=['POST'])
-def stop_recording():
+def post_stop_recording():
     print("Received stop-recording/POST request")
     
     stop_recording(socketio)
