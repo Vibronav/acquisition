@@ -93,7 +93,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
             "filename": output_filename
         })
 
-        is_started = on_rec_start(config['connection'], username, material, speed, socketio_instance)
+        is_started = on_rec_start(config['connection'], socketio_instance, username, material, speed)
         if not is_started:
             socketio_instance.emit("record", {
                 "action": "stop",
