@@ -200,7 +200,7 @@ def receive_and_send_micro_signals(conn, sio):
         sample_rate = 48000
 
         warmup_done = False
-        warmup_target_frames = int(0.3 * sample_rate)
+        warmup_target_frames = int(0.1 * sample_rate)
 
         current_output_index = None
         output_stream = None
@@ -233,7 +233,7 @@ def receive_and_send_micro_signals(conn, sio):
                     device=new_index,
                     callback=audio_callback,
                     latency='high',
-                    blocksize=11000
+                    blocksize=10200
                 )
                 print(f'Switched micro output to device index {new_index}')
                 current_output_index = new_index
@@ -243,23 +243,11 @@ def receive_and_send_micro_signals(conn, sio):
                 output_stream = None
 
         try:
-            last_sent = time.time()
             while True:
-                
-                if conn is None:
-                    now = time.time()
-                    if now - last_sent < 0.023:
-                        time.sleep(0.001)
-                        continue
-                    last_sent = now
-                    num_samples = 16384 // 4
-                    amplitude = int(0.5 * (2**31))
-                    mock_signal = np.random.randint(-amplitude, amplitude, size=num_samples, dtype=np.int32)
-                    data = mock_signal.tobytes()
-                else:
-                    data = conn.recv(16384)
-                    if not data:
-                        break
+
+                data = conn.recv(16384)
+                if not data:
+                    break
                 
                 new_index = runtime_config['micro_output']
                 if new_index is not None and new_index != current_output_index:

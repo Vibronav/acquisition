@@ -164,8 +164,8 @@ def main():
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
 
-    # ssh_connect(*config['connection'], socketio_instance=socketio)
-    threading.Thread(target=receive_and_send_micro_signals, args=(None, socketio,), daemon=True).start()
+    ssh_connect(*config['connection'], socketio_instance=socketio)
+    # threading.Thread(target=receive_and_send_micro_signals, args=(None, socketio,), daemon=True).start()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     
