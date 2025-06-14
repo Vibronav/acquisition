@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, send_from_directory
-from vnav_acquisition.comm import is_ssh_connected, ssh_connect, receive_and_send_micro_signals
+from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, on_rec_stop
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
@@ -13,6 +13,7 @@ import os   # Berke 16.09.2024
 from pathlib import Path
 from flask_socketio import SocketIO
 import sounddevice as sd
+import time
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -145,6 +146,36 @@ def get_audio_outputs():
 
     print(f"Available audio outputs: {outputs}")
     return jsonify(outputs)
+
+@app.route('/start-recording', methods=['POST'])
+def start_recording():
+    print("Received start-recording/POST request")
+    timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
+    output_filename = f"{timestamp}.mp4"
+    socketio.emit("record", {
+        "action": "start",
+        "filename": output_filename
+    })
+
+    is_started = on_rec_start(config['connection'], socketio)
+    if not is_started:
+        socketio.emit("record", {
+            "action": "stop",
+            "shouldUpload": False
+        })
+        return jsonify({"error": "Recording could not be started"}), 400
+
+    return jsonify({"status": "ok"})
+
+@app.route('/stop-recording', methods=['POST'])
+def stop_recording():
+    print("Received stop-recording/POST request")
+    socketio.emit("record", {
+        "action": "stop",
+        "shouldUpload": True
+    })
+    on_rec_stop(config['connection'], socketio)
+    return jsonify({"status": "ok"})
 
 
 def parse_args():

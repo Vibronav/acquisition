@@ -8,6 +8,8 @@ const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
 const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
+const startRecordingBt = document.getElementById("startRecording");
+const stopRecordingBt = document.getElementById("stopRecording");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
@@ -500,6 +502,8 @@ function log(message){
 function toggleButtons(automation_running) {
 	startAutomationBt.disabled = automation_running;
 	stopAutomationBt.disabled = !automation_running;
+	startRecordingBt.disabled = automation_running;
+	stopRecordingBt.disabled = !automation_running;
 }
 
 function startAutomation() {
@@ -595,6 +599,38 @@ async function getRaspberryStatus() {
 
 }
 
+function startRecording() {
+	fetch("/start-recording", {
+		method: "POST"
+	})
+	.then(res => res.json())
+	.then(data => {
+		if(data.status == "ok") {
+			toggleButtons(true);
+		} else {
+			console.warn("Failed to start recording: ", data.message);
+		}
+	})
+	.catch(err => {
+		console.error("Error starting recording: ", err);
+	})
+}
+
+function stopRecording() {
+	fetch("/stop-recording", {
+		method: "POST"
+	})
+	.then(res => res.json())
+	.then(data => {
+		if(data.status == "ok") {
+			toggleButtons(false);
+		}
+	})
+	.catch(err => {
+		console.error("Error stopping recording: ", err);
+	})
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -614,6 +650,8 @@ async function getRaspberryStatus() {
 
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
+startRecordingBt.addEventListener("click", startRecording);
+stopRecordingBt.addEventListener("click", stopRecording);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 
