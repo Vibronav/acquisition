@@ -15,6 +15,7 @@ from flask_socketio import SocketIO
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
+IP_FILE = BASE_DIR / "pc_ip.txt"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
@@ -126,6 +127,7 @@ def main():
 
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
+    IP_FILE.write_text(config["pc_ip"])
 
     ssh_connect(*config['connection'], socketio_instance=socketio)
 

@@ -4,5 +4,6 @@
                     "African (silk)", "Test"],
     "speeds": ["slow", "medium", "fast"],
     "local_dir": "micro_data",
-    "remote_dir": "vnav_acquisition"
+    "remote_dir": "vnav_acquisition",
+    "pc_ip": "192.168.0.100"
 }
