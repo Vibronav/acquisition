@@ -89,7 +89,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
 
         print(f"Recording {i+1}/{num_iterations} started.")
         
-        is_started = start_recording(output_filename, socketio_instance, username=username, material=material, speed=speed)
+        is_started = start_recording(output_filename, socketio_instance)
 
         if not is_started:
             continue

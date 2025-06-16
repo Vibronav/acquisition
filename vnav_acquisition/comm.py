@@ -67,21 +67,12 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     
 
 
-def on_rec_start(connection, socketio_instance, username=None, material=None, speed=None):
+def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
 
-    parts = [username, material, speed]
-    parts = [part for part in parts if part]
-
-    timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
-    base_name = '_'.join(parts)
-
-    if base_name:
-        file_name = f"{base_name}_{timestamp}.wav"
-    else:
-        file_name = f"{timestamp}.wav"
+    file_name = output_filename
 
     if ssh is None:
         ssh_connect(*connection, socketio_instance=socketio_instance)

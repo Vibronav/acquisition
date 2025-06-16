@@ -2,13 +2,13 @@ from .comm import on_rec_start, on_rec_stop
 from .config import config
 import time
 
-def start_recording(output_filename, socketio_instance, username=None, material=None, speed=None):
+def start_recording(output_filename, socketio_instance):
     socketio_instance.emit("record", {
         "action": "start",
         "filename": output_filename
     })
 
-    is_started = on_rec_start(config['connection'], socketio_instance, username, material, speed)
+    is_started = on_rec_start(config['connection'], socketio_instance, output_filename)
     if not is_started:
         socketio_instance.emit("record", {
             "action": "stop",
