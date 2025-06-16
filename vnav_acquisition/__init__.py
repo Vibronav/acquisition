@@ -1,12 +1,14 @@
-from .download_model import download_file
+import gdown
+import os
 
-
-download_file(
-    url="https://drive.google.com/uc?export=download&id=1dRyy8ar81iSZshwz9yWInNtckmtXDhud",
-    destination_name="goturn.caffemodel"
+gdown.download(
+    "https://drive.google.com/uc?id=1dRyy8ar81iSZshwz9yWInNtckmtXDhud",
+    "goturn.caffemodel",
+    quiet=False
 )
 
-download_file(
-    url="https://drive.google.com/uc?export=download&id=1uwy0Rp8wFfRA7YTeOnMnkdThdaEcqOO7",
-    destination_name="goturn.prototxt"
+gdown.download(
+    "https://drive.google.com/uc?id=1uwy0Rp8wFfRA7YTeOnMnkdThdaEcqOO7",
+    "goturn.prototxt",
+    quiet=False
 )
