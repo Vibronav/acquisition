@@ -600,8 +600,27 @@ async function getRaspberryStatus() {
 }
 
 function startRecording() {
+
+	const username = usernameEl.value.trim()
+	const material = materialsContainter.value;
+
+	if(!username) {
+		return alert("Please pass username");
+	}
+	if(!material) {
+		return alert("Please select material");
+	}
+
+	const payload = {
+		username: username,
+		material: material
+	};
+
+
 	fetch("/start-recording", {
-		method: "POST"
+		method: "POST",
+		headers: {"Content-Type": "application/json"},
+		body: JSON.stringify(payload)
 	})
 	.then(res => res.json())
 	.then(data => {

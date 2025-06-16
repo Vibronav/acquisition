@@ -151,8 +151,14 @@ def get_audio_outputs():
 @app.route('/start-recording', methods=['POST'])
 def post_start_recording():
     print("Received start-recording/POST request")
+
+    params = request.get_json(force=True)
+    print(f'With params: {params}')
+
     timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
-    output_filename = f"{timestamp}.mp4"
+    username = params.get("username")
+    material = params.get("material")
+    output_filename = f"{username}_{material}_{timestamp}.mp4"
 
     is_started = start_recording(output_filename, socketio)
     if not is_started:
