@@ -82,7 +82,7 @@ def run_automation(username, material, stop_event, speed=None, motion_type=None,
         })
 
         timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
-        output_filename = f"{username}_{material}_{speed}_{timestamp}.mp4"
+        output_filename = f"{username}_{material}_{speed}_{timestamp}"
 
         move_to_position(dashboard, move, P1)
         time.sleep(1)

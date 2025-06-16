@@ -256,10 +256,6 @@ def receive_and_send_micro_signals(conn, sio):
 
                 buffer += data
 
-                if output_stream and warmup_done and time.time() % 3 < 0.05:
-                    total_frames = sum(a.shape[0] for a in list(audio_queue.queue))
-                    print(f"[AUDIO BUFFER] Frames in queue: {total_frames}")
-                
                 while len(buffer) >= frame_size * batch_frames:
                     chunk = buffer[:frame_size * batch_frames]
                     buffer = buffer[frame_size * batch_frames:]

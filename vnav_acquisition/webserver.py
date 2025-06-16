@@ -158,9 +158,9 @@ def post_start_recording():
     timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
     username = params.get("username")
     material = params.get("material")
-    output_filename = f"{username}_{material}_{timestamp}.mp4"
+    output_filename_prefix = f"{username}_{material}_{timestamp}"
 
-    is_started = start_recording(output_filename, socketio)
+    is_started = start_recording(output_filename_prefix, socketio)
     if not is_started:
         return jsonify({"error": "Recording could not be started"}), 400
     

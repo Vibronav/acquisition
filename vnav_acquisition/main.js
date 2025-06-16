@@ -109,6 +109,7 @@ socket.on("automation-status", (msg) => {
 	automationStatusEl.style.color = status === "running" ? "green" : "red";
 	if(status === "running") {
 		toggleButtons(true);
+		stopRecordingBt.disabled = true;
 	} else {
 		toggleButtons(false);
 		iterationCounterEl.textContent = `Iteration: -`
@@ -626,6 +627,7 @@ function startRecording() {
 	.then(data => {
 		if(data.status == "ok") {
 			toggleButtons(true);
+			stopAutomationBt.disabled = true;
 		} else {
 			console.warn("Failed to start recording: ", data.message);
 		}
