@@ -8,6 +8,8 @@ const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
 const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
+const startRecordingBt = document.getElementById("startRecording");
+const stopRecordingBt = document.getElementById("stopRecording");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
@@ -16,6 +18,7 @@ const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
 
 const audioInputSelect  = document.getElementById("audioSource");
+const microOutputSelect = document.getElementById("microOutput");
 const videoSelect = document.getElementById("videoSource");
 const videoSelect2 = document.getElementById("videoSource2");
 const selectors = [audioInputSelect, videoSelect, videoSelect2];
@@ -106,6 +109,7 @@ socket.on("automation-status", (msg) => {
 	automationStatusEl.style.color = status === "running" ? "green" : "red";
 	if(status === "running") {
 		toggleButtons(true);
+		stopRecordingBt.disabled = true;
 	} else {
 		toggleButtons(false);
 		iterationCounterEl.textContent = `Iteration: -`
@@ -389,6 +393,19 @@ function gotDevices(deviceInfos) {
   });
 }
 
+function setOutputDevices() {
+	fetch('/get-audio-outputs')
+	.then(res => res.json())
+	.then(devices => {
+		devices.forEach(device => {
+			const option = document.createElement("option");
+			option.value = device.name;
+			option.textContent = device.name;
+			microOutputSelect.appendChild(option);
+		})
+	})
+}
+
 function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
@@ -448,10 +465,31 @@ function startSecondCamera() {
 		.catch(handleError);
 }
 
+function selectMicroOutput() {
+	const outputMicro = microOutputSelect.value;
+	const payload = {
+		micro_output: outputMicro
+	}
+
+	fetch('/set-micro-output', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(payload)
+	})
+	.then(res => res.json())
+	.then(data => {
+		console.log("Microphone output set: ", data);
+	})
+	.catch(err => {
+		console.error("Error setting microphone output: ", err);
+	});
+}
+
 
 audioInputSelect.onchange = startFirstCamera;
 videoSelect.onchange = startFirstCamera;
 videoSelect2.onchange = startSecondCamera;
+microOutputSelect.onchange = selectMicroOutput;
 
 
 navigator.mediaDevices.ondevicechange = function(event) {
@@ -465,6 +503,8 @@ function log(message){
 function toggleButtons(automation_running) {
 	startAutomationBt.disabled = automation_running;
 	stopAutomationBt.disabled = !automation_running;
+	startRecordingBt.disabled = automation_running;
+	stopRecordingBt.disabled = !automation_running;
 }
 
 function startAutomation() {
@@ -560,6 +600,58 @@ async function getRaspberryStatus() {
 
 }
 
+function startRecording() {
+
+	const username = usernameEl.value.trim()
+	const material = materialsContainter.value;
+
+	if(!username) {
+		return alert("Please pass username");
+	}
+	if(!material) {
+		return alert("Please select material");
+	}
+
+	const payload = {
+		username: username,
+		material: material
+	};
+
+
+	fetch("/start-recording", {
+		method: "POST",
+		headers: {"Content-Type": "application/json"},
+		body: JSON.stringify(payload)
+	})
+	.then(res => res.json())
+	.then(data => {
+		if(data.status == "ok") {
+			toggleButtons(true);
+			stopAutomationBt.disabled = true;
+		} else {
+			console.warn("Failed to start recording: ", data.message);
+		}
+	})
+	.catch(err => {
+		console.error("Error starting recording: ", err);
+	})
+}
+
+function stopRecording() {
+	fetch("/stop-recording", {
+		method: "POST"
+	})
+	.then(res => res.json())
+	.then(data => {
+		if(data.status == "ok") {
+			toggleButtons(false);
+		}
+	})
+	.catch(err => {
+		console.error("Error stopping recording: ", err);
+	})
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -571,6 +663,7 @@ async function getRaspberryStatus() {
 	stream.getTracks().forEach((t) => t.stop())
 	const devices = await navigator.mediaDevices.enumerateDevices();
 	gotDevices(devices);
+	setOutputDevices()
 	startFirstCamera();
 	startSecondCamera();
 
@@ -578,6 +671,8 @@ async function getRaspberryStatus() {
 
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
+startRecordingBt.addEventListener("click", startRecording);
+stopRecordingBt.addEventListener("click", stopRecording);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 

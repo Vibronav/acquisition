@@ -2,15 +2,19 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, send_from_directory
-from vnav_acquisition.comm import is_ssh_connected, ssh_connect
+from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, on_rec_stop
 from vnav_acquisition.config import config
+from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
+from .record import start_recording, stop_recording
 import threading
 import webbrowser
 import argparse
 import os   # Berke 16.09.2024
 from pathlib import Path
 from flask_socketio import SocketIO
+import sounddevice as sd
+import time
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -108,6 +112,67 @@ def check_connection():
     finally:
         werkzeug_log.setLevel(prev_level)
 
+@app.route("/set-micro-output", methods=['POST'])
+def set_micro_output():
+    print("Received set-micro-output/POST request")
+    params = request.get_json(force=True)
+    print(f'With params: {params}')
+    output_name = params.get("micro_output")
+
+    if not output_name:
+        return jsonify({"error": "Missing 'micro_output' parameter"}), 400
+    
+    for idx, dev in enumerate(sd.query_devices()):
+        if output_name in dev['name'] and dev['max_output_channels'] > 0:
+            runtime_config.set_value('micro_output', idx)
+            return jsonify({"status": "ok", "micro_output": idx})
+        
+    return jsonify({"error": f"Audio output '{output_name}' not found"}), 404
+
+@app.route('/get-audio-outputs', methods=['GET'])
+def get_audio_outputs():
+    print("Received get-audio-outputs/GET request")
+    seen = set()
+    outputs = []
+    default_hostapi = sd.default.hostapi
+
+    for idx, dev in enumerate(sd.query_devices()):
+        name = dev['name'].strip()
+        if (dev['max_output_channels'] > 0 
+            and name 
+            and name not in seen
+            and dev['hostapi'] == default_hostapi):
+            outputs.append({'name': name})
+            seen.add(name)
+
+    print(f"Available audio outputs: {outputs}")
+    return jsonify(outputs)
+
+@app.route('/start-recording', methods=['POST'])
+def post_start_recording():
+    print("Received start-recording/POST request")
+
+    params = request.get_json(force=True)
+    print(f'With params: {params}')
+
+    timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
+    username = params.get("username")
+    material = params.get("material")
+    output_filename_prefix = f"{username}_{material}_{timestamp}"
+
+    is_started = start_recording(output_filename_prefix, socketio)
+    if not is_started:
+        return jsonify({"error": "Recording could not be started"}), 400
+    
+    return jsonify({"status": "ok"})
+
+
+@app.route('/stop-recording', methods=['POST'])
+def post_stop_recording():
+    print("Received stop-recording/POST request")
+    
+    stop_recording(socketio)
+    return jsonify({"status": "ok"})
 
 
 def parse_args():
@@ -128,6 +193,7 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
 
     ssh_connect(*config['connection'], socketio_instance=socketio)
+    # threading.Thread(target=receive_and_send_micro_signals, args=(None, socketio,), daemon=True).start()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     

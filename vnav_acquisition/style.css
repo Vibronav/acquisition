@@ -153,23 +153,23 @@ button {
     transition: background-color 0.3s;
 }
 
-#startTests {
+#startTests, #startRecording {
     background-color: #4CAF50;
     color: white;
 }
 
-#startTests:disabled {
+#startTests:disabled, #startRecording:disabled {
     background-color: #a5d6a7;
     color: #ffffffcc;
     cursor: not-allowed;
 }
 
-#stopTests {
+#stopTests, #stopRecording {
     background-color: #f44336;
     color: white;
 }
 
-#stopTests:disabled {
+#stopTests:disabled, #stopRecording:disabled {
     background-color: #e0e0e0;
     color: #888;
     cursor: not-allowed;

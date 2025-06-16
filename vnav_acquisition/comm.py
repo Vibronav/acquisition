@@ -4,9 +4,12 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
+from .runtime_config import runtime_config
 import socket
 import threading
+import sounddevice as sd
 import numpy as np
+import queue
 from .utils import get_broadcast_address
 
 MIC_NAME = "dmic_sv_shared"
@@ -64,11 +67,12 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     
 
 
-def on_rec_start(connection, username, material, speed, socketio_instance):
+def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
     global ssh
     global file_name
-    file_name = f"{username}_{material}_{speed}_{time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())}.wav"
+
+    file_name = output_filename
 
     if ssh is None:
         ssh_connect(*connection, socketio_instance=socketio_instance)
@@ -194,15 +198,64 @@ def receive_and_send_micro_signals(conn, sio):
         buffer = b''
         frame_size = 512 * 8
         batch_frames = 25
+        sample_rate = 48000
 
-        while True:
+        warmup_done = False
+        warmup_target_frames = int(0.1 * sample_rate)
+
+        current_output_index = None
+        output_stream = None
+        audio_queue = queue.Queue()
+
+        def audio_callback(outdata, frames, time_info, status):
             try:
+                data = audio_queue.get_nowait()
+            except queue.Empty:
+                outdata[:] = np.zeros((frames, 2), dtype=np.float32)
+                return
+            
+            if data.shape[0] < frames:
+                outdata[:data.shape[0], :] = data
+                outdata[data.shape[0]:, :] = 0.0
+            else:
+                outdata[:] = data[:frames]
+
+        def recreate_stream_if_needed(new_index):
+            nonlocal output_stream, current_output_index
+            if output_stream:
+                output_stream.stop()
+                output_stream.close()
+                output_stream = None
+            try:
+                output_stream = sd.OutputStream(
+                    samplerate=sample_rate,
+                    channels=2,
+                    dtype='float32',
+                    device=new_index,
+                    callback=audio_callback,
+                    latency='high',
+                    blocksize=10200
+                )
+                print(f'Switched micro output to device index {new_index}')
+                current_output_index = new_index
+            except Exception as e:
+                print(f"Error creating output stream: {e}")
+                current_output_index = None
+                output_stream = None
+
+        try:
+            while True:
+
                 data = conn.recv(16384)
                 if not data:
                     break
+                
+                new_index = runtime_config['micro_output']
+                if new_index is not None and new_index != current_output_index:
+                    recreate_stream_if_needed(new_index)
 
                 buffer += data
-                
+
                 while len(buffer) >= frame_size * batch_frames:
                     chunk = buffer[:frame_size * batch_frames]
                     buffer = buffer[frame_size * batch_frames:]
@@ -214,9 +267,29 @@ def receive_and_send_micro_signals(conn, sio):
                     sio.emit('micro-signal', {
                         'left': left.tobytes(),
                         'right': right.tobytes(),
-                    })    
+                    })
+
+                    stereo = (np.stack([left, right], axis=1) / (2**32)).astype(np.float32)
+
+                    if output_stream:
+                        audio_queue.put(stereo)
+
+                        if not warmup_done:
+                            total_frames = sum(audio.shape[0] for audio in list(audio_queue.queue))
+                            if total_frames >= warmup_target_frames:
+                                try:
+                                    output_stream.start()
+                                    warmup_done = True
+                                    print("Warmup done, output stream started")
+                                except Exception as e:
+                                    print(f"Error starting output stream: {e}")
+                                    warmup_done = False
 
                 # time.sleep(0.3)
-            except Exception as e:
-                break
-        conn.close()
+        except Exception as e:
+            print(f"Error receiving or sending micro signals: {e}")
+        finally:
+            # conn.close()
+            if output_stream:
+                output_stream.stop()
+                output_stream.close()
