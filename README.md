@@ -36,6 +36,8 @@ Recordings from microphone(s) are recorded at RasberryPi device in directory `/h
 and downloaded locally to `$local_dir$`. Audio recording is postprocessed to
 remove low frequency components and normalize amplitude. Original recording is renamed to extension `.raw.wav`.
 
+Hostname in connection need to be specified as Ip address of raspberrypi. To get this IP connect to raspberry with e.g. Putty and run command ifconfig. IP should be in the bottom like `192.168.0.110`.
+
 ## vnav_wav_process
 
 ```
