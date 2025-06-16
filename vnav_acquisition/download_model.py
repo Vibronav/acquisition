@@ -14,7 +14,7 @@ def save_response_content(response, destination_name, chunk_size=32768):
             if chunk:
                 f.write(chunk)
 
-def download_file(url, file_id, destination_name):
+def download_file(url, destination_name):
 
     session = requests.Session()
     response = session.get(url, stream=True)
@@ -28,5 +28,5 @@ def download_file(url, file_id, destination_name):
         url = urlunparse(parsed._replace(query=new_query))
         response = session.get(url, stream=True)
 
-    save_response_content(response, destination_name)
+    save_response_content(response, os.path.join(os.path.dirname(__file__), destination_name))
     
