@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [1.8.0] - 2025--06-10
+## [1.8.0] - 2025--06-16
 ### Added
 - Add recording videos/audio without dobot
 - Add on live sounds from microphone
