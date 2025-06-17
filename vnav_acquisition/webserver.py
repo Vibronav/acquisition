@@ -15,7 +15,6 @@ from pathlib import Path
 from flask_socketio import SocketIO
 import sounddevice as sd
 import time
-from .tracker import run as tracker_run
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -194,7 +193,6 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
 
     ssh_connect(*config['connection'], socketio_instance=socketio)
-    tracker_run()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     

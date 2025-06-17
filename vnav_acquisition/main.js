@@ -13,6 +13,11 @@ const stopRecordingBt = document.getElementById("stopRecording");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
+const trackerModal = document.getElementById("trackerModal");
+const trackerVideo = document.getElementById("trackerVideo");
+const trackerCanvas = document.getElementById("trackerCanvas");
+const confirmTrackerBt = document.getElementById("confirmTracker");
+const cancelTrackerBt = document.getElementById("cancelTracker");
 
 const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
@@ -37,6 +42,11 @@ let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
 
+let trackStream, trackCtx;
+let startX, startY, currX, currY, drawing = false;
+let initBbox = null;
+let prevBbox = null;
+
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
 
@@ -58,6 +68,8 @@ const DEFAULT_CONFIG = {
 };
 const YAXIS_SPECTROGRAM_WIDTH = 55;
 const YAXIS_WAVEFORM_WIDTH = 75;
+
+//// Websockets section --------------------------
 
 const socket = io();
 socket.on("connect", () => {
@@ -110,9 +122,31 @@ socket.on("automation-status", (msg) => {
 	if(status === "running") {
 		toggleButtons(true);
 		stopRecordingBt.disabled = true;
+
+		if(initBbox) {
+			
+			const initFrame = captureFrame(liveVideoElement);
+			prevBbox = initBbox;
+
+			fetch("/tracker-init", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ frame: initFrame, bbox: initBbox })
+			})
+			.then(trackObject)
+			.catch(err => console.warn("Error initializing tracker: ", err));
+		}
+
 	} else {
 		toggleButtons(false);
 		iterationCounterEl.textContent = `Iteration: -`
+
+		if(window._trackerInterval) {
+			clearInterval(window._trackerInterval);
+			window._trackerInterval = null;
+		}
+		initBbox = null;
+		prevBbox = null;
 	}
 });
 
@@ -147,6 +181,8 @@ socket.on("micro-signal", (msg) => {
 	}
 
 })
+
+//// Waveform and Spectrogram section --------------------------
 
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
@@ -295,50 +331,14 @@ function valueToHSL(value, freq) {
 	return `hsl(${hue},${saturation}%,${lightness}%)`;
 }
 
+//// 
+
 function addSuffix(filename, suffix) {
 	const dotIndex = filename.lastIndexOf('.');
 	if (dotIndex === -1) {
 		return filename + suffix;
 	}
 	return filename.slice(0, dotIndex) + suffix + filename.slice(dotIndex);
-}
-
-function onRecordStart({filename, stream, setRecorder, setChunks}) {
-
-	const chunks = [];
-
-	const recorder = new MediaRecorder(stream, {
-		mimeType: "video/webm; codecs=vp9"
-	})
-
-	recorder.ondataavailable = (event) => {
-		if(event.data.size > 0) {
-			chunks.push(event.data);
-		}
-	}
-
-	recorder.onstop = async () => {
-		console.log('stopping');
-
-		if(shouldUpload) {
-			const blob = new Blob(chunks, { type: "video/webm" });
-			const formData = new FormData();
-			formData.append("file", blob, filename);
-
-			await fetch("/upload", {
-				method: "POST",
-				body: formData
-			});
-		} else {
-			console.warn("Backend forced not to upload video");
-		}
-	
-	}
-
-	recorder.start();
-	setRecorder(recorder);
-	setChunks(chunks);
-
 }
 
 function renderSelectOptions(selectElement, values) {
@@ -393,7 +393,7 @@ function gotDevices(deviceInfos) {
   });
 }
 
-function setOutputDevices() {
+function getOutputDevices() {
 	fetch('/get-audio-outputs')
 	.then(res => res.json())
 	.then(devices => {
@@ -404,6 +404,26 @@ function setOutputDevices() {
 			microOutputSelect.appendChild(option);
 		})
 	})
+}
+
+function selectMicroOutput() {
+	const outputMicro = microOutputSelect.value;
+	const payload = {
+		micro_output: outputMicro
+	}
+
+	fetch('/set-micro-output', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(payload)
+	})
+	.then(res => res.json())
+	.then(data => {
+		console.log("Microphone output set: ", data);
+	})
+	.catch(err => {
+		console.error("Error setting microphone output: ", err);
+	});
 }
 
 function handleError(error) {
@@ -465,24 +485,42 @@ function startSecondCamera() {
 		.catch(handleError);
 }
 
-function selectMicroOutput() {
-	const outputMicro = microOutputSelect.value;
-	const payload = {
-		micro_output: outputMicro
+function onRecordStart({filename, stream, setRecorder, setChunks}) {
+
+	const chunks = [];
+
+	const recorder = new MediaRecorder(stream, {
+		mimeType: "video/webm; codecs=vp9"
+	})
+
+	recorder.ondataavailable = (event) => {
+		if(event.data.size > 0) {
+			chunks.push(event.data);
+		}
 	}
 
-	fetch('/set-micro-output', {
-		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
-		body: JSON.stringify(payload)
-	})
-	.then(res => res.json())
-	.then(data => {
-		console.log("Microphone output set: ", data);
-	})
-	.catch(err => {
-		console.error("Error setting microphone output: ", err);
-	});
+	recorder.onstop = async () => {
+		console.log('stopping');
+
+		if(shouldUpload) {
+			const blob = new Blob(chunks, { type: "video/webm" });
+			const formData = new FormData();
+			formData.append("file", blob, filename);
+
+			await fetch("/upload", {
+				method: "POST",
+				body: formData
+			});
+		} else {
+			console.warn("Backend forced not to upload video");
+		}
+	
+	}
+
+	recorder.start();
+	setRecorder(recorder);
+	setChunks(chunks);
+
 }
 
 
@@ -507,7 +545,7 @@ function toggleButtons(automation_running) {
 	stopRecordingBt.disabled = !automation_running;
 }
 
-function startAutomation() {
+function startAutomation({bbox}) {
 
 	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
@@ -541,6 +579,7 @@ function startAutomation() {
 		p2: p2,
 		p3: p3,
 		motionType: motionType,
+		bbox: bbox
 	};
 
 
@@ -652,6 +691,124 @@ function stopRecording() {
 	})
 }
 
+//// tracker section --------------------------
+
+async function openTrackerModal() {
+	trackerModal.classList.remove("hidden");
+
+	trackStream = await navigator.mediaDevices.getUserMedia({video: true});
+	trackerVideo.srcObject = trackStream;
+	await trackerVideo.play();
+
+	const wrapper = trackerVideo.parentElement;
+	const { width, height } = wrapper.getBoundingClientRect();
+	trackerCanvas.width = Math.floor(width);
+	trackerCanvas.height = Math.floor(height);
+	trackCtx = trackerCanvas.getContext("2d");
+
+	trackerCanvas.addEventListener("mousedown", onMouseDown);
+	trackerCanvas.addEventListener("mousemove", onMouseMove);
+	trackerCanvas.addEventListener("mouseup", onMouseUp);
+
+}
+
+function onMouseDown(event) {
+	const rect = trackerCanvas.getBoundingClientRect();
+	startX = event.clientX - rect.left;
+	startY = event.clientY - rect.top;
+	drawing = true;
+	console.log("Mouse down at: ", startX, startY);
+}
+
+function onMouseMove(event) {
+	if (!drawing) return;
+
+	const rect = trackerCanvas.getBoundingClientRect();
+	currX = event.clientX - rect.left;
+	currY = event.clientY - rect.top;
+	console.log("Mouse move at: ", currX, currY);
+	drawRectangle();
+}
+
+function onMouseUp() {
+	drawing = false;
+}
+
+function drawRectangle() {
+	trackCtx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
+
+	trackCtx.fillStyle = "rgba(0, 0, 0, 0.3)";
+	trackCtx.fillRect(0, 0, trackerCanvas.width, trackerCanvas.height);
+
+	const x = Math.min(startX, currX);
+	const y = Math.min(startY, currY);
+	const w = Math.abs(currX - startX);
+	const h = Math.abs(currY - startY);
+
+	trackCtx.clearRect(x, y, w, h);
+	trackCtx.strokeStyle = "blue";
+	trackCtx.lineWidth = 2;
+	trackCtx.strokeRect(x, y, w, h);
+}
+
+function onTrackerConfirm() {
+	const x = Math.min(startX, currX);
+	const y = Math.min(startY, currY);
+	const w = Math.abs(currX - startX);
+	const h = Math.abs(currY - startY);
+
+	initBbox = [x, y, w, h];
+
+	closeTrackerModal();
+
+	startAutomation({ bbox: [x, y, w, h] });
+}
+
+function onTrackerCancel() {
+	closeTrackerModal();
+}
+
+function closeTrackerModal() {
+	trackerModal.classList.add("hidden");
+
+	trackerCanvas.removeEventListener("mousedown", onMouseDown);
+	trackerCanvas.removeEventListener("mousemove", onMouseMove);
+	trackerCanvas.removeEventListener("mouseup", onMouseUp);
+
+	trackStream.getTracks().forEach(track => track.stop());
+	trackCtx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
+}
+
+function captureFrame(videoElement) {
+	const off = document.createElement('canvas');
+	off.width = videoElement.videoWidth;
+	off.height = videoElement.videoHeight;
+	const offCtx = off.getContext('2d');
+	offCtx.drawImage(videoElement, 0, 0, off.width, off.height);
+	return off.toDataURL('image/png', 0.7);
+}
+
+function trackObject() {
+	window._trackerInterval = setInterval(async () => {
+		const currFrame = captureFrame(trackerVideo);
+		try {
+			const res = await fetch("/tracker-update", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ frame: currFrame })
+			});
+			const { success, bbox } = await res.json();
+			if(!success) console.warn("Tracker update failed");
+
+			const [x, y, w, h] = bbox;
+			console.log("Tracker bbox: ", bbox);
+			// here can replace prevBbox with bbox, and before it can do some calculations
+		} catch(err) {
+			console.warn("Error tracking object: ", err);
+		}
+	}, 200);
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -663,16 +820,18 @@ function stopRecording() {
 	stream.getTracks().forEach((t) => t.stop())
 	const devices = await navigator.mediaDevices.enumerateDevices();
 	gotDevices(devices);
-	setOutputDevices()
+	getOutputDevices()
 	startFirstCamera();
 	startSecondCamera();
 
 })();
 
-startAutomationBt.addEventListener("click", startAutomation);
+startAutomationBt.addEventListener("click", openTrackerModal);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
+confirmTrackerBt.addEventListener("click", onTrackerConfirm);
+cancelTrackerBt.addEventListener("click", onTrackerCancel);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 
