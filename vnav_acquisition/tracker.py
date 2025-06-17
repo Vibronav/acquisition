@@ -25,7 +25,7 @@ def init_tracker(frame, bbox):
     cv2.imshow("Tracker Init", vis)
     cv2.waitKey(1)
 
-    tracker.init(frame, tuple(bbox))
+    tracker.init(frame, (x, y, w, h))
 
 def update_tracker(frame):
     global tracker
@@ -34,4 +34,11 @@ def update_tracker(frame):
     
     frame = decode_frame(frame)
     success, bbox = tracker.update(frame)
+
+    vis = frame.copy()
+    x, y, w, h = bbox
+    cv2.rectangle(vis, (int(x), int(y)), (int(x + w), int(y + h)), (255, 0, 0), 2)
+    cv2.imshow("Tracker update", vis)
+    cv2.waitKey(1)
+
     return success, bbox

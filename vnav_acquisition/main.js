@@ -809,7 +809,7 @@ function captureFrame(videoElement) {
 
 function trackObject() {
 	window._trackerInterval = setInterval(async () => {
-		const currFrame = captureFrame(trackerVideo);
+		const currFrame = captureFrame(liveVideoElement);
 		try {
 			const res = await fetch("/tracker-update", {
 				method: "POST",
