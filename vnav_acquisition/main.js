@@ -451,8 +451,8 @@ function startFirstCamera() {
         audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
         video: {
 			deviceId: videoSource ? {exact: videoSource} : undefined,
-			width:{min:640,ideal:1280,max:1280 },
-			height:{ min:480,ideal:720,max:720}, 
+			width:{ exact: 640 },
+			height:{ exact: 480 }, 
 			framerate: 60
 		}
     };
@@ -478,8 +478,8 @@ function startSecondCamera() {
 		audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
         video: {
 			deviceId: videoSource2 ? {exact: videoSource2} : undefined,
-			width:{min:640,ideal:1280,max:1280 },
-			height:{ min:480,ideal:720,max:720}, 
+			width:{ exact: 640 },
+			height:{ exact: 480 }, 
 			framerate: 60
 		}
     };
@@ -710,6 +710,7 @@ async function openTrackerModal() {
 	const { width, height } = wrapper.getBoundingClientRect();
 	trackerCanvas.width = Math.floor(width);
 	trackerCanvas.height = Math.floor(height);
+	
 	trackCtx = trackerCanvas.getContext("2d");
 
 	trackerCanvas.addEventListener("mousedown", onMouseDown);
@@ -758,12 +759,24 @@ function drawRectangleModal() {
 }
 
 function onTrackerConfirm() {
+
+	const dispW = trackerCanvas.clientWidth;
+	const dispH = trackerCanvas.clientHeight;
+
+	const vidW = trackerVideo.videoWidth;
+	const vidH = trackerVideo.videoHeight;
+
+	console.log("Display dimensions: ", dispW, dispH);
+	console.log("Video dimensions: ", vidW, vidH);
+
+
 	const x = Math.floor(Math.min(startX, currX));
 	const y = Math.floor(Math.min(startY, currY));
 	const w = Math.floor(Math.abs(currX - startX));
 	const h = Math.floor(Math.abs(currY - startY));
 
 	initBbox = [x, y, w, h];
+	console.log("Initial bounding box: ", initBbox);
 
 	closeTrackerModal();
 

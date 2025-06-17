@@ -16,6 +16,15 @@ def init_tracker(frame, bbox):
     global tracker
     tracker = cv2.TrackerGOTURN_create()
     frame = decode_frame(frame)
+
+    x, y, w, h = bbox
+    vis = frame.copy()
+    print(frame.shape)
+    print(f"Initializing tracker with bbox: {bbox}")
+    cv2.rectangle(vis, (int(x), int(y)), (int(x + w), int(y + h)), (255, 0, 0), 2)
+    cv2.imshow("Tracker Init", vis)
+    cv2.waitKey(1)
+
     tracker.init(frame, tuple(bbox))
 
 def update_tracker(frame):
