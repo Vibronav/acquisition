@@ -34,6 +34,12 @@ const liveVideoElement2 = document.getElementById('video2');
 liveVideoElement.controls = false;
 liveVideoElement2.controls = false;
 
+const overlayCanvas = document.getElementById('videoOverlay');
+const overlayCtx = overlayCanvas.getContext('2d');
+
+liveVideoElement.addEventListener('loadedmetadata', resizeOverlay);
+liveVideoElement.addEventListener('playing', resizeOverlay, { once: true });
+
 let localStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
@@ -127,6 +133,7 @@ socket.on("automation-status", (msg) => {
 			
 			const initFrame = captureFrame(liveVideoElement);
 			prevBbox = initBbox;
+			updateBondingRect(initBbox);
 
 			fetch("/tracker-init", {
 				method: "POST",
@@ -147,6 +154,7 @@ socket.on("automation-status", (msg) => {
 		}
 		initBbox = null;
 		prevBbox = null;
+		updateBondingRect(initBbox);
 	}
 });
 
@@ -545,7 +553,7 @@ function toggleButtons(automation_running) {
 	stopRecordingBt.disabled = !automation_running;
 }
 
-function startAutomation({bbox}) {
+function startAutomation() {
 
 	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
@@ -578,8 +586,7 @@ function startAutomation({bbox}) {
 		p1: p1,
 		p2: p2,
 		p3: p3,
-		motionType: motionType,
-		bbox: bbox
+		motionType: motionType
 	};
 
 
@@ -595,7 +602,6 @@ function startAutomation({bbox}) {
 	.then(data => {
 		startAutomationBt.disabled = true;
 		console.log("Automation started: ", data);
-		alert("Tests started - you can monitor it by video from camera.");
 	})
 	.catch(err => {
 		toggleButtons(false);
@@ -727,14 +733,14 @@ function onMouseMove(event) {
 	currX = event.clientX - rect.left;
 	currY = event.clientY - rect.top;
 	console.log("Mouse move at: ", currX, currY);
-	drawRectangle();
+	drawRectangleModal();
 }
 
 function onMouseUp() {
 	drawing = false;
 }
 
-function drawRectangle() {
+function drawRectangleModal() {
 	trackCtx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
 
 	trackCtx.fillStyle = "rgba(0, 0, 0, 0.3)";
@@ -752,16 +758,16 @@ function drawRectangle() {
 }
 
 function onTrackerConfirm() {
-	const x = Math.min(startX, currX);
-	const y = Math.min(startY, currY);
-	const w = Math.abs(currX - startX);
-	const h = Math.abs(currY - startY);
+	const x = Math.floor(Math.min(startX, currX));
+	const y = Math.floor(Math.min(startY, currY));
+	const w = Math.floor(Math.abs(currX - startX));
+	const h = Math.floor(Math.abs(currY - startY));
 
 	initBbox = [x, y, w, h];
 
 	closeTrackerModal();
 
-	startAutomation({ bbox: [x, y, w, h] });
+	startAutomation();
 }
 
 function onTrackerCancel() {
@@ -800,13 +806,33 @@ function trackObject() {
 			const { success, bbox } = await res.json();
 			if(!success) console.warn("Tracker update failed");
 
-			const [x, y, w, h] = bbox;
+			updateBondingRect(bbox);
+
 			console.log("Tracker bbox: ", bbox);
 			// here can replace prevBbox with bbox, and before it can do some calculations
 		} catch(err) {
 			console.warn("Error tracking object: ", err);
 		}
 	}, 200);
+}
+
+function resizeOverlay() {
+	overlayCanvas.width = liveVideoElement.videoWidth;
+	overlayCanvas.height = liveVideoElement.videoHeight;
+}
+
+function updateBondingRect(bbox) {
+
+	if(!bbox) {
+		overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+		return;
+	}
+
+	const [x, y, w, h] = bbox;
+	overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+	overlayCtx.strokeStyle = "blue";
+	overlayCtx.lineWidth = 2;
+	overlayCtx.strokeRect(x, y, w, h);
 }
 
 (async function init() {

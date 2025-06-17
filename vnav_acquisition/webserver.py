@@ -7,6 +7,7 @@ from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
 from .record import start_recording, stop_recording
+from .tracker import init_tracker, update_tracker
 import threading
 import webbrowser
 import argparse
@@ -173,6 +174,28 @@ def post_stop_recording():
     
     stop_recording(socketio)
     return jsonify({"status": "ok"})
+
+@app.route('/tracker-init', methods=['POST'])
+def tracker_init():
+    print("Received tracker-init/POST request")
+    params = request.get_json(force=True)
+
+    frame = params.get("frame")
+    bbox = tuple(params.get("bbox"))
+    init_tracker(frame, bbox)
+    return jsonify({"status": "ok"})
+
+@app.route('/tracker-update', methods=['POST'])
+def tracker_update():
+    print("Received tracker-update/POST request")
+    params = request.get_json(force=True)
+
+    frame = params.get("frame")
+    success, bbox = update_tracker(frame)
+    return jsonify({
+        "success": success,
+        "bbox": bbox
+    })
 
 
 def parse_args():
