@@ -683,6 +683,7 @@ function startRecording() {
 }
 
 function stopRecording() {
+	stopRecordingBt.disabled = true;
 	fetch("/stop-recording", {
 		method: "POST"
 	})
