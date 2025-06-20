@@ -37,8 +37,8 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
     })
 
     # Connect to Dobot
-    # dashboard, move = connect_robot()
-    # enable_robot(dashboard)
+    dashboard, move = connect_robot()
+    enable_robot(dashboard)
     time.sleep(2)
 
     # Map speed string to numeric speed factor
@@ -51,7 +51,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
     elif speed is None:
         speed_value = 15
 
-    # dashboard.SpeedFactor(speed_value)
+    dashboard.SpeedFactor(speed_value)
 
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
@@ -73,7 +73,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
             "iteration": i+1
         })
 
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
         timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
@@ -87,13 +87,13 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         time.sleep(1)
         print(f"Recording {i+1}/{num_iterations} started.")
 
-        # Move to P3
-        # move_to_position(dashboard, move, P2)
+        # Move to P2
+        move_to_position(dashboard, move, P2)
         print(f'Moving to position P2: {P2}')
         time.sleep(3)
         
         # Move back to P1
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
         time.sleep(3)
             
@@ -109,7 +109,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
 
         print(f"Iteration {i+1} completed.")
 
-    # dashboard.DisableRobot()
+    dashboard.DisableRobot()
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })
