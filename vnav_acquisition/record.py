@@ -32,7 +32,7 @@ def stop_recording(socketio_instance):
             "shouldUpload": False
         })
     else:
-        time.sleep(2.5)
+        time.sleep(0.5)
         socketio_instance.emit("record", {
             "action": "stop",
             "shouldUpload": True
