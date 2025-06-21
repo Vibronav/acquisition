@@ -36,6 +36,8 @@ liveVideoElement2.controls = false;
 
 const overlayCanvas = document.getElementById('videoOverlay');
 const overlayCtx = overlayCanvas.getContext('2d');
+const overlayCanvas2 = document.getElementById('videoOverlay2');
+const overlayCtx2 = overlayCanvas2.getContext('2d');
 
 liveVideoElement.addEventListener('loadedmetadata', resizeOverlay);
 liveVideoElement.addEventListener('playing', resizeOverlay, { once: true });
@@ -52,6 +54,10 @@ let trackStream, trackCtx;
 let startX, startY, currX, currY, drawing = false;
 let initBbox = null;
 let prevBbox = null;
+let initBbox2 = null;
+let prevBbox2 = null;
+let trackerModalPromiseResolve = null;
+let trackerConfirmHandler = null;
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
@@ -130,7 +136,7 @@ socket.on("automation-status", (msg) => {
 		stopRecordingBt.disabled = true;
 
 		if(initBbox) {
-			trackObject();
+			trackObject(1, liveVideoElement, overlayCanvas, overlayCtx);
 		}
 
 	} else {
@@ -689,13 +695,33 @@ function stopRecording() {
 
 //// tracker section --------------------------
 
-async function openTrackerModal() {
+async function openTrackerModals() {
+	const videoSource = videoSelect.value;
+	const videoSource2 = videoSelect2.value;
+	await openTrackerModal(videoSource, 1, liveVideoElement, overlayCanvas, overlayCtx);
+	// await openTrackerModal(videoSource2);
+	if(initBbox) {
+		startAutomation();
+	}
+
+}
+
+async function openTrackerModal(videoDeviceId, cameraNumber, elementVideo, canvas, ctx) {
 	trackerModal.classList.remove("hidden");
 
-	trackStream = await navigator.mediaDevices.getUserMedia({video: true});
-	trackerVideo.srcObject = trackStream;
-	await trackerVideo.play();
+	const constraints = {
+		video: { deviceId: { exact: videoDeviceId } }
+	}
 
+	try {
+		trackStream = await navigator.mediaDevices.getUserMedia(constraints);
+		trackerVideo.srcObject = trackStream;
+		await trackerVideo.play();
+	} catch (err) {
+		console.warn("Error accessing camera for tracking: ", err);
+		return;
+	}
+	
 	const wrapper = trackerVideo.parentElement;
 	const { width, height } = wrapper.getBoundingClientRect();
 	trackerCanvas.width = Math.floor(width);
@@ -706,6 +732,13 @@ async function openTrackerModal() {
 	trackerCanvas.addEventListener("mousedown", onMouseDown);
 	trackerCanvas.addEventListener("mousemove", onMouseMove);
 	trackerCanvas.addEventListener("mouseup", onMouseUp);
+	trackerConfirmHandler = () => onTrackerConfirm(cameraNumber, elementVideo, canvas, ctx);
+	confirmTrackerBt.addEventListener("click", trackerConfirmHandler);
+	cancelTrackerBt.addEventListener("click", onTrackerCancel);
+
+	await new Promise(resolve => {
+		trackerModalPromiseResolve = resolve;
+	})
 
 }
 
@@ -748,7 +781,7 @@ function drawRectangleModal() {
 	trackCtx.strokeRect(x, y, w, h);
 }
 
-function onTrackerConfirm() {
+async function onTrackerConfirm(cameraNumber, elementVideo, canvas, ctx) {
 
 	const dispW = trackerCanvas.clientWidth;
 	const dispH = trackerCanvas.clientHeight;
@@ -765,21 +798,34 @@ function onTrackerConfirm() {
 	const w = Math.floor(Math.abs(currX - startX));
 	const h = Math.floor(Math.abs(currY - startY));
 
-	initBbox = [x, y, w, h];
-	prevBbox = initBbox;
+	if(cameraNumber === 1) {
+		initBbox = [x, y, w, h];
+		prevBbox = initBbox;
+	} else if(cameraNumber === 2) {
+		initBbox2 = [x, y, w, h];
+		prevBbox2 = initBbox2;
+	}
 	console.log("Initial bounding box: ", initBbox);
 
 	closeTrackerModal();
 
-	const isTrackerInitialize = initTracker();
-
-	if(isTrackerInitialize) {
-		startAutomation();
+	const isTrackerInitialize = await initTracker(cameraNumber, elementVideo, canvas, ctx);
+	if(!isTrackerInitialize) {
+		if(cameraNumber === 1) {
+			initBbox = null;
+			prevBbox = null;
+		} else if(cameraNumber === 2) {
+			initBbox2 = null;
+			prevBbox2 = null;
+		}
 	}
+
+	trackerModalPromiseResolve();
 }
 
 function onTrackerCancel() {
 	closeTrackerModal();
+	trackerModalPromiseResolve();
 }
 
 function closeTrackerModal() {
@@ -788,33 +834,41 @@ function closeTrackerModal() {
 	trackerCanvas.removeEventListener("mousedown", onMouseDown);
 	trackerCanvas.removeEventListener("mousemove", onMouseMove);
 	trackerCanvas.removeEventListener("mouseup", onMouseUp);
+	confirmTrackerBt.removeEventListener("click", trackerConfirmHandler);
+	cancelTrackerBt.removeEventListener("click", onTrackerCancel);
 
 	trackStream.getTracks().forEach(track => track.stop());
 	trackCtx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
 }
 
-function initTracker() {
-	const initFrame = captureFrame(liveVideoElement);
+async function initTracker(cameraNumber, elementVideo, canvas, ctx) {
+	const initFrame = captureFrame(elementVideo);
 
-	fetch("/tracker-init", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ frame: initFrame, bbox: initBbox })
-	})
-	.then(res => res.json())
-	.then(data => {
+	let localInitBbox = initBbox;
+	if(cameraNumber === 1) {
+		localInitBbox = initBbox
+	} else if(cameraNumber === 2) {
+		localInitBbox = initBbox2
+	}
+
+	try {
+		const res = await fetch("/tracker-init", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ frame: initFrame, bbox: localInitBbox })
+		});
+		const data = await res.json();
 		if(!data.success) {
 			console.warn("Tracker initialization failed: ", data.error);
 			return false;
 		} else {
-			updateBondingRect(initBbox);
+			updateBondingRect(localInitBbox, canvas, ctx);
 			return true;
 		}
-	})
-	.catch(err => {
-		console.warn("Error initializing tracker: ", err)
+	} catch (err) {
+		console.error("Error initializing tracker: ", err);
 		return false;
-	});
+	}
 }
 
 function captureFrame(videoElement) {
@@ -826,9 +880,9 @@ function captureFrame(videoElement) {
 	return off.toDataURL('image/png', 0.7);
 }
 
-function trackObject() {
+function trackObject(cameraNumber, elementVideo, overlay, ctx) {
 	window._trackerInterval = setInterval(async () => {
-		const currFrame = captureFrame(liveVideoElement);
+		const currFrame = captureFrame(elementVideo);
 		try {
 			const res = await fetch("/tracker-update", {
 				method: "POST",
@@ -838,9 +892,14 @@ function trackObject() {
 			const { success, bbox, error } = await res.json();
 			if(!success) console.warn(error);
 
-			updateBondingRect(bbox);
+			updateBondingRect(bbox, overlay, ctx);
 
 			console.log("Tracker bbox: ", bbox);
+			if(cameraNumber === 1) {
+				prevBbox = bbox;
+			} else if(cameraNumber === 2) {
+				prevBbox2 = bbox;
+			}
 			// here can replace prevBbox with bbox, and before it can do some calculations
 		} catch(err) {
 			console.warn("Error tracking object: ", err);
@@ -853,18 +912,18 @@ function resizeOverlay() {
 	overlayCanvas.height = liveVideoElement.videoHeight;
 }
 
-function updateBondingRect(bbox) {
+function updateBondingRect(bbox, canvas, ctx) {
 
 	if(!bbox) {
-		overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		return;
 	}
 
 	const [x, y, w, h] = bbox;
-	overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-	overlayCtx.strokeStyle = "blue";
-	overlayCtx.lineWidth = 2;
-	overlayCtx.strokeRect(x, y, w, h);
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	ctx.strokeStyle = "blue";
+	ctx.lineWidth = 2;
+	ctx.strokeRect(x, y, w, h);
 }
 
 (async function init() {
@@ -884,12 +943,10 @@ function updateBondingRect(bbox) {
 
 })();
 
-startAutomationBt.addEventListener("click", openTrackerModal);
+startAutomationBt.addEventListener("click", openTrackerModals);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
-confirmTrackerBt.addEventListener("click", onTrackerConfirm);
-cancelTrackerBt.addEventListener("click", onTrackerCancel);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 

@@ -3,7 +3,7 @@ import numpy as np
 import base64
 
 tracker = None
-pixels_per_cm = None
+pixels_per_cm = 20
 
 def calibrate(frame, pattern_size=(7, 6), square_cm=2.0):
 
@@ -40,7 +40,7 @@ def init_tracker(frame, bbox):
     tracker = cv2.TrackerGOTURN_create()
     frame = decode_frame(frame)
 
-    pixels_per_cm = calibrate(frame, pattern_size=(7, 6), square_cm=2.0)
+    # pixels_per_cm = calibrate(frame, pattern_size=(7, 6), square_cm=2.0)
     
     x, y, w, h = bbox
 
@@ -54,12 +54,12 @@ def update_tracker(frame):
     frame = decode_frame(frame)
     success, bbox = tracker.update(frame)
 
-    x, y, w, h = bbox
-    x_cm = x / pixels_per_cm
-    y_cm = y / pixels_per_cm
-    w_cm = w / pixels_per_cm
-    h_cm = h / pixels_per_cm
+    # x, y, w, h = bbox
+    # x_cm = x / pixels_per_cm
+    # y_cm = y / pixels_per_cm
+    # w_cm = w / pixels_per_cm
+    # h_cm = h / pixels_per_cm
     
-    bbox = (x_cm, y_cm, w_cm, h_cm)
+    # bbox = (x_cm, y_cm, w_cm, h_cm)
 
     return success, bbox
