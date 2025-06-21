@@ -84,7 +84,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         if not is_started:
             continue
 
-        time.sleep(1)
+        time.sleep(0.5)
         print(f"Recording {i+1}/{num_iterations} started.")
 
         # Move to P2
@@ -95,7 +95,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         # Move back to P1
         move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
-        time.sleep(3)
+        time.sleep(2)
             
         P1 = (P1[0] + gap, P1[1], P1[2], P1[3])
         P2 = (P2[0] + gap, P2[1], P2[2], P2[3])
@@ -105,7 +105,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
 
         stop_recording(socketio_instance)
 
-        time.sleep(2)
+        time.sleep(1)
 
         print(f"Iteration {i+1} completed.")
 
