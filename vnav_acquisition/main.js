@@ -130,18 +130,7 @@ socket.on("automation-status", (msg) => {
 		stopRecordingBt.disabled = true;
 
 		if(initBbox) {
-			
-			const initFrame = captureFrame(liveVideoElement);
-			prevBbox = initBbox;
-			updateBondingRect(initBbox);
-
-			fetch("/tracker-init", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ frame: initFrame, bbox: initBbox })
-			})
-			.then(trackObject)
-			.catch(err => console.warn("Error initializing tracker: ", err));
+			trackObject();
 		}
 
 	} else {
@@ -777,11 +766,16 @@ function onTrackerConfirm() {
 	const h = Math.floor(Math.abs(currY - startY));
 
 	initBbox = [x, y, w, h];
+	prevBbox = initBbox;
 	console.log("Initial bounding box: ", initBbox);
 
 	closeTrackerModal();
 
-	startAutomation();
+	const isTrackerInitialize = initTracker();
+
+	if(isTrackerInitialize) {
+		startAutomation();
+	}
 }
 
 function onTrackerCancel() {
@@ -797,6 +791,30 @@ function closeTrackerModal() {
 
 	trackStream.getTracks().forEach(track => track.stop());
 	trackCtx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
+}
+
+function initTracker() {
+	const initFrame = captureFrame(liveVideoElement);
+
+	fetch("/tracker-init", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ frame: initFrame, bbox: initBbox })
+	})
+	.then(res => res.json())
+	.then(data => {
+		if(!data.success) {
+			console.warn("Tracker initialization failed: ", data.error);
+			return false;
+		} else {
+			updateBondingRect(initBbox);
+			return true;
+		}
+	})
+	.catch(err => {
+		console.warn("Error initializing tracker: ", err)
+		return false;
+	});
 }
 
 function captureFrame(videoElement) {
@@ -817,8 +835,8 @@ function trackObject() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ frame: currFrame })
 			});
-			const { success, bbox } = await res.json();
-			if(!success) console.warn("Tracker update failed");
+			const { success, bbox, error } = await res.json();
+			if(!success) console.warn(error);
 
 			updateBondingRect(bbox);
 

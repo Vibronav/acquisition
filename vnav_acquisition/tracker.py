@@ -3,6 +3,29 @@ import numpy as np
 import base64
 
 tracker = None
+pixels_per_cm = None
+
+def calibrate(frame, pattern_size=(7, 6), square_cm=2.0):
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    ret, corners = cv2.findChessboardCorners(gray, pattern_size)
+    if not ret:
+        raise RuntimeError("Chessboard corners not found in the frame.")
+
+    corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1),
+                               (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1))
+    
+    dists = []
+    for row in range(pattern_size[1]):
+        for col in range(pattern_size[0] - 1):
+            idx = row * pattern_size[0] + col
+            p1 = corners[idx][0]
+            p2 = corners[idx + 1][0]
+            dists.append(np.linalg.norm(p2 - p1))
+
+    mean_pix = float(np.mean(dists))
+    return mean_pix / square_cm
+
 
 def decode_frame(frame_data):
 
@@ -13,32 +36,30 @@ def decode_frame(frame_data):
     return frame
 
 def init_tracker(frame, bbox):
-    global tracker
+    global tracker, pixels_per_cm
     tracker = cv2.TrackerGOTURN_create()
     frame = decode_frame(frame)
 
+    pixels_per_cm = calibrate(frame, pattern_size=(7, 6), square_cm=2.0)
+    
     x, y, w, h = bbox
-    vis = frame.copy()
-    print(frame.shape)
-    print(f"Initializing tracker with bbox: {bbox}")
-    cv2.rectangle(vis, (int(x), int(y)), (int(x + w), int(y + h)), (255, 0, 0), 2)
-    cv2.imshow("Tracker Init", vis)
-    cv2.waitKey(1)
 
     tracker.init(frame, (x, y, w, h))
 
 def update_tracker(frame):
-    global tracker
+    global tracker, pixels_per_cm
     if tracker is None:
         raise RuntimeError("Tracker not initialized. Call init_tracker first.")
     
     frame = decode_frame(frame)
     success, bbox = tracker.update(frame)
 
-    vis = frame.copy()
     x, y, w, h = bbox
-    cv2.rectangle(vis, (int(x), int(y)), (int(x + w), int(y + h)), (255, 0, 0), 2)
-    cv2.imshow("Tracker update", vis)
-    cv2.waitKey(1)
+    x_cm = x / pixels_per_cm
+    y_cm = y / pixels_per_cm
+    w_cm = w / pixels_per_cm
+    h_cm = h / pixels_per_cm
+    
+    bbox = (x_cm, y_cm, w_cm, h_cm)
 
     return success, bbox
