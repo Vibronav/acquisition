@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.8.1] - 2025--06-16
+### Fixed
+- improve doing series of punctures by dobot
+- saving recordings faster
+
 ## [1.8.0] - 2025--06-16
 ### Added
 - Add recording videos/audio without dobot
