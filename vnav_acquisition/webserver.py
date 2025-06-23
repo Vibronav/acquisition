@@ -184,13 +184,16 @@ def tracker_init():
     frame = params.get("frame")
     bbox = tuple(params.get("bbox"))
     try:
-        init_tracker(frame, bbox)
+        cy_cm = init_tracker(frame, bbox)
     except RuntimeError as e:
         return jsonify({
             "success": False,
             "error": str(e)
         })
-    return jsonify({"success": True})
+    return jsonify({
+        "success": True,
+        "cy_cm": cy_cm 
+    })
 
 @app.route('/tracker-update', methods=['POST'])
 def tracker_update():
@@ -199,7 +202,7 @@ def tracker_update():
 
     frame = params.get("frame")
     try:
-        success, bbox = update_tracker(frame)
+        success, bbox, cy_cm = update_tracker(frame)
     except RuntimeError as e:
         return jsonify({
             "success": False,
@@ -208,7 +211,8 @@ def tracker_update():
     
     return jsonify({
         "success": success,
-        "bbox": bbox
+        "bbox": bbox,
+        "cy_cm": cy_cm
     })
 
 

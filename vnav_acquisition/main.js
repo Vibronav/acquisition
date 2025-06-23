@@ -56,6 +56,8 @@ let initBbox = null;
 let prevBbox = null;
 let initBbox2 = null;
 let prevBbox2 = null;
+let prevCy_cm1 = null;
+let prevCy_cm2 = null;
 let trackerModalPromiseResolve = null;
 let trackerConfirmHandler = null;
 
@@ -137,6 +139,7 @@ socket.on("automation-status", (msg) => {
 
 		if(initBbox) {
 			trackObject(1, liveVideoElement, overlayCanvas, overlayCtx);
+			// trackObject(2, liveVideoElement2, overlayCanvas2, overlayCtx2);
 		}
 
 	} else {
@@ -149,7 +152,12 @@ socket.on("automation-status", (msg) => {
 		}
 		initBbox = null;
 		prevBbox = null;
-		updateBondingRect(initBbox);
+		initBbox2 = null;
+		prevBbox2 = null;
+		prevCy_cm1 = null;
+		prevCy_cm2 = null;
+		updateBondingRect(initBbox, overlayCanvas, overlayCtx);
+		// updateBondingRect(initBbox2, overlayCanvas2, overlayCtx2);
 	}
 });
 
@@ -870,6 +878,12 @@ async function initTracker(cameraNumber, elementVideo, canvas, ctx) {
 			console.warn("Tracker initialization failed: ", data.error);
 			return false;
 		} else {
+			if(cameraNumber === 1) {
+				prevCy_cm1 = data.cy_cm;
+				console.log("Init Tracker cy_cm1: ", data.cy_cm);
+			} else if(cameraNumber === 2) {
+				prevCy_cm2 = data.cy_cm;
+			}
 			updateBondingRect(localInitBbox, canvas, ctx);
 			return true;
 		}
@@ -897,7 +911,7 @@ function trackObject(cameraNumber, elementVideo, overlay, ctx) {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ frame: currFrame })
 			});
-			const { success, bbox, error } = await res.json();
+			const { success, bbox, cy_cm, error } = await res.json();
 			if(!success) console.warn(error);
 
 			updateBondingRect(bbox, overlay, ctx);
@@ -905,8 +919,12 @@ function trackObject(cameraNumber, elementVideo, overlay, ctx) {
 			console.log("Tracker bbox: ", bbox);
 			if(cameraNumber === 1) {
 				prevBbox = bbox;
+				console.log("Tracker cy_cm1: ", cy_cm);
+				console.log("Tracker diff: ", cy_cm - prevCy_cm1);
+				prevCy_cm1 = cy_cm;
 			} else if(cameraNumber === 2) {
 				prevBbox2 = bbox;
+				prevCy_cm2 = cy_cm;
 			}
 			// here can replace prevBbox with bbox, and before it can do some calculations
 		} catch(err) {
