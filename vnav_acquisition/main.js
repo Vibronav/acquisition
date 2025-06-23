@@ -555,9 +555,10 @@ function startAutomation() {
 	const speed = speedsContainer.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
-	const p1 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p1_${i}`).value, 10));
-	const p2 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p2_${i}`).value, 10));
-	const p3 = [0, 1, 2, 3].map(i => parseInt(document.getElementById(`p3_${i}`).value, 10));
+	const initX = parseInt(document.getElementById("initX").value);
+	const finishX = parseInt(document.getElementById("finishX").value);
+	const upZ = parseInt(document.getElementById("upZ").value);
+	const downZ = parseInt(document.getElementById("downZ").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
 
 	if(!username) {
@@ -572,15 +573,22 @@ function startAutomation() {
 	if(iterations <= 0) {
 		return alert("Iterations must be greater then 0");
 	}
+	if(motionType === "Up, Down, Forward" && finishX <= initX) {
+		return alert("Finish X must be greater than Init X in 'Up, Down, Forward' motion type");
+	}
+	if(motionType === "Up, Down, Forward" && (finishX - initX) / iterations < 2) {
+		alert("Your gap between punctures is very small: " + (finishX - initX) / iterations + " mm. But experiment is performing.");
+	}
 
 	const payload = {
 		username: username,
 		material: material,
 		speed: speed,
 		iterations: iterations,
-		p1: p1,
-		p2: p2,
-		p3: p3,
+		initX: initX,
+		finishX: finishX,
+		upZ: upZ,
+		downZ: downZ,
 		motionType: motionType
 	};
 

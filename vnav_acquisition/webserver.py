@@ -63,7 +63,7 @@ def run():
     params = request.get_json(force=True)
     print(f'With params: {params}')
 
-    required = ("username", "material", "speed", "iterations")
+    required = ("username", "material", "speed", "iterations", "initX", "finishX", "upZ", "downZ", "motionType")
     if not all(param in params for param in required):
         return jsonify({"error": "Missing parameters"}), 400
     
@@ -74,11 +74,12 @@ def run():
             username = params["username"],
             material = params["material"],
             stop_event = stop_event,
+            initX = params.get("initX"),
+            finishX = params.get("finishX"),
+            upZ = params.get("upZ"),
+            downZ = params.get("downZ"),
             speed = params["speed"],
             motion_type = params["motionType"],
-            p1 = tuple(params["p1"]),
-            p2 = tuple(params["p2"]),
-            p3 = tuple(params["p3"]),
             num_iterations = params["iterations"],
             socketio_instance=socketio
         ),
