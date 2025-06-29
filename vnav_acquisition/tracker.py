@@ -111,13 +111,14 @@ def init_tracker(frame, bbox):
     tracker = cv2.TrackerGOTURN_create()
     frame = decode_frame(frame)
 
-    # pixels_per_cm = calibrate(frame, pattern_size=(7, 6), square_cm=2.0)
+    pixels_per_cm = calibrate(frame, pattern_size=(7, 6), square_cm=2.0)
     
     x, y, w, h = bbox
     cy = y + (h // 2)
+    cy_cm = cy / pixels_per_cm
     print(f'Initializing tracker with cy: {cy}')
 
-    tracker.init(frame, (x, y, w, h)), cy
+    tracker.init(frame, (x, y, w, h)), cy_cm
 
 def update_tracker(frame):
     global tracker, pixels_per_cm
@@ -130,6 +131,6 @@ def update_tracker(frame):
     _, y, _, h = bbox
     cy = y + (h // 2)
     print(f'Updating tracker with cy: {cy}')
-    # cy_cm = cy / pixels_per_cm
+    cy_cm = cy / pixels_per_cm
     
-    return success, bbox, cy
+    return success, bbox, cy_cm
