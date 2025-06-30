@@ -166,7 +166,7 @@ def post_start_recording():
     needle_type = params.get("needleType")
     microphone_type = params.get("microphoneType")
     description = params.get("description")
-    output_filename_prefix = build_filename(username, material, needle_type, microphone_type, description)
+    output_filename_prefix = build_filename(username, description, material, needle_type, microphone_type)
 
     is_started = start_recording(output_filename_prefix, socketio)
     if not is_started:

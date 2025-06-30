@@ -77,7 +77,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         # move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
-        output_filename_prefix = build_filename(material, speed, needle_type, microphone_type, description)
+        output_filename_prefix = build_filename(description, material, speed, needle_type, microphone_type)
         
         is_started = start_recording(output_filename_prefix, socketio_instance)
 
