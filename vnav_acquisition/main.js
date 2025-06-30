@@ -6,6 +6,7 @@
 
 const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
+const descriptionEl = document.getElementById("description");
 const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
 const startRecordingBt = document.getElementById("startRecording");
@@ -16,6 +17,8 @@ const iterationCounterEl = document.getElementById("iterationCounter");
 
 const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
+const needleTypeContainer = document.getElementById("needleType");
+const microphoneTypeContainer = document.getElementById("microphoneType");
 
 const audioInputSelect  = document.getElementById("audioSource");
 const microOutputSelect = document.getElementById("microOutput");
@@ -50,6 +53,10 @@ const waveformCanvasLeft = document.getElementById('micSignalLeft');
 const waveformCanvasRight = document.getElementById('micSignalRight');
 const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
 const waveformCtxRight = waveformCanvasRight.getContext('2d');
+
+const toggle = document.getElementById("modeToggle");
+const automationForm = document.getElementById("automationForm");
+const manualForm = document.getElementById("manualForm");
 
 
 const DEFAULT_CONFIG = {
@@ -341,9 +348,17 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 
 }
 
-function renderSelectOptions(selectElement, values) {
+function renderSelectOptions(selectElement, values, renderEmpty = true) {
 
 	selectElement.innerHTML = "";
+
+	if(renderEmpty) {
+		const emptyOption = document.createElement("option");
+		emptyOption.value = "";
+		emptyOption.textContent = "";
+		selectElement.appendChild(emptyOption);		
+	}
+
 	values.forEach(val => {
 		const option = document.createElement("option");
 		option.value = val;
@@ -509,9 +524,11 @@ function toggleButtons(automation_running) {
 
 function startAutomation() {
 
-	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
 	const speed = speedsContainer.value;
+	const needleType = needleTypeContainer.value;
+	const microphoneType = microphoneTypeContainer.value;
+	const description = descriptionEl.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
 	const initX = parseInt(document.getElementById("initX").value);
@@ -520,15 +537,6 @@ function startAutomation() {
 	const downZ = parseInt(document.getElementById("downZ").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
 
-	if(!username) {
-		return alert("Please pass username");
-	}
-	if(!material) {
-		return alert("Please select material");
-	}
-	if(!speed) {
-		return alert("Please select speed");
-	}
 	if(iterations <= 0) {
 		return alert("Iterations must be greater then 0");
 	}
@@ -540,9 +548,11 @@ function startAutomation() {
 	}
 
 	const payload = {
-		username: username,
 		material: material,
 		speed: speed,
+		needleType: needleType,
+		microphoneType: microphoneType,
+		description: description,
 		iterations: iterations,
 		initX: initX,
 		finishX: finishX,
@@ -611,19 +621,21 @@ function startRecording() {
 
 	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
+	const needleType = needleTypeContainer.value;
+	const microphoneType = microphoneTypeContainer.value;
+	const description = descriptionEl.value; 
 
 	if(!username) {
 		return alert("Please pass username");
 	}
-	if(!material) {
-		return alert("Please select material");
-	}
 
 	const payload = {
 		username: username,
-		material: material
+		material: material,
+		needleType: needleType,
+		microphoneType: microphoneType,
+		description: description,
 	};
-
 
 	fetch("/start-recording", {
 		method: "POST",
@@ -645,6 +657,7 @@ function startRecording() {
 }
 
 function stopRecording() {
+	stopRecordingBt.disabled = true;
 	fetch("/stop-recording", {
 		method: "POST"
 	})
@@ -659,11 +672,23 @@ function stopRecording() {
 	})
 }
 
+function updateFormVisibility() {
+	if(toggle.checked) {
+		automationForm.style.display = "none";
+		manualForm.style.display = "block";
+	} else {
+		automationForm.style.display = "block";
+		manualForm.style.display = "none";
+	}
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
-	renderSelectOptions(materialsContainter, cfg.materials);
-	renderSelectOptions(speedsContainer, cfg.speeds);
+	renderSelectOptions(materialsContainter, cfg.materials, true);
+	renderSelectOptions(speedsContainer, cfg.speeds, false);
+	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
+	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
@@ -680,6 +705,7 @@ startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
+toggle.addEventListener("change", updateFormVisibility);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 

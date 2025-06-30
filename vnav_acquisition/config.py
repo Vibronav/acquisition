@@ -7,6 +7,8 @@ class Configurator:
         'materials': ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
                       "African (silk)"],
         'speeds': ["slow", "medium", "fast"],
+        'needleTypes': ["Type1", "Type2", "Type3"],
+        'microphoneTypes': ["TypeA", "TypeB", "TypeC"],
         'local_dir': "micro_data",
         'remote_dir': "vnav_acquisition"
     }
