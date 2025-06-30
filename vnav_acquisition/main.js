@@ -53,6 +53,13 @@ const fftSize = 4096;
 const fft = new FFT(fftSize, sampleRate);
 let specBuffer = []
 
+let isCtrlZooming = false;
+let lastY = null;
+let isPanning = false;
+let waveformZoom = 1;
+let waveformOffset = 0;
+let singalLeftHistory = [];
+let signalRightHistory = [];
 const waveformCanvasLeft = document.getElementById('micSignalLeft');
 const waveformCanvasRight = document.getElementById('micSignalRight');
 const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
@@ -149,9 +156,15 @@ socket.on("micro-signal", (msg) => {
 
 
 	if (bufferLeftDC && bufferLeftDC.length > 0) {
+		const min = Math.min(...bufferLeftDC);
+		const max = Math.max(...bufferLeftDC);
+		singalLeftHistory.push({min, max});
 		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
 	}
 	if (bufferRightDC && bufferRightDC.length > 0) {
+		const min = Math.min(...bufferRightDC);
+		const max = Math.max(...bufferRightDC);
+		signalRightHistory.push({min, max});
 		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
 	}
 
@@ -161,10 +174,74 @@ socket.on("micro-signal", (msg) => {
 
 })
 
+function mockMicroSignal() {
+
+	const stereo = generateMockStereoSamples();
+
+	const bufferLeft = stereo.filter((_, i) => i % 2 === 0);
+	const bufferRight = stereo.filter((_, i) => i % 2 === 1);
+
+
+	if (bufferLeft && bufferLeft.length > 0) {
+		const min = Math.min(...bufferLeft);
+		const max = Math.max(...bufferLeft);
+		singalLeftHistory.push({min, max});
+		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+			singalLeftHistory.shift();
+		}
+		drawWaveform(bufferLeft, waveformCanvasLeft, waveformCtxLeft);
+	}
+	if (bufferRight && bufferRight.length > 0) {
+		const min = Math.min(...bufferRight);
+		const max = Math.max(...bufferRight);
+		signalRightHistory.push({min, max});
+		if(signalRightHistory.length > waveformCanvasRight.width) {
+			signalRightHistory.shift();
+		}
+		drawWaveform(bufferRight, waveformCanvasRight, waveformCtxRight);
+	}
+
+	if( bufferLeft && bufferLeft.length > 0) {
+		processAndDrawSpectrogram(bufferLeft);
+	}
+}
+
+function generateMockStereoSamples() {
+	const monoSamples = Math.floor(sampleRate * interval / 1000);
+	const totalSamples = monoSamples * 2;
+	const stereo = new Int32Array(totalSamples);
+
+	const freqLeft = Math.random() * 300 + 400;
+	const ampLeft = Math.random() * 0.5 + 0.2;
+	const phaseLeft = Math.random() * 2 * Math.PI;
+
+	const freqRight = Math.random() * 300 + 900;
+	const ampRight = Math.random() * 0.5 + 0.2;
+	const phaseRight = Math.random() * 2 * Math.PI;
+
+	for (let i = 0; i < monoSamples; i++) {
+		const t = i / sampleRate;
+
+		const valLeft = Math.sin(2 * Math.PI * freqLeft * t + phaseLeft);
+		const valRight = Math.sin(2 * Math.PI * freqRight * t + phaseRight);
+
+		const noiseL = (Math.random() - 0.5) * 0.05;
+		const noiseR = (Math.random() - 0.5) * 0.05;
+
+		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 26));
+		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 26));
+
+		stereo[i * 2] = sampleLeft;
+		stereo[i * 2 + 1] = sampleRight;
+	}
+
+	return stereo;
+}
+
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 31);
+	const fullScale = Math.pow(2, 31) / waveformZoom;
 
 	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
@@ -176,8 +253,10 @@ function drawWaveform(buffer, canvas, ctx) {
 	const min = Math.min(...buffer);
 	const max = Math.max(...buffer);
 
-	const yMax = (1 - max / fullScale) * height / 2;
-	const yMin = (1 - min / fullScale) * height / 2;
+	const centerY = height / 2 + waveformOffset;
+
+	const yMax = centerY - (max / fullScale) * height / 2;
+	const yMin = centerY - (min / fullScale) * height / 2;
 
 	ctx.moveTo(canvas.width - 5, yMin);
 	ctx.lineTo(canvas.width - 5, yMax);
@@ -193,6 +272,8 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	const width = canvas.width;
 	const height = canvas.height;
 	const paddingY = 10;
+	const availableHeight = height - 2 * paddingY;
+	const centerY = height / 2 + waveformOffset;
 	
 	ctx.clearRect(0, 0, YAXIS_WAVEFORM_WIDTH, height);
 
@@ -200,28 +281,64 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	ctx.font = "10px sans-serif";
 	ctx.textAlign = "right";
 	ctx.textBaseline = "middle";
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+	ctx.lineWidth = 1;
 
-	const ticks = [-fullScale, -fullScale / 2, 0, fullScale / 2, fullScale];
+	const numTicks = 7
+	for(let i=0; i<numTicks; i++) {
+		const rel = i / (numTicks - 1);
+		const y = paddingY + rel * availableHeight;
 
-	for(let i=0; i<ticks.length; i++) {
-		const val = ticks[i];
-		const rel = val / fullScale;
+		const value = ((centerY - y) / (availableHeight / 2)) * fullScale;
+		ctx.fillText(formatLargeNumber(value), YAXIS_WAVEFORM_WIDTH - 5, y);
 
-		const availableHeight = height - 2 * paddingY;
-
-		const centerY = height / 2;
-		const y = centerY - rel * (availableHeight / 2);
-
-		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
-
-		ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
-		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(YAXIS_WAVEFORM_WIDTH, y);
 		ctx.lineTo(width, y);
 		ctx.stroke();
 	}
 
+}
+
+function redrawWaveform(canvas, ctx, history) {
+	console.log(history.length);
+	const width = canvas.width;
+	const height = canvas.height;
+	const fullScale = Math.pow(2, 31) / waveformZoom;
+	const centerY = height / 2 + waveformOffset;
+	const colWidth = 3;
+	const rightX = width - 5;
+
+	ctx.clearRect(YAXIS_WAVEFORM_WIDTH, 0, width - YAXIS_WAVEFORM_WIDTH, height);
+
+	const maxColumns = Math.floor((width - YAXIS_WAVEFORM_WIDTH - 5) / colWidth);
+	const visibleHistory = history.slice(-maxColumns);
+
+	ctx.strokeStyle = "blue";
+	ctx.lineWidth = 1;
+
+	for(let j=0; j<visibleHistory.length; j++) {
+		const {min, max} = visibleHistory[j];
+		const x = rightX - (visibleHistory.length - 1 - j) * colWidth;
+		const yMax = centerY - (max / fullScale) * (height / 2);
+		const yMin = centerY - (min / fullScale) * (height / 2);
+
+		ctx.beginPath();
+		ctx.moveTo(x, yMin);
+		ctx.lineTo(x, yMax);
+		ctx.stroke();
+	}
+
+	drawWaveformLabels(canvas, ctx, fullScale);
+
+}
+
+function formatLargeNumber(val) {
+	const absVal = Math.abs(val);
+	if (absVal >= 1e9) return (val / 1e9).toFixed(2) + 'G';
+	if (absVal >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+	if (absVal >= 1e3) return (val / 1e3).toFixed(2) + 'K';
+	return val.toString();
 }
 
 function processAndDrawSpectrogram(samples) {
@@ -738,7 +855,43 @@ startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
 toggle.addEventListener("change", updateFormVisibility);
 setInterval(getRaspberryStatus, 3000);
-// setInterval(mockMicroSignal, interval);
+setInterval(mockMicroSignal, interval);
+
+
+waveformCanvasLeft.addEventListener('mousedown', (e) => {
+	if(e.ctrlKey) {
+		isCtrlZooming = true;
+	} else {
+		isPanning = true;
+	}
+	lastY = e.clientY;
+
+});
+
+waveformCanvasLeft.addEventListener('mousemove', (e) => {
+	if(isCtrlZooming) {
+		const deltaY = e.clientY - lastY;
+		lastY = e.clientY;
+
+		waveformZoom *= (1 - deltaY * 0.01);
+		waveformZoom = Math.max(1, Math.min(waveformZoom, 100));
+		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
+		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
+	} else if(isPanning) {
+		const deltaY = e.clientY - lastY;
+		lastY = e.clientY;
+
+		waveformOffset += deltaY;
+		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
+		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
+	}
+});
+
+waveformCanvasLeft.addEventListener('mouseup', () => {
+	isCtrlZooming = false;
+	isPanning = false;
+	lastY = null;
+});
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the
