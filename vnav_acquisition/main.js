@@ -14,11 +14,13 @@ const stopRecordingBt = document.getElementById("stopRecording");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
+const recordingDurationEl = document.getElementById("recordingDuration");
 
 const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
 const needleTypeContainer = document.getElementById("needleType");
 const microphoneTypeContainer = document.getElementById("microphoneType");
+const timerEl = document.getElementById("recordingTimer");
 
 const audioInputSelect  = document.getElementById("audioSource");
 const microOutputSelect = document.getElementById("microOutput");
@@ -39,6 +41,8 @@ let localStream2 = null;
 let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
+let recordingStartTime = null;
+let recordingTimerInterval = null;
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
@@ -116,9 +120,11 @@ socket.on("automation-status", (msg) => {
 	automationStatusEl.style.color = status === "running" ? "green" : "red";
 	if(status === "running") {
 		toggleButtons(true);
+		startRecordingTimer();
 		stopRecordingBt.disabled = true;
 	} else {
 		toggleButtons(false);
+		stopRecordingTimer();
 		iterationCounterEl.textContent = `Iteration: -`
 	}
 });
@@ -624,6 +630,7 @@ function startRecording() {
 	const needleType = needleTypeContainer.value;
 	const microphoneType = microphoneTypeContainer.value;
 	const description = descriptionEl.value; 
+	const duration = parseInt(recordingDurationEl?.value || "0");
 
 	if(!username) {
 		return alert("Please pass username");
@@ -646,7 +653,17 @@ function startRecording() {
 	.then(data => {
 		if(data.status == "ok") {
 			toggleButtons(true);
+			startRecordingTimer();
 			stopAutomationBt.disabled = true;
+
+			if(duration > 0) {
+				setTimeout(() => {
+					if(!stopRecordingBt.disabled) {
+						stopRecording();
+					}
+				}, duration * 1000);
+			}
+
 		} else {
 			console.warn("Failed to start recording: ", data.message);
 		}
@@ -665,6 +682,7 @@ function stopRecording() {
 	.then(data => {
 		if(data.status == "ok") {
 			toggleButtons(false);
+			stopRecordingTimer();
 		}
 	})
 	.catch(err => {
@@ -680,6 +698,19 @@ function updateFormVisibility() {
 		automationForm.style.display = "block";
 		manualForm.style.display = "none";
 	}
+}
+
+function startRecordingTimer() {
+	recordingStartTime = Date.now();
+	recordingTimerInterval = setInterval(() => {
+		const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+		timerEl.textContent = `Timer: ${duration}s`
+	}, 1000);
+}
+
+function stopRecordingTimer() {
+	clearInterval(recordingTimerInterval);
+	timerEl.textContent = "Timer: 0s";
 }
 
 (async function init() {

@@ -124,11 +124,16 @@
                                 <label for="username">Username</label>
                                 <input type="text" id="username" />
                             </div>
+                            <div class="form-group">
+                                <label for="recordingDuration">Recording duration (seconds)</label>
+                                <input type="number" id="recordingDuration" min="1" />
+                            </div>
                             <div id="controls">
                                 <button id="startRecording">Start recording</button>
                                 <button id="stopRecording" disabled>Stop recording</button>
                             </div>
                         </div>
+                        <div id="recordingTimer">Timer: 0s</div>
                     </div>
                 </div>
             </aside>
