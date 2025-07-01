@@ -6,7 +6,7 @@ from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, o
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
-from .record import start_recording, stop_recording
+from .record import start_recording, stop_recording, delete_last_recording
 from .utils import build_filename
 import threading
 import webbrowser
@@ -181,6 +181,15 @@ def post_stop_recording():
     
     stop_recording(socketio)
     return jsonify({"status": "ok"})
+
+@app.route('/delete-last-recording', methods=['POST'])
+def post_delete_last_recording():
+    print("Received delete-last-recording/POST request")
+    
+    message = delete_last_recording()
+    if message == "":
+        return jsonify({"status": "not found", "message": "No recordings to delete."})
+    return jsonify({"status": "ok", "message": message})
 
 
 def parse_args():

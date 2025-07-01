@@ -1,6 +1,7 @@
 from .comm import on_rec_start, on_rec_stop
 from .config import config
 import time
+import os
 
 def start_recording(output_filename_prefix, socketio_instance):
 
@@ -37,3 +38,36 @@ def stop_recording(socketio_instance):
             "action": "stop",
             "shouldUpload": True
         })
+
+def delete_last_recording():
+    videos_deleted = delete_from_folder(folder='videos')
+    audios_deleted = delete_from_folder(folder=config['local_dir'])
+
+    parts = []
+    if videos_deleted:
+        parts.append("Video")
+    if audios_deleted:
+        parts.append("Audio")
+    
+    return " + ".join(parts) if parts else ""
+
+def delete_from_folder(folder):
+    files = {}
+    for file in os.listdir(folder):
+        parts = file.split("_")
+        time_part = parts[-3] + "." + parts[-2]
+        timestamp = time.strptime(time_part, '%Y-%m-%d.%H.%M.%S')
+        file_path = os.path.join(folder, file)
+        files.setdefault(timestamp, []).append(file_path)
+
+    if not files:
+        return False
+
+    latest_timestamp = max(files.keys())
+    if len(files[latest_timestamp]) == 0:
+        return False
+    
+    for file in files[latest_timestamp]:
+        os.remove(file)
+
+    return True

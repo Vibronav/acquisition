@@ -15,6 +15,7 @@ const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
 const recordingDurationEl = document.getElementById("recordingDuration");
+const deleteRecordingBt = document.getElementById("deleteRecording");
 
 const materialsContainter = document.getElementById("material");
 const speedsContainer = document.getElementById("speed");
@@ -830,6 +831,27 @@ function stopRecordingTimer() {
 	timerEl.textContent = "Timer: 0s";
 }
 
+function deleteLastRecording() {
+	deleteRecordingBt.disabled = true;
+	fetch("/delete-last-recording", {
+		method: "POST"
+	})
+	.then(res => res.json())
+	.then(data => {
+
+		if(data.status === "not found") {
+			alert("No recordings found to delete");
+		} else if(data.status === "ok") {
+			alert("Deleted recordings: " + data.message);
+		}
+
+		deleteRecordingBt.disabled = false;
+	})
+	.catch(err => {
+		console.error("Error deleting last recording: ", err);
+	});
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -853,6 +875,7 @@ startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
+deleteRecordingBt.addEventListener("click", deleteLastRecording);
 toggle.addEventListener("change", updateFormVisibility);
 setInterval(getRaspberryStatus, 3000);
 setInterval(mockMicroSignal, interval);
