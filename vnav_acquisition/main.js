@@ -462,6 +462,7 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 			});
 		} else {
 			console.warn("Backend forced not to upload video");
+			alert("Recording is not saved!")
 		}
 	
 	}
@@ -881,6 +882,7 @@ setInterval(getRaspberryStatus, 3000);
 setInterval(mockMicroSignal, interval);
 
 
+/// waveforms scaling
 waveformCanvasLeft.addEventListener('mousedown', (e) => {
 	if(e.ctrlKey) {
 		isCtrlZooming = true;
@@ -915,6 +917,28 @@ waveformCanvasLeft.addEventListener('mouseup', () => {
 	isPanning = false;
 	lastY = null;
 });
+
+///Shortcuts
+
+document.addEventListener('keydown', (e) => {
+	if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+		return;	
+	}
+
+	if(e.code === "Space") {
+		e.preventDefault();
+
+		if(toggle.checked) {
+			if(!startRecordingBt.disabled) {
+				startRecording();
+			} else if(!stopRecordingBt.disabled) {
+				stopRecording();
+			}
+		}
+		
+	}
+
+})
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the
