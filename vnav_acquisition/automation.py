@@ -37,12 +37,10 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         "status": "running",
     })
 
-    # Connect to Dobot
-    # dashboard, move = connect_robot()
-    # enable_robot(dashboard)
+    dashboard, move = connect_robot()
+    enable_robot(dashboard)
     time.sleep(2)
 
-    # Map speed string to numeric speed factor
     if speed == "slow":
         speed_value = 10
     elif speed == "medium":
@@ -52,7 +50,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
     elif speed is None:
         speed_value = 15
 
-    # dashboard.SpeedFactor(speed_value)
+    dashboard.SpeedFactor(speed_value)
 
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
@@ -74,7 +72,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
             "iteration": i+1
         })
 
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
         output_filename_prefix = build_filename(description, material, speed, needle_type, microphone_type)
@@ -88,12 +86,12 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         print(f"Recording {i+1}/{num_iterations} started.")
 
         # Move to P2
-        # move_to_position(dashboard, move, P2)
+        move_to_position(dashboard, move, P2)
         print(f'Moving to position P2: {P2}')
         time.sleep(3)
         
         # Move back to P1
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
         time.sleep(2)
             
@@ -109,7 +107,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
 
         print(f"Iteration {i+1} completed.")
 
-    # dashboard.DisableRobot()
+    dashboard.DisableRobot()
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })

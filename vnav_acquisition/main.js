@@ -115,6 +115,9 @@ socket.on("record", async (msg) => {
 	console.log(mediaRecorder, mediaRecorder2);
 	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
 		shouldUpload = msg.shouldUpload;
+		if(!shouldUpload) {
+			alert("Recording is not saved!")
+		}
 		mediaRecorder.stop();
 		mediaRecorder2.stop();
 		console.log("Browser stopped recording");
@@ -462,7 +465,6 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 			});
 		} else {
 			console.warn("Backend forced not to upload video");
-			alert("Recording is not saved!")
 		}
 	
 	}
@@ -879,8 +881,7 @@ stopRecordingBt.addEventListener("click", stopRecording);
 deleteRecordingBt.addEventListener("click", deleteLastRecording);
 toggle.addEventListener("change", updateFormVisibility);
 setInterval(getRaspberryStatus, 3000);
-setInterval(mockMicroSignal, interval);
-
+// setInterval(mockMicroSignal, interval);
 
 /// waveforms scaling
 waveformCanvasLeft.addEventListener('mousedown', (e) => {
