@@ -3,11 +3,15 @@ from vnav_acquisition.config import config
 from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 from .record import start_recording, stop_recording
+from .utils import build_filename
+
+dashboard = None
     
 def safe_run_automation(socketio_instance, **kwargs):
     """
     Wrapper function to run the automation, handle any exception and proceed actions that is needed when automation stopped working
     """
+    global dashboard
     try:
         run_automation(**kwargs, socketio_instance=socketio_instance)
     except Exception as e:
@@ -20,9 +24,11 @@ def safe_run_automation(socketio_instance, **kwargs):
             "action": "stop",
             "shouldUpload": False
         })
+        dashboard.DisableRobot()
+        dashboard = None
 
 
-def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, speed, motion_type, num_iterations, socketio_instance):
+def run_automation(material, needle_type, microphone_type, description, stop_event, initX, finishX, upZ, downZ, speed, motion_type, num_iterations, socketio_instance):
     """
     Main automation functions:
       - Connects to the Dobot Mg400,
@@ -30,28 +36,18 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
       - Moves the robot and records audio+video, 
       - Adjusts positions after certain iteration counts.
     """
+    global dashboard
     print("Executing 'run_automation'")
 
     socketio_instance.emit("automation-status", {
         "status": "running",
     })
 
-    # Connect to Dobot
     dashboard, move = connect_robot()
     enable_robot(dashboard)
     time.sleep(2)
 
-    # Map speed string to numeric speed factor
-    if speed == "slow":
-        speed_value = 10
-    elif speed == "medium":
-        speed_value = 15
-    elif speed == "fast":
-        speed_value = 25
-    elif speed is None:
-        speed_value = 15
-
-    dashboard.SpeedFactor(speed_value)
+    dashboard.SpeedFactor(speed)
 
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
@@ -76,10 +72,9 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
-        timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
-        output_filename = f"{username}_{material}_{speed}_{timestamp}"
+        output_filename_prefix = build_filename(description, material, f'Speed-{speed}', needle_type, microphone_type)
         
-        is_started = start_recording(output_filename, socketio_instance)
+        is_started = start_recording(output_filename_prefix, socketio_instance)
 
         if not is_started:
             continue
@@ -95,7 +90,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         # Move back to P1
         move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
-        time.sleep(2)
+        time.sleep(1)
             
         P1 = (P1[0] + gap, P1[1], P1[2], P1[3])
         P2 = (P2[0] + gap, P2[1], P2[2], P2[3])
@@ -110,6 +105,7 @@ def run_automation(username, material, stop_event, initX, finishX, upZ, downZ, s
         print(f"Iteration {i+1} completed.")
 
     dashboard.DisableRobot()
+    dashboard = None
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })

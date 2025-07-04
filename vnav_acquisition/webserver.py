@@ -6,7 +6,8 @@ from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, o
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
-from .record import start_recording, stop_recording
+from .record import start_recording, stop_recording, delete_last_recording
+from .utils import build_filename
 import threading
 import webbrowser
 import argparse
@@ -52,7 +53,9 @@ def api_config():
     print("Received config/GET request")
     return jsonify({
         "materials": config["materials"],
-        "speeds": config["speeds"]
+        "speeds": config["speeds"],
+        "needleTypes": config["needleTypes"],
+        "microphoneTypes": config["microphoneTypes"]
     })
 
 @app.route("/run", methods=["POST"])
@@ -62,7 +65,7 @@ def run():
     params = request.get_json(force=True)
     print(f'With params: {params}')
 
-    required = ("username", "material", "speed", "iterations", "initX", "finishX", "upZ", "downZ", "motionType")
+    required = ("material", "speed", "needleType", "iterations", "initX", "finishX", "upZ", "downZ", "motionType")
     if not all(param in params for param in required):
         return jsonify({"error": "Missing parameters"}), 400
     
@@ -70,14 +73,16 @@ def run():
     automation_thread = threading.Thread(
         target=safe_run_automation,
         kwargs=dict(
-            username = params["username"],
             material = params["material"],
+            needle_type = params["needleType"],
+            microphone_type = params["microphoneType"],
+            description = params["description"],
             stop_event = stop_event,
             initX = params.get("initX"),
             finishX = params.get("finishX"),
             upZ = params.get("upZ"),
             downZ = params.get("downZ"),
-            speed = params["speed"],
+            speed = int(params["speed"]),
             motion_type = params["motionType"],
             num_iterations = params["iterations"],
             socketio_instance=socketio
@@ -156,10 +161,12 @@ def post_start_recording():
     params = request.get_json(force=True)
     print(f'With params: {params}')
 
-    timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
     username = params.get("username")
     material = params.get("material")
-    output_filename_prefix = f"{username}_{material}_{timestamp}"
+    needle_type = params.get("needleType")
+    microphone_type = params.get("microphoneType")
+    description = params.get("description")
+    output_filename_prefix = build_filename(username, description, material, needle_type, microphone_type)
 
     is_started = start_recording(output_filename_prefix, socketio)
     if not is_started:
@@ -174,6 +181,15 @@ def post_stop_recording():
     
     stop_recording(socketio)
     return jsonify({"status": "ok"})
+
+@app.route('/delete-last-recording', methods=['POST'])
+def post_delete_last_recording():
+    print("Received delete-last-recording/POST request")
+    
+    message = delete_last_recording()
+    if message == "":
+        return jsonify({"status": "not found", "message": "No recordings to delete."})
+    return jsonify({"status": "ok", "message": message})
 
 
 def parse_args():

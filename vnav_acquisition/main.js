@@ -6,6 +6,7 @@
 
 const usernameEl = document.getElementById('username');
 const iterEl = document.getElementById("iterations");
+const descriptionEl = document.getElementById("description");
 const startAutomationBt = document.getElementById("startTests");
 const stopAutomationBt = document.getElementById("stopTests");
 const startRecordingBt = document.getElementById("startRecording");
@@ -13,9 +14,15 @@ const stopRecordingBt = document.getElementById("stopRecording");
 const raspberryStatusEl = document.getElementById("raspberryStatus");
 const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
+const recordingDurationEl = document.getElementById("recordingDuration");
+const deleteRecordingBt = document.getElementById("deleteRecording");
 
 const materialsContainter = document.getElementById("material");
-const speedsContainer = document.getElementById("speed");
+const speedSlider = document.getElementById("speed");
+const speedValueEl = document.getElementById("speedValue");
+const needleTypeContainer = document.getElementById("needleType");
+const microphoneTypeContainer = document.getElementById("microphoneType");
+const timerEl = document.getElementById("recordingTimer");
 
 const audioInputSelect  = document.getElementById("audioSource");
 const microOutputSelect = document.getElementById("microOutput");
@@ -36,6 +43,8 @@ let localStream2 = null;
 let mediaRecorder2 = null;
 let recordedChunks2 = [];
 let shouldUpload = true;
+let recordingStartTime = null;
+let recordingTimerInterval = null;
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
@@ -46,10 +55,21 @@ const fftSize = 4096;
 const fft = new FFT(fftSize, sampleRate);
 let specBuffer = []
 
+let isCtrlZooming = false;
+let lastY = null;
+let isPanning = false;
+let waveformZoom = 1;
+let waveformOffset = 0;
+let singalLeftHistory = [];
+let signalRightHistory = [];
 const waveformCanvasLeft = document.getElementById('micSignalLeft');
 const waveformCanvasRight = document.getElementById('micSignalRight');
 const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
 const waveformCtxRight = waveformCanvasRight.getContext('2d');
+
+const toggle = document.getElementById("modeToggle");
+const automationForm = document.getElementById("automationForm");
+const manualForm = document.getElementById("manualForm");
 
 
 const DEFAULT_CONFIG = {
@@ -96,6 +116,9 @@ socket.on("record", async (msg) => {
 	console.log(mediaRecorder, mediaRecorder2);
 	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
 		shouldUpload = msg.shouldUpload;
+		if(!shouldUpload) {
+			alert("Recording is not saved!")
+		}
 		mediaRecorder.stop();
 		mediaRecorder2.stop();
 		console.log("Browser stopped recording");
@@ -109,9 +132,11 @@ socket.on("automation-status", (msg) => {
 	automationStatusEl.style.color = status === "running" ? "green" : "red";
 	if(status === "running") {
 		toggleButtons(true);
+		startRecordingTimer();
 		stopRecordingBt.disabled = true;
 	} else {
 		toggleButtons(false);
+		stopRecordingTimer();
 		iterationCounterEl.textContent = `Iteration: -`
 	}
 });
@@ -136,9 +161,21 @@ socket.on("micro-signal", (msg) => {
 
 
 	if (bufferLeftDC && bufferLeftDC.length > 0) {
+		const min = Math.min(...bufferLeftDC);
+		const max = Math.max(...bufferLeftDC);
+		singalLeftHistory.push({min, max});
+		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+			singalLeftHistory.shift();
+		}
 		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
 	}
 	if (bufferRightDC && bufferRightDC.length > 0) {
+		const min = Math.min(...bufferRightDC);
+		const max = Math.max(...bufferRightDC);
+		signalRightHistory.push({min, max});
+		if(signalRightHistory.length > waveformCanvasRight.width) {
+			signalRightHistory.shift();
+		}
 		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
 	}
 
@@ -148,10 +185,74 @@ socket.on("micro-signal", (msg) => {
 
 })
 
+function mockMicroSignal() {
+
+	const stereo = generateMockStereoSamples();
+
+	const bufferLeft = stereo.filter((_, i) => i % 2 === 0);
+	const bufferRight = stereo.filter((_, i) => i % 2 === 1);
+
+
+	if (bufferLeft && bufferLeft.length > 0) {
+		const min = Math.min(...bufferLeft);
+		const max = Math.max(...bufferLeft);
+		singalLeftHistory.push({min, max});
+		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+			singalLeftHistory.shift();
+		}
+		drawWaveform(bufferLeft, waveformCanvasLeft, waveformCtxLeft);
+	}
+	if (bufferRight && bufferRight.length > 0) {
+		const min = Math.min(...bufferRight);
+		const max = Math.max(...bufferRight);
+		signalRightHistory.push({min, max});
+		if(signalRightHistory.length > waveformCanvasRight.width) {
+			signalRightHistory.shift();
+		}
+		drawWaveform(bufferRight, waveformCanvasRight, waveformCtxRight);
+	}
+
+	if( bufferLeft && bufferLeft.length > 0) {
+		processAndDrawSpectrogram(bufferLeft);
+	}
+}
+
+function generateMockStereoSamples() {
+	const monoSamples = Math.floor(sampleRate * interval / 1000);
+	const totalSamples = monoSamples * 2;
+	const stereo = new Int32Array(totalSamples);
+
+	const freqLeft = Math.random() * 300 + 400;
+	const ampLeft = Math.random() * 0.5 + 0.2;
+	const phaseLeft = Math.random() * 2 * Math.PI;
+
+	const freqRight = Math.random() * 300 + 900;
+	const ampRight = Math.random() * 0.5 + 0.2;
+	const phaseRight = Math.random() * 2 * Math.PI;
+
+	for (let i = 0; i < monoSamples; i++) {
+		const t = i / sampleRate;
+
+		const valLeft = Math.sin(2 * Math.PI * freqLeft * t + phaseLeft);
+		const valRight = Math.sin(2 * Math.PI * freqRight * t + phaseRight);
+
+		const noiseL = (Math.random() - 0.5) * 0.05;
+		const noiseR = (Math.random() - 0.5) * 0.05;
+
+		const sampleLeft = Math.floor((valLeft * ampLeft + noiseL) * Math.pow(2, 26));
+		const sampleRight = Math.floor((valRight * ampRight + noiseR) * Math.pow(2, 26));
+
+		stereo[i * 2] = sampleLeft;
+		stereo[i * 2 + 1] = sampleRight;
+	}
+
+	return stereo;
+}
+
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 31);
+	const fullScale = Math.pow(2, 31) / waveformZoom;
 
 	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
@@ -163,8 +264,10 @@ function drawWaveform(buffer, canvas, ctx) {
 	const min = Math.min(...buffer);
 	const max = Math.max(...buffer);
 
-	const yMax = (1 - max / fullScale) * height / 2;
-	const yMin = (1 - min / fullScale) * height / 2;
+	const centerY = height / 2 + waveformOffset;
+
+	const yMax = centerY - (max / fullScale) * height / 2;
+	const yMin = centerY - (min / fullScale) * height / 2;
 
 	ctx.moveTo(canvas.width - 5, yMin);
 	ctx.lineTo(canvas.width - 5, yMax);
@@ -180,6 +283,8 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	const width = canvas.width;
 	const height = canvas.height;
 	const paddingY = 10;
+	const availableHeight = height - 2 * paddingY;
+	const centerY = height / 2 + waveformOffset;
 	
 	ctx.clearRect(0, 0, YAXIS_WAVEFORM_WIDTH, height);
 
@@ -187,28 +292,64 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	ctx.font = "10px sans-serif";
 	ctx.textAlign = "right";
 	ctx.textBaseline = "middle";
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+	ctx.lineWidth = 1;
 
-	const ticks = [-fullScale, -fullScale / 2, 0, fullScale / 2, fullScale];
+	const numTicks = 7
+	for(let i=0; i<numTicks; i++) {
+		const rel = i / (numTicks - 1);
+		const y = paddingY + rel * availableHeight;
 
-	for(let i=0; i<ticks.length; i++) {
-		const val = ticks[i];
-		const rel = val / fullScale;
+		const value = ((centerY - y) / (availableHeight / 2)) * fullScale;
+		ctx.fillText(formatLargeNumber(value), YAXIS_WAVEFORM_WIDTH - 5, y);
 
-		const availableHeight = height - 2 * paddingY;
-
-		const centerY = height / 2;
-		const y = centerY - rel * (availableHeight / 2);
-
-		ctx.fillText(val.toFixed(1), YAXIS_WAVEFORM_WIDTH - 5, y);
-
-		ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
-		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(YAXIS_WAVEFORM_WIDTH, y);
 		ctx.lineTo(width, y);
 		ctx.stroke();
 	}
 
+}
+
+function redrawWaveform(canvas, ctx, history) {
+	console.log(history.length);
+	const width = canvas.width;
+	const height = canvas.height;
+	const fullScale = Math.pow(2, 31) / waveformZoom;
+	const centerY = height / 2 + waveformOffset;
+	const colWidth = 3;
+	const rightX = width - 5;
+
+	ctx.clearRect(YAXIS_WAVEFORM_WIDTH, 0, width - YAXIS_WAVEFORM_WIDTH, height);
+
+	const maxColumns = Math.floor((width - YAXIS_WAVEFORM_WIDTH - 5) / colWidth);
+	const visibleHistory = history.slice(-maxColumns);
+
+	ctx.strokeStyle = "blue";
+	ctx.lineWidth = 1;
+
+	for(let j=0; j<visibleHistory.length; j++) {
+		const {min, max} = visibleHistory[j];
+		const x = rightX - (visibleHistory.length - 1 - j) * colWidth;
+		const yMax = centerY - (max / fullScale) * (height / 2);
+		const yMin = centerY - (min / fullScale) * (height / 2);
+
+		ctx.beginPath();
+		ctx.moveTo(x, yMin);
+		ctx.lineTo(x, yMax);
+		ctx.stroke();
+	}
+
+	drawWaveformLabels(canvas, ctx, fullScale);
+
+}
+
+function formatLargeNumber(val) {
+	const absVal = Math.abs(val);
+	if (absVal >= 1e9) return (val / 1e9).toFixed(2) + 'G';
+	if (absVal >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+	if (absVal >= 1e3) return (val / 1e3).toFixed(2) + 'K';
+	return val.toString();
 }
 
 function processAndDrawSpectrogram(samples) {
@@ -341,9 +482,17 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 
 }
 
-function renderSelectOptions(selectElement, values) {
+function renderSelectOptions(selectElement, values, renderEmpty = true) {
 
 	selectElement.innerHTML = "";
+
+	if(renderEmpty) {
+		const emptyOption = document.createElement("option");
+		emptyOption.value = "";
+		emptyOption.textContent = "";
+		selectElement.appendChild(emptyOption);		
+	}
+
 	values.forEach(val => {
 		const option = document.createElement("option");
 		option.value = val;
@@ -509,9 +658,11 @@ function toggleButtons(automation_running) {
 
 function startAutomation() {
 
-	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
-	const speed = speedsContainer.value;
+	const speed = parseInt(speedSlider.value);
+	const needleType = needleTypeContainer.value;
+	const microphoneType = microphoneTypeContainer.value;
+	const description = descriptionEl.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
 	const initX = parseInt(document.getElementById("initX").value);
@@ -520,15 +671,6 @@ function startAutomation() {
 	const downZ = parseInt(document.getElementById("downZ").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
 
-	if(!username) {
-		return alert("Please pass username");
-	}
-	if(!material) {
-		return alert("Please select material");
-	}
-	if(!speed) {
-		return alert("Please select speed");
-	}
 	if(iterations <= 0) {
 		return alert("Iterations must be greater then 0");
 	}
@@ -540,9 +682,11 @@ function startAutomation() {
 	}
 
 	const payload = {
-		username: username,
 		material: material,
 		speed: speed,
+		needleType: needleType,
+		microphoneType: microphoneType,
+		description: description,
 		iterations: iterations,
 		initX: initX,
 		finishX: finishX,
@@ -611,19 +755,22 @@ function startRecording() {
 
 	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
+	const needleType = needleTypeContainer.value;
+	const microphoneType = microphoneTypeContainer.value;
+	const description = descriptionEl.value; 
+	const duration = parseInt(recordingDurationEl?.value || "0");
 
 	if(!username) {
 		return alert("Please pass username");
 	}
-	if(!material) {
-		return alert("Please select material");
-	}
 
 	const payload = {
 		username: username,
-		material: material
+		material: material,
+		needleType: needleType,
+		microphoneType: microphoneType,
+		description: description,
 	};
-
 
 	fetch("/start-recording", {
 		method: "POST",
@@ -634,7 +781,17 @@ function startRecording() {
 	.then(data => {
 		if(data.status == "ok") {
 			toggleButtons(true);
+			startRecordingTimer();
 			stopAutomationBt.disabled = true;
+
+			if(duration > 0) {
+				setTimeout(() => {
+					if(!stopRecordingBt.disabled) {
+						stopRecording();
+					}
+				}, duration * 1000);
+			}
+
 		} else {
 			console.warn("Failed to start recording: ", data.message);
 		}
@@ -645,6 +802,7 @@ function startRecording() {
 }
 
 function stopRecording() {
+	stopRecordingBt.disabled = true;
 	fetch("/stop-recording", {
 		method: "POST"
 	})
@@ -652,6 +810,7 @@ function stopRecording() {
 	.then(data => {
 		if(data.status == "ok") {
 			toggleButtons(false);
+			stopRecordingTimer();
 		}
 	})
 	.catch(err => {
@@ -659,11 +818,56 @@ function stopRecording() {
 	})
 }
 
+function updateFormVisibility() {
+	if(toggle.checked) {
+		automationForm.style.display = "none";
+		manualForm.style.display = "block";
+	} else {
+		automationForm.style.display = "block";
+		manualForm.style.display = "none";
+	}
+}
+
+function startRecordingTimer() {
+	recordingStartTime = Date.now();
+	recordingTimerInterval = setInterval(() => {
+		const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+		timerEl.textContent = `Timer: ${duration}s`
+	}, 1000);
+}
+
+function stopRecordingTimer() {
+	clearInterval(recordingTimerInterval);
+	timerEl.textContent = "Timer: 0s";
+}
+
+function deleteLastRecording() {
+	deleteRecordingBt.disabled = true;
+	fetch("/delete-last-recording", {
+		method: "POST"
+	})
+	.then(res => res.json())
+	.then(data => {
+
+		if(data.status === "not found") {
+			alert("No recordings found to delete");
+		} else if(data.status === "ok") {
+			alert("Deleted recordings: " + data.message);
+		}
+
+		deleteRecordingBt.disabled = false;
+	})
+	.catch(err => {
+		console.error("Error deleting last recording: ", err);
+	});
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
-	renderSelectOptions(materialsContainter, cfg.materials);
-	renderSelectOptions(speedsContainer, cfg.speeds);
+	renderSelectOptions(materialsContainter, cfg.materials, true);
+	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
+	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
@@ -680,8 +884,71 @@ startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
+deleteRecordingBt.addEventListener("click", deleteLastRecording);
+toggle.addEventListener("change", updateFormVisibility);
+speedSlider.addEventListener("input", (e) => {
+	speedValueEl.textContent = e.target.value;
+})
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
+
+/// waveforms scaling
+waveformCanvasLeft.addEventListener('mousedown', (e) => {
+	if(e.ctrlKey) {
+		isCtrlZooming = true;
+	} else {
+		isPanning = true;
+	}
+	lastY = e.clientY;
+
+});
+
+waveformCanvasLeft.addEventListener('mousemove', (e) => {
+	if(isCtrlZooming) {
+		const deltaY = e.clientY - lastY;
+		lastY = e.clientY;
+
+		waveformZoom *= (1 - deltaY * 0.01);
+		waveformZoom = Math.max(1, Math.min(waveformZoom, 100));
+		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
+		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
+	} else if(isPanning) {
+		const deltaY = e.clientY - lastY;
+		lastY = e.clientY;
+
+		waveformOffset += deltaY;
+		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
+		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
+	}
+});
+
+waveformCanvasLeft.addEventListener('mouseup', () => {
+	isCtrlZooming = false;
+	isPanning = false;
+	lastY = null;
+});
+
+///Shortcuts
+
+document.addEventListener('keydown', (e) => {
+	if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+		return;	
+	}
+
+	if(e.code === "Space") {
+		e.preventDefault();
+
+		if(toggle.checked) {
+			if(!startRecordingBt.disabled) {
+				startRecording();
+			} else if(!stopRecordingBt.disabled) {
+				stopRecording();
+			}
+		}
+		
+	}
+
+})
 
 // Meter class that generates a number correlated to audio volume.
 // The meter class itself displays nothing, but it makes the

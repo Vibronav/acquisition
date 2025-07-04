@@ -22,20 +22,32 @@ body {
 }
 
 .head {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    align-items: center;
     background: #fff;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 12px 16px;
+    border-radius: 8px;
     box-shadow: rgba(0, 0, 0, 0.08) 0 2px 4px;
-    position: relative;
-    font-size: 13px;
+    font-size: 14px;
+    font-family: sans-serif;
+    gap: 8px;
+}
+
+#raspberryStatus {
+    grid-column: 1;
+}
+
+#automationStatus {
+    grid-column: 2;
 }
 
 #iterationCounter {
-    position: absolute;
-    top: 10px;
-    right: 14px;
+    grid-column: 10;
+    justify-self: end;
     font-weight: bold;
     color: #333;
+    white-space: nowrap;
 }
 
 .content-wrapper {
@@ -75,6 +87,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-top: 6px;
 }
 
 label {
@@ -147,10 +160,75 @@ input[type="number"] {
     cursor: pointer;
 }
 
+.toggle-switch {
+  position: relative;
+  width: 100%;
+  max-width: 250px;
+  margin-top: 4px;
+}
+
+.toggle-switch input[type="checkbox"] {
+  display: none;
+}
+
+.switch-label {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ccc;
+  border-radius: 999px;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+}
+
+.switch-label .label {
+  z-index: 2;
+  width: 50%;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.switch-label .slider {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 4px);
+  background-color: #4CAF50;
+  border-radius: 999px;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.toggle-switch input[type="checkbox"]:checked + .switch-label .slider {
+  left: calc(50% + 2px);
+  background-color: #2196F3;
+}
+
+.toggle-switch input[type="checkbox"]:checked + .switch-label .automation-label {
+  color: #ffffffaa;
+}
+
+.toggle-switch input[type="checkbox"]:not(:checked) + .switch-label .manual-label {
+  color: #ffffffaa;
+}
+
+#manualForm {
+    display: none;
+}
+
 #controls {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    margin-top: 10px;
 }
 
 button {
@@ -185,12 +263,32 @@ button {
     cursor: not-allowed;
 }
 
+#deleteRecording {
+    background-color: #be1306;
+    color: white;
+}
+
+#deleteRecording:disabled {
+    background-color: #e0e0e0;
+    color: #888;
+    cursor: not-allowed;
+}
+
 button:hover:enabled {
     filter: brightness(1.1);
 }
 
 button:disabled {
     cursor: not-allowed;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: #ddd;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  outline: none;
 }
 
 .video-row {

@@ -1,5 +1,6 @@
 import psutil
 import ipaddress
+import time
 
 
 def get_broadcast_address():
@@ -16,3 +17,8 @@ def get_broadcast_address():
                 broadcast = ip | (~netmask & 0xFFFFFFFF)
                 return str(ipaddress.IPv4Address(broadcast))
         
+def build_filename(*args, sep="_"):
+    timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
+    parts = [str(arg) for arg in args if arg and arg != ""]
+    parts.append(timestamp)
+    return sep.join(parts)

@@ -10,12 +10,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [1.8.1] - 2025--06-16
+## [1.9.0] - 2025-07-04
+### Added
+- Specifying manual recordings time
+- New options for filename
+- Real-time waveform scaling
+- More informations in GUI on errors in app
+- Shortcut for start/stop recording
+- Option for deleting last recording
+### Changed
+- Set speed of dobot from 1-100 instead of hardcoded values
+
+## [1.8.1] - 2025-06-16
 ### Fixed
 - improve doing series of punctures by dobot
 - saving recordings faster
 
-## [1.8.0] - 2025--06-16
+## [1.8.0] - 2025-06-16
 ### Added
 - Add recording videos/audio without dobot
 - Add on live sounds from microphone
