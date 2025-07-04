@@ -170,6 +170,7 @@ def broadcast_ip():
 
     while not broadcast_received and trials < 30:
         message = b'server'
+        print(get_broadcast_address())
         sock.sendto(message, (get_broadcast_address(), 54545))
         time.sleep(1)
         trials += 1

@@ -18,7 +18,8 @@ const recordingDurationEl = document.getElementById("recordingDuration");
 const deleteRecordingBt = document.getElementById("deleteRecording");
 
 const materialsContainter = document.getElementById("material");
-const speedsContainer = document.getElementById("speed");
+const speedSlider = document.getElementById("speed");
+const speedValueEl = document.getElementById("speedValue");
 const needleTypeContainer = document.getElementById("needleType");
 const microphoneTypeContainer = document.getElementById("microphoneType");
 const timerEl = document.getElementById("recordingTimer");
@@ -163,12 +164,18 @@ socket.on("micro-signal", (msg) => {
 		const min = Math.min(...bufferLeftDC);
 		const max = Math.max(...bufferLeftDC);
 		singalLeftHistory.push({min, max});
+		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+			singalLeftHistory.shift();
+		}
 		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
 	}
 	if (bufferRightDC && bufferRightDC.length > 0) {
 		const min = Math.min(...bufferRightDC);
 		const max = Math.max(...bufferRightDC);
 		signalRightHistory.push({min, max});
+		if(signalRightHistory.length > waveformCanvasRight.width) {
+			signalRightHistory.shift();
+		}
 		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
 	}
 
@@ -652,7 +659,7 @@ function toggleButtons(automation_running) {
 function startAutomation() {
 
 	const material = materialsContainter.value;
-	const speed = speedsContainer.value;
+	const speed = speedSlider.value;
 	const needleType = needleTypeContainer.value;
 	const microphoneType = microphoneTypeContainer.value;
 	const description = descriptionEl.value;
@@ -859,7 +866,6 @@ function deleteLastRecording() {
 
 	const cfg = await loadConfig();
 	renderSelectOptions(materialsContainter, cfg.materials, true);
-	renderSelectOptions(speedsContainer, cfg.speeds, false);
 	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
 	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
 
@@ -880,6 +886,9 @@ startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
 deleteRecordingBt.addEventListener("click", deleteLastRecording);
 toggle.addEventListener("change", updateFormVisibility);
+speedSlider.addEventListener("input", (e) => {
+	speedValueEl.textContent = e.target.value;
+})
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 
