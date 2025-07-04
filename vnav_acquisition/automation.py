@@ -4,6 +4,8 @@ from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 from .record import start_recording, stop_recording
 from .utils import build_filename
+
+dashboard = None
     
 def safe_run_automation(socketio_instance, **kwargs):
     """
@@ -23,6 +25,7 @@ def safe_run_automation(socketio_instance, **kwargs):
             "shouldUpload": False
         })
         dashboard.DisableRobot()
+        dashboard = None
 
 
 def run_automation(material, needle_type, microphone_type, description, stop_event, initX, finishX, upZ, downZ, speed, motion_type, num_iterations, socketio_instance):
@@ -102,6 +105,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         print(f"Iteration {i+1} completed.")
 
     dashboard.DisableRobot()
+    dashboard = None
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })

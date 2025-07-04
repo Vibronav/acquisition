@@ -659,7 +659,7 @@ function toggleButtons(automation_running) {
 function startAutomation() {
 
 	const material = materialsContainter.value;
-	const speed = speedSlider.value;
+	const speed = parseInt(speedSlider.value);
 	const needleType = needleTypeContainer.value;
 	const microphoneType = microphoneTypeContainer.value;
 	const description = descriptionEl.value;

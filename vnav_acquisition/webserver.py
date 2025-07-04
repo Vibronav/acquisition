@@ -82,7 +82,7 @@ def run():
             finishX = params.get("finishX"),
             upZ = params.get("upZ"),
             downZ = params.get("downZ"),
-            speed = params["speed"],
+            speed = int(params["speed"]),
             motion_type = params["motionType"],
             num_iterations = params["iterations"],
             socketio_instance=socketio
