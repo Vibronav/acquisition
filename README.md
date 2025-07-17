@@ -26,9 +26,10 @@ Full setup JSON file format:
 {
     "connection": ["hostname", port_number, "username", "password"], 
     "materials": ["material_1", "material_2"],
-    "speeds": ["speed_1", "speed_2", "speed_3"],
-    'local_dir': r"c:\vnav_acquisition",
-    'remote_dir': "vnav_acquisition"
+    "needleTypes": ["Type1", "Type2", "Type3"],
+    "microphoneTypes": ["TypeA", "TypeB", "TypeC"],
+    "local_dir": r"c:\vnav_acquisition",
+    "remote_dir": "vnav_acquisition"
 }
 ```
 
