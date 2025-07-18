@@ -1,3 +1,4 @@
+from email.mime import audio
 import json
 import numpy as np
 import subprocess
@@ -46,7 +47,7 @@ def sync_spectrograms(ref, measured):
     idx = len(corr) - np.argmax(corr)
     return idx
 
-def argmax_correlation(input_signal, sync_signal, fs, n_fft=2048):
+def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024):
     
     f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
     f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
@@ -60,6 +61,31 @@ def argmax_correlation(input_signal, sync_signal, fs, n_fft=2048):
 
     sample_index = int(sync_signal_time * fs)
     return sample_index
+
+"""
+
+Old function
+
+def argmax_correlation(input_signal, sync_signal):
+    filtered_input_signal = highpass(input_signal)
+    sync_len = len(sync_signal)
+
+    sqrt_sum_of_squares = np.sqrt(np.convolve(np.square(filtered_input_signal), np.ones(sync_len), mode="valid"))
+    correlation = np.correlate(filtered_input_signal, sync_signal)/sqrt_sum_of_squares
+    inf = np.isinf(correlation)
+    nan = np.isnan(correlation)
+    if any(inf):
+        correlation[np.isinf(correlation)] = 0
+        print("Inf corrected")
+    if any(nan):
+        if sum(nan) > len(filtered_input_signal)//10:
+            return None
+        else:
+            correlation[nan] = 0
+            print("NaN corrected")
+    idx_max = np.argmax(np.abs(correlation))
+    return idx_max
+"""
 
 def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1) -> [float, int]:
     """
@@ -80,6 +106,11 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
     if audio_fs != video_fs:
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
     video_shift = argmax_correlation(video_signal, sync_signal, video_fs)
+
+    print(f"Audio shift: {audio_shift}, Video shift: {video_shift}")
+    print(f"Audio fs: {audio_fs}, Video fs: {video_fs}")
+    print(f'Audio shift: {audio_shift/audio_fs}, Video shift: {video_shift/video_fs}')
+    print(f'Audio file duration: {len(audio_signal)/audio_fs}, Video file duration: {len(video_signal)/video_fs}')
 
     if None in [audio_shift, video_shift]:
         return video_shift, audio_shift
@@ -146,12 +177,17 @@ def main():
     if not args.annotation_path:
         args.annotation_path = args.audio_path
 
+    print(f"Audio path: {args.audio_path}")
+
     audio_files = {os.path.splitext(os.path.basename(f))[0].replace(args.audio_suffix, ""): f
                    for f in glob.glob(args.audio_path + os.sep + "*.wav")}
     video_files = {os.path.splitext(os.path.basename(f))[0]: f
                    for f in glob.glob(args.video_path + os.sep + "*.*") if os.path.splitext(f)[1] in (".webm", ".mp4")}
     annotation_files = {os.path.splitext(os.path.basename(f))[0]: f
                         for f in glob.glob(args.annotation_path + os.sep + "*.json")}
+    
+    print(audio_files)
+    print(annotation_files)
 
     skipped = []
     for name, annotation_file in annotation_files.items():
