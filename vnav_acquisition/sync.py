@@ -8,6 +8,7 @@ from vnav_acquisition.sound import generate_chirp_signal
 import argparse
 import glob
 from collections import defaultdict
+from scipy.signal import stft, correlate2d
 
 
 def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
@@ -27,27 +28,38 @@ def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
             print(f'Error while executing FFmpeg: {e}')
             raise e
 
+def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, show=False):
+    signal = signal - signal.mean()
+    f, t, Zxx = stft(signal, fs, window='hann', nperseg=n_fft)
+    Zxx_magnitude = np.abs(Zxx)
 
-def argmax_correlation(input_signal, sync_signal):
-    filtered_input_signal = highpass(input_signal)
-    sync_len = len(sync_signal)
+    # Signal is squared to calculate energy
+    energy = np.sum(Zxx_magnitude ** 2, axis=1)
 
-    sqrt_sum_of_squares = np.sqrt(np.convolve(np.square(filtered_input_signal), np.ones(sync_len), mode="valid"))
-    correlation = np.correlate(filtered_input_signal, sync_signal)/sqrt_sum_of_squares
-    inf = np.isinf(correlation)
-    nan = np.isnan(correlation)
-    if any(inf):
-        correlation[np.isinf(correlation)] = 0
-        print("Inf corrected")
-    if any(nan):
-        if sum(nan) > len(filtered_input_signal)//10:
-            return None
-        else:
-            correlation[nan] = 0
-            print("NaN corrected")
-    idx_max = np.argmax(np.abs(correlation))
-    return idx_max
+    return f, t, Zxx_magnitude, energy
 
+def sync_spectrograms(ref, measured):
+    if ref.shape == measured.shape:
+        return 0
+    ref = ref > np.max(ref) * 0.8
+    corr = correlate2d(ref, np.log10(measured), 'valid').squeeze()
+    idx = len(corr) - np.argmax(corr)
+    return idx
+
+def argmax_correlation(input_signal, sync_signal, fs, n_fft=2048):
+    
+    f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
+    f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
+
+    idx_sync = sync_spectrograms(spec_sync, spec_input)
+
+    if idx_sync >= len(t_input):
+        return None
+    
+    sync_signal_time = t_input[idx_sync]
+
+    sample_index = int(sync_signal_time * fs)
+    return sample_index
 
 def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1) -> [float, int]:
     """
@@ -61,13 +73,13 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
     audio_fs, audio_signal = read_wave(audio_file)
     audio_signal = audio_signal[audio_channel, :]
     sync_signal = generate_chirp_signal(sample_rate=audio_fs)
-    audio_shift = argmax_correlation(audio_signal, sync_signal)
+    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs)
 
     video_fs, video_signal = extract_audio_from_video(video_file)
     video_signal = video_signal[video_channel, :]
     if audio_fs != video_fs:
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
-    video_shift = argmax_correlation(video_signal, sync_signal)
+    video_shift = argmax_correlation(video_signal, sync_signal, video_fs)
 
     if None in [audio_shift, video_shift]:
         return video_shift, audio_shift
