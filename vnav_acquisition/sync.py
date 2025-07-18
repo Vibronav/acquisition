@@ -107,10 +107,10 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
     video_shift = argmax_correlation(video_signal, sync_signal, video_fs)
 
-    print(f"Audio shift: {audio_shift}, Video shift: {video_shift}")
+    print(f"Audio shift: {audio_shift} samples, Video shift: {video_shift} samples")
     print(f"Audio fs: {audio_fs}, Video fs: {video_fs}")
-    print(f'Audio shift: {audio_shift/audio_fs}, Video shift: {video_shift/video_fs}')
-    print(f'Audio file duration: {len(audio_signal)/audio_fs}, Video file duration: {len(video_signal)/video_fs}')
+    print(f'Audio shift: {audio_shift/audio_fs} seconds, Video shift: {video_shift/video_fs} seconds')
+    print(f'Audio file duration: {len(audio_signal)/audio_fs} seconds, Video file duration: {len(video_signal)/video_fs} seconds')
 
     if None in [audio_shift, video_shift]:
         return video_shift, audio_shift
