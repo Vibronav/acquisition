@@ -10,7 +10,20 @@ import argparse
 import glob
 from collections import defaultdict
 from scipy.signal import stft, correlate2d
+import matplotlib.pyplot as plt
 
+def debug_plot_sync(ref, input_spec, fs, t_input, idx_sync):
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.title("Widmo wzorca (chirp)")
+    plt.imshow(np.log10(ref + 1e-10), aspect='auto', origin='lower')
+    plt.subplot(1, 2, 2)
+    plt.title("Widmo wejściowe z zaznaczeniem synchronizacji")
+    plt.imshow(np.log10(input_spec + 1e-10), aspect='auto', origin='lower')
+    plt.axvline(x=idx_sync, color='r', linestyle='--', label='Dopasowanie')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
     """EXTRACT AUDIO FILE FROM .WEBM FILE WITH FFMPEG"""
@@ -51,6 +64,8 @@ def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024):
     
     f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
     f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
+
+    debug_plot_sync(spec_sync, spec_input, fs, t_input, 0)
 
     idx_sync = sync_spectrograms(spec_sync, spec_input)
 
