@@ -142,7 +142,7 @@ def make_corners(xc, yc, zc, m_len, axis):
             [xc - mh, yc - mh, zc]   # left-bottom
         ])
 
-def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
+def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=3):
 
     corners, ids, _ = detector.detectMarkers(frame)
     if ids is None:
@@ -192,13 +192,13 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
     while cube_data is None:
         ret, frame = cap.read()
         if not ret:
-            raise RuntimeError("Could not read frame for cube detection.")
+            print(f'Could not find cube in video: {video_path}')
+            return pd.DataFrame()
         
         cube_data = detect_cube_pose(frame, detector_cube, obj_pts_dict, camera_matrix, dist_coeffs)
         init_frame = frame.copy()
         cube_detection_attempts += 1
 
-    print(f"Cube detected after {cube_detection_attempts} attempts.")
     rvec_c, tvec_c, R_inv, corners_c, ids_c = cube_data
     r_c = rvec_c.flatten()
     t_c = tvec_c.flatten()
@@ -263,13 +263,15 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
     cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec_c, tvec_c, axis_length)
     if display:
         cv2.imshow('Cube Detection', init_frame)
-        cv2.waitKey(10000)
+        cv2.waitKey(5000)
 
     prev_y = None
     results = []
     dt = 1 / fps
     frame_idx = 1
-    # cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+    cap.release()
+    cap = cv2.VideoCapture(video_path)
 
     while True:
         ret, frame = cap.read()
@@ -280,7 +282,6 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners_o, ids_o, _ = detector_obj.detectMarkers(frame)
         print(f"Detected {len(corners_o)} markers in frame {frame_idx}.")
-        height = None
         if ids_o is not None and len(ids_o) > 0:
             aruco.drawDetectedMarkers(frame, corners_o, ids_o)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
