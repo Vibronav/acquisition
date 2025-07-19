@@ -1,0 +1,385 @@
+import argparse
+import os
+import cv2
+import cv2.aruco as aruco
+import pandas as pd
+
+
+def show_video_frame(frame, fps, display):
+    if not display:
+        return True
+
+    cv2.imshow('Aruco Tracking', frame)
+    sleep_time = 1000 // fps
+    key = cv2.waitKey(sleep_time) & 0xFF
+    return key != ord("q")
+
+def save_results_to_csv(df, video_path, result_folder):
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    if not os.path.exists(result_folder):
+        os.makedirs(result_folder)
+    output_path = os.path.join(result_folder, f'{video_name}.csv')
+    df.to_csv(output_path, index=False)
+    print(f'Results saved to {output_path}')
+
+"""
+Tracking without cube section
+"""
+
+def track_aruco_no_cube(video_path, marker_length=4, axis_length=4, fps=30, display=True):
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return pd.DataFrame()
+
+    dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    detector = aruco.ArucoDetector(dictionary, aruco.DetectorParameters())
+
+    prev_y = None
+    height_constraint = None
+    results = []
+    dt = 1 / fps
+    frame_idx = 1
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        corners, ids, _ = detector.detectMarkers(frame)
+        if ids is not None and len(ids) > 0:
+            aruco.drawDetectedMarkers(frame, corners, ids)
+            rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length, camera_matrix, dist_coeffs)
+
+            rvec = rvecs[0]
+            tvec = tvecs[0]
+            tvec = tvec.flatten()
+
+            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
+
+            pts = corners[0].reshape(-1, 2)
+            cx, cy = pts.mean(axis=0).astype(int)
+            h, w = frame.shape[:2]
+            cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
+
+            x = tvec[0]
+            y = (tvec[1] * -1)
+            z = tvec[2]
+            if height_constraint is None:
+                height_constraint = y
+            else:
+                y = y - height_constraint
+
+            if prev_y is not None:
+                vy = (y - prev_y) / dt
+                print(f'Speed: {vy:.2f}')
+
+                text = f'Speed: {vy:.2f} cm/s | Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
+                corner = tuple(corners[0][0][0].astype(int))
+                cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+
+            results.append([frame_idx, round(frame_idx / fps, ndigits=2), x, y, z])
+            prev_y = y
+        else:
+            results.append([frame_idx, round(frame_idx / fps, ndigits=2), None, None, None])
+
+        cv2.imwrite(f'tracked_frames/frame_{frame_idx}.jpg', frame)
+
+        if not show_video_frame(frame, fps, display):
+            break
+
+        frame_idx += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+    df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
+    return df
+
+"""
+Tracking with cube section
+"""
+
+def make_corners(xc, yc, zc, m_len, axis):
+    """
+    Order: [left-top, right-top, right-bottom, left-bottom]
+    """
+    mh = m_len / 2.00
+
+    if axis == 'x-': # LEFT
+        return np.array([
+            [xc, yc + mh, zc - mh],  # left-top
+            [xc, yc + mh, zc + mh],  # right-top
+            [xc, yc - mh, zc + mh],  # right-bottom
+            [xc, yc - mh, zc - mh]   # left-bottom
+        ])
+    elif axis == 'x+': # RIGHT
+        return np.array([
+            [xc, yc + mh, zc + mh],  # left-top
+            [xc, yc + mh, zc - mh],  # right-top
+            [xc, yc - mh, zc - mh],  # right-bottom
+            [xc, yc - mh, zc + mh]   # left-bottom
+        ])
+    elif axis == 'y': # UP / DOWN
+        return np.array([
+            [xc - mh, yc, zc - mh],  # left-top
+            [xc + mh, yc, zc - mh],  # right-top
+            [xc + mh, yc, zc + mh],  # right-bottom
+            [xc - mh, yc, zc + mh]   # left-bottom
+        ])
+    elif axis == 'z': # FRONT / BACK
+        return np.array([
+            [xc - mh, yc + mh, zc],  # left-top
+            [xc + mh, yc + mh, zc],  # right-top
+            [xc + mh, yc - mh, zc],  # right-bottom
+            [xc - mh, yc - mh, zc]   # left-bottom
+        ])
+
+def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
+
+    corners, ids, _ = detector.detectMarkers(frame)
+    if ids is None:
+        return None
+    
+    all_obj, all_img = [], []
+    for c, mid in zip(corners, ids.flatten()):
+        if mid in obj_pts_dict:
+            all_obj.append(obj_pts_dict[mid])
+            all_img.append(c.reshape(-1, 2))
+    if len(all_obj) < min_markers:
+        return None
+    
+    obj_pts = np.vstack(all_obj)
+    img_pts = np.vstack(all_img)
+    _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, camera_matrix, dist_coeffs)
+    R_c, _ = cv2.Rodrigues(rvec)
+
+    return rvec, tvec, R_c.T, corners, ids
+
+def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_length_cube=2.9, cube_edge=5.0, fps=30, display=True):
+    
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return pd.DataFrame()
+    
+    params = aruco.DetectorParameters()
+
+    dict_cube = aruco.getPredefinedDictionary(aruco.DICT_5X5_100)
+    detector_cube = aruco.ArucoDetector(dict_cube, params)
+    dict_marker = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    detector_obj = aruco.ArucoDetector(dict_marker, params)
+
+    half_edge = cube_edge / 2.0
+    obj_pts_dict = {
+        0: make_corners(0.0, half_edge, 0.0, marker_length_cube, 'y'), # TOP
+        1: make_corners(0.0, 0.0, half_edge, marker_length_cube, 'z'), # FRONT
+        2: make_corners(-half_edge, 0.0, 0.0, marker_length_cube, 'x-'), # LEFT
+        3: make_corners(half_edge, 0.0, 0.0, marker_length_cube, 'x+'), # RIGHT
+    }
+
+    cube_data = None
+    init_frame = None
+
+    cube_detection_attempts = 0
+    while cube_data is None:
+        ret, frame = cap.read()
+        if not ret:
+            raise RuntimeError("Could not read frame for cube detection.")
+        
+        cube_data = detect_cube_pose(frame, detector_cube, obj_pts_dict, camera_matrix, dist_coeffs)
+        init_frame = frame.copy()
+        cube_detection_attempts += 1
+
+    print(f"Cube detected after {cube_detection_attempts} attempts.")
+    rvec_c, tvec_c, R_inv, corners_c, ids_c = cube_data
+    r_c = rvec_c.flatten()
+    t_c = tvec_c.flatten()
+    x_c, y_c, z_c = t_c
+    text = f'Cube Position: X: {x_c:.2f}cm, Y: {y_c:.2f}cm, Z: {z_c:.2f}cm'
+    cv2.putText(init_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    # center2d, _ = cv2.projectPoints(
+    #     np.array([[0.0, 0.0, 0.0]], dtype=np.float32),
+    #     rvec_c, tvec_c, camera_matrix, dist_coeffs
+    # )
+    # cx, cy = center2d.ravel().astype(int)
+    # cv2.circle(init_frame, (cx, cy), 5, (125, 0, 125), -1)
+
+    # pts3d = np.float32([
+    #     [0, 0, 0],        # środek
+    #     [10, 0, 0],        # X+
+    #     [0, 10, 0],        # Y+
+    #     [0, 0, 10],        # Z+
+    # ])
+    # colors = [(255, 255, 255), (0, 0, 255), (0, 255, 0), (255, 0, 0)]  # white, red, green, blue
+
+    # pts2d, _ = cv2.projectPoints(pts3d, rvec_c, tvec_c, camera_matrix, dist_coeffs)
+    # for (x, y), color in zip(pts2d.reshape(-1, 2).astype(int), colors):
+    #     cv2.circle(init_frame, (x, y), 6, color, -1)
+
+    origin3d = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+
+    corners3d = []
+    colors = []
+
+    for fid, pts3d in obj_pts_dict.items():
+        corners3d.append(pts3d)
+
+        if fid == 0:  # TOP
+            col = (0, 255, 0)  # green
+        elif fid == 1:  # FRONT
+            col = (255, 0, 0)  # blue
+        elif fid == 2:  # LEFT
+            col = (0, 0, 255)  # red
+        elif fid == 3:  # RIGHT
+            col = (0, 255, 255)  # yellow
+        colors += [col] * 4
+
+    corners3d = np.vstack(corners3d).astype(np.float32)
+
+    all3d = np.vstack([origin3d, corners3d])
+    all2d, _ = cv2.projectPoints(
+        all3d, rvec_c, tvec_c, camera_matrix, dist_coeffs
+    )
+
+    all2d = all2d.reshape(-1, 2).astype(int)
+
+    cx, cy = all2d[0]
+    cv2.circle(init_frame, (cx, cy), 6, (255, 255, 255), -1)
+
+    for pt, col in zip(all2d[1:], colors):
+        cv2.circle(init_frame, tuple(pt), 2, col, -1)
+
+
+    # aruco.drawDetectedMarkers(init_frame, corners_c, ids_c)
+    cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec_c, tvec_c, axis_length)
+    if display:
+        cv2.imshow('Cube Detection', init_frame)
+        cv2.waitKey(10000)
+
+    prev_y = None
+    results = []
+    dt = 1 / fps
+    frame_idx = 1
+    # cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        print(f"Processing frame {frame_idx}...")
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        corners_o, ids_o, _ = detector_obj.detectMarkers(frame)
+        print(f"Detected {len(corners_o)} markers in frame {frame_idx}.")
+        height = None
+        if ids_o is not None and len(ids_o) > 0:
+            aruco.drawDetectedMarkers(frame, corners_o, ids_o)
+            rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
+
+            t_o = tvecs[0].flatten()
+            r_o = rvecs[0]
+
+            t_oc = R_inv.dot(t_o - t_c)
+            x = t_oc[0]
+            y = t_oc[1] + half_edge
+            z = t_oc[2]
+
+            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
+
+            pts = corners_o[0].reshape(-1, 2)
+            cx, cy = pts.mean(axis=0).astype(int)
+            h, w = frame.shape[:2]
+            cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
+
+            if prev_y is not None:
+                vy = (y - prev_y) / dt
+                print(f'Speed: {vy:.2f}')
+
+                text = f'Speed: {vy:.2f} cm/s | Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
+                corner = tuple(corners_o[0][0][0].astype(int))
+                cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+
+            results.append([frame_idx, round(frame_idx / fps, ndigits=2), x, y, z])
+            prev_y = y
+        else:
+            results.append([frame_idx, round(frame_idx / fps, ndigits=2), None, None, None])
+
+        cv2.imwrite(f'tracked_frames/frame_{frame_idx}.jpg', frame)
+        if not show_video_frame(frame, fps, display):
+            break
+
+        frame_idx += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+    df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
+    return df
+
+def run_aruco_tracking_for_folder(folder_path, cube_mode, display=True):
+    if not os.path.exists(folder_path):
+        print(f"Error: Folder {folder_path} does not exist.")
+        return
+
+    video_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.mp4')]
+    result_folder = os.path.join(os.path.dirname(folder_path), 'labelled_positions')
+    for video_path in video_paths:
+        print(f"Processing video: {video_path}")
+        if(cube_mode):
+            df = track_aruco_cube(video_path, display=display)
+        else:
+            df = track_aruco_no_cube(video_path, display=display)
+        if not df.empty:
+            save_results_to_csv(df, video_path, result_folder)
+
+def process_recursive(root_folder, cube_mode, display=True):
+    for root, dirs, files in os.walk(root_folder):
+        video_files = [f for f in files if f.endswith('.mp4')]
+        if video_files:
+            print(f"Found video files in {root}: {len(video_files)}")
+            run_aruco_tracking_for_folder(root, cube_mode, display=display)
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder" \
+        "or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset)."
+    )
+    parser.add_argument("--video-path", required=True, help="Path to folder with videos")
+    parser.add_argument("--recursive", action="store_true", help="Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)")
+    parser.add_argument("--display", action="store_true", default=False, help="If true will display tracker on video")
+    parser.add_argument("--cube", action="store_true", help="If provided will use cube to detect table grund")
+    parser.add_argument("--no-cube", action="store_true", help="If provided will NOT use cube to detect table grund")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    folder_path = args.video_path
+    if not os.path.exists(folder_path):
+        print(f"Folder {folder_path} not found.")
+        return
+
+    if not args.cube and not args.no_cube:
+        print("Please you have to specify either --cube or --no-cube.")
+        return
+
+    if args.cube and args.no_cube:
+        print("You cannot specify both --cube and --no-cube.")
+        return
+    
+    recursive = args.recursive
+    display = args.display
+    if(args.cube):
+        print("Running in cube mode.")
+        cube_mode = True
+    elif(args.no_cube):
+        print("Running in no-cube mode.")
+        cube_mode = False
+    
+    if recursive:
+        process_recursive(folder_path, cube_mode, display=display)
+    else:
+        run_aruco_tracking_for_folder(folder_path, cube_mode, display=display)
