@@ -3,7 +3,13 @@ import os
 import cv2
 import cv2.aruco as aruco
 import pandas as pd
+import numpy as np
 
+camera_matrix = np.array([[635.87, 0.0, 640],
+                            [0.0, 635.3, 360],
+                            [0.0, 0.0, 1.0]])
+
+dist_coeffs = np.array([0.12, -0.34, 0.0, 0.0, 0.18])
 
 def show_video_frame(frame, fps, display):
     if not display:
@@ -332,6 +338,7 @@ def run_aruco_tracking_for_folder(folder_path, cube_mode, display=True):
             df = track_aruco_cube(video_path, display=display)
         else:
             df = track_aruco_no_cube(video_path, display=display)
+
         if not df.empty:
             save_results_to_csv(df, video_path, result_folder)
 
@@ -339,7 +346,7 @@ def process_recursive(root_folder, cube_mode, display=True):
     for root, dirs, files in os.walk(root_folder):
         video_files = [f for f in files if f.endswith('.mp4')]
         if video_files:
-            print(f"Found video files in {root}: {len(video_files)}")
+            print(f"Running for videos in {root}: {len(video_files)} files")
             run_aruco_tracking_for_folder(root, cube_mode, display=display)
 
 def parse_args():
@@ -383,3 +390,6 @@ def main():
         process_recursive(folder_path, cube_mode, display=display)
     else:
         run_aruco_tracking_for_folder(folder_path, cube_mode, display=display)
+
+if __name__ == "__main__":
+    main()
