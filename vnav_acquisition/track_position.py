@@ -163,7 +163,7 @@ def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, 
 
     return rvec, tvec, R_c.T, corners, ids
 
-def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_length_cube=2.9, cube_edge=5.0, fps=30, display=True):
+def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_length_cube=2.85, cube_edge_top=5.0, cube_edge_sides=4.95, fps=30, display=True):
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -177,12 +177,13 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
     dict_marker = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     detector_obj = aruco.ArucoDetector(dict_marker, params)
 
-    half_edge = cube_edge / 2.0
+    half_edge = cube_edge_top / 2.0
+    half_edge_sides = cube_edge_sides / 2.0
     obj_pts_dict = {
         0: make_corners(0.0, half_edge, 0.0, marker_length_cube, 'y'), # TOP
-        1: make_corners(0.0, 0.0, half_edge, marker_length_cube, 'z'), # FRONT
-        2: make_corners(-half_edge, 0.0, 0.0, marker_length_cube, 'x-'), # LEFT
-        3: make_corners(half_edge, 0.0, 0.0, marker_length_cube, 'x+'), # RIGHT
+        1: make_corners(0.0, 0.0, half_edge_sides, marker_length_cube, 'z'), # FRONT
+        2: make_corners(-half_edge_sides, 0.0, 0.0, marker_length_cube, 'x-'), # LEFT
+        3: make_corners(half_edge_sides, 0.0, 0.0, marker_length_cube, 'x+'), # RIGHT
     }
 
     cube_data = None
@@ -205,25 +206,6 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
     x_c, y_c, z_c = t_c
     text = f'Cube Position: X: {x_c:.2f}cm, Y: {y_c:.2f}cm, Z: {z_c:.2f}cm'
     cv2.putText(init_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
-    # center2d, _ = cv2.projectPoints(
-    #     np.array([[0.0, 0.0, 0.0]], dtype=np.float32),
-    #     rvec_c, tvec_c, camera_matrix, dist_coeffs
-    # )
-    # cx, cy = center2d.ravel().astype(int)
-    # cv2.circle(init_frame, (cx, cy), 5, (125, 0, 125), -1)
-
-    # pts3d = np.float32([
-    #     [0, 0, 0],        # środek
-    #     [10, 0, 0],        # X+
-    #     [0, 10, 0],        # Y+
-    #     [0, 0, 10],        # Z+
-    # ])
-    # colors = [(255, 255, 255), (0, 0, 255), (0, 255, 0), (255, 0, 0)]  # white, red, green, blue
-
-    # pts2d, _ = cv2.projectPoints(pts3d, rvec_c, tvec_c, camera_matrix, dist_coeffs)
-    # for (x, y), color in zip(pts2d.reshape(-1, 2).astype(int), colors):
-    #     cv2.circle(init_frame, (x, y), 6, color, -1)
 
     origin3d = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
 
