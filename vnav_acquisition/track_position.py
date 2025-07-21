@@ -335,7 +335,9 @@ def process_recursive(root_folder, cube_mode, display=True):
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder" \
-        "or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset)."
+        "or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset)." \
+        "For each processed video folder, an output folder named 'labelled_positions' will be created at the same level" \
+        "as the folder containing the videos. In recursive mode , multiple such output folders will be created."
     )
     parser.add_argument("--video-path", required=True, help="Path to folder with videos")
     parser.add_argument("--recursive", action="store_true", help="Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)")

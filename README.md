@@ -92,6 +92,8 @@ usage: vnav_annotate_positions --video-path VIDEO_FOLDER_PATH (--cube | --no-cub
 
 Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder
 or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset).
+For each processed video folder, an output folder named 'labelled_positions' will be created at the same level
+as the folder containing the videos. In recursive mode , multiple such output folders will be created.
 
 options:
   -h, --help            show this help message and exit
