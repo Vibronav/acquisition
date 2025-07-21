@@ -142,7 +142,7 @@ def make_corners(xc, yc, zc, m_len, axis):
             [xc - mh, yc - mh, zc]   # left-bottom
         ])
 
-def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=3):
+def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
 
     corners, ids, _ = detector.detectMarkers(frame)
     if ids is None:
