@@ -99,6 +99,8 @@ options:
   -h, --help            show this help message and exit
   --video-path VIDEO_PATH
                         Path to folder with videos
+  --marker-length MARKER_LENGTH
+                        Length of the Aruco marker in cm (default: 4.0 cm)                      
   --recursive           Flag to run recursively in subfolders of video-path (good for annotating all     
                         videos in dataset)
   --display             If true will display tracker on video

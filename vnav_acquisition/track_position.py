@@ -308,7 +308,7 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
     df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
     return df
 
-def run_aruco_tracking_for_folder(folder_path, cube_mode, display=True):
+def run_aruco_tracking_for_folder(folder_path, cube_mode, marker_length_obj = 4.0, display=True):
     if not os.path.exists(folder_path):
         print(f"Error: Folder {folder_path} does not exist.")
         return
@@ -318,19 +318,19 @@ def run_aruco_tracking_for_folder(folder_path, cube_mode, display=True):
     for video_path in video_paths:
         print(f"Processing video: {video_path}")
         if(cube_mode):
-            df = track_aruco_cube(video_path, display=display)
+            df = track_aruco_cube(video_path, marker_length_obj=marker_length_obj, display=display)
         else:
-            df = track_aruco_no_cube(video_path, display=display)
+            df = track_aruco_no_cube(video_path, marker_length_obj=marker_length_obj, display=display)
 
         if not df.empty:
             save_results_to_csv(df, video_path, result_folder)
 
-def process_recursive(root_folder, cube_mode, display=True):
+def process_recursive(root_folder, cube_mode, marker_length_obj=4.0, display=True):
     for root, dirs, files in os.walk(root_folder):
         video_files = [f for f in files if f.endswith('.mp4')]
         if video_files:
             print(f"Running for videos in {root}: {len(video_files)} files")
-            run_aruco_tracking_for_folder(root, cube_mode, display=display)
+            run_aruco_tracking_for_folder(root, cube_mode, marker_length_obj=marker_length_obj, display=display)
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -340,6 +340,7 @@ def parse_args():
         "as the folder containing the videos. In recursive mode , multiple such output folders will be created."
     )
     parser.add_argument("--video-path", required=True, help="Path to folder with videos")
+    parser.add_argument("--marker-length", type=float, default=4.0, help="Length of the Aruco marker in cm (default: 4.0 cm)")
     parser.add_argument("--recursive", action="store_true", help="Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)")
     parser.add_argument("--display", action="store_true", default=False, help="If true will display tracker on video")
     parser.add_argument("--cube", action="store_true", help="If provided will use cube to detect table grund")
@@ -370,11 +371,13 @@ def main():
     elif(args.no_cube):
         print("Running in no-cube mode.")
         cube_mode = False
+
+    marker_length_obj = args.marker_length
     
     if recursive:
-        process_recursive(folder_path, cube_mode, display=display)
+        process_recursive(folder_path, cube_mode, marker_length_obj=marker_length_obj, display=display)
     else:
-        run_aruco_tracking_for_folder(folder_path, cube_mode, display=display)
+        run_aruco_tracking_for_folder(folder_path, cube_mode, marker_length_obj=marker_length_obj, display=display)
 
 if __name__ == "__main__":
     main()
