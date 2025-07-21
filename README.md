@@ -86,6 +86,25 @@ options:
                         files)
 ```
 
+## vnav_annotate_positions
+```
+usage: vnav_annotate_positions --video-path VIDEO_FOLDER_PATH (--cube | --no-cube) [--recursive] [--display]
+
+Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder
+or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset).
+
+options:
+  -h, --help            show this help message and exit
+  --video-path VIDEO_PATH
+                        Path to folder with videos
+  --recursive           Flag to run recursively in subfolders of video-path (good for annotating all     
+                        videos in dataset)
+  --display             If true will display tracker on video
+  --cube                If provided will use cube to detect table grund
+  --no-cube             If provided will NOT use cube to detect table grund
+
+```
+
 ## Installation
 
 Requires Python 3.10. To install tool, run in command line:
