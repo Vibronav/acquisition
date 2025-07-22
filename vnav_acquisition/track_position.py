@@ -32,7 +32,7 @@ def save_results_to_csv(df, video_path, result_folder):
 Tracking without cube section
 """
 
-def track_aruco_no_cube(video_path, marker_length=4, axis_length=4, fps=30, display=True):
+def track_aruco_no_cube(video_path, marker_length_obj=4, axis_length=4, fps=30, display=True):
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -56,7 +56,7 @@ def track_aruco_no_cube(video_path, marker_length=4, axis_length=4, fps=30, disp
         corners, ids, _ = detector.detectMarkers(frame)
         if ids is not None and len(ids) > 0:
             aruco.drawDetectedMarkers(frame, corners, ids)
-            rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length, camera_matrix, dist_coeffs)
+            rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
             rvec = rvecs[0]
             tvec = tvecs[0]
