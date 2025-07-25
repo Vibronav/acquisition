@@ -9,7 +9,7 @@ from vnav_acquisition.sound import generate_chirp_signal
 import argparse
 import glob
 from collections import defaultdict
-from scipy.signal import stft, correlate2d
+from scipy.signal import stft, correlate2d, firwin, filtfilt, windows
 import matplotlib.pyplot as plt
 
 def debug_plot_sync(ref, input_spec, fs, t_input, idx_sync):
@@ -25,12 +25,20 @@ def debug_plot_sync(ref, input_spec, fs, t_input, idx_sync):
     plt.tight_layout()
     plt.show()
 
+def strength_sync_signal(signal, fs, L_LP=129, lp_cut=400, hp_cut=2000, at=80):
+    w = ('chebwin', at)
+    b_lp = firwin(L_LP, lp_cut / (fs / 2), window=w)
+    b_hp = firwin(L_LP, hp_cut / (fs / 2), window=w, pass_zero=False)
+    signal_hp = filtfilt(b_hp, 1, signal)
+    signal_lp = filtfilt(b_lp, 1, signal_hp)
+    return signal_lp
+
 def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
     """EXTRACT AUDIO FILE FROM .WEBM FILE WITH FFMPEG"""
     with tempfile.TemporaryDirectory() as tmpdirname:
         # convert .webm file to .wav file (extract audio from video file)
         tmp_wav_file = os.path.join(tmpdirname, os.path.basename(video_file) + ".wav")
-        ffmpeg_command = ['ffmpeg', '-i', video_file, tmp_wav_file]
+        ffmpeg_command = ['ffmpeg', '-loglevel', 'error', '-i', video_file, tmp_wav_file]
 
         # execute FFmpeg from PowerShell
         try:
@@ -52,22 +60,29 @@ def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, s
 
     return f, t, Zxx_magnitude, energy
 
-def sync_spectrograms(ref, measured):
+def sync_spectrograms(ref, measured, move=True):
     if ref.shape == measured.shape:
         return 0
     ref = ref > np.max(ref) * 0.8
-    corr = correlate2d(ref, np.log10(measured), 'valid').squeeze()
-    idx = len(corr) - np.argmax(corr)
+    corr = correlate2d(ref, np.log10(measured + 1e-10), 'valid').squeeze()
+    print(f"Max correlation: {np.max(corr)}")
+    if move:
+        idx = len(corr) - np.argmax(corr)
+    else:
+        idx = np.argmax(corr)
     return idx
 
-def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024):
+def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024, move=True):
+
+    input_signal = strength_sync_signal(input_signal, fs)
+    sync_signal = strength_sync_signal(sync_signal, fs)
     
     f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
     f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
 
-    debug_plot_sync(spec_sync, spec_input, fs, t_input, 0)
+    idx_sync = sync_spectrograms(spec_sync, spec_input, move=move)
 
-    idx_sync = sync_spectrograms(spec_sync, spec_input)
+    debug_plot_sync(spec_sync, spec_input, fs, t_input, idx_sync)
 
     if idx_sync >= len(t_input):
         return None
@@ -114,13 +129,13 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
     audio_fs, audio_signal = read_wave(audio_file)
     audio_signal = audio_signal[audio_channel, :]
     sync_signal = generate_chirp_signal(sample_rate=audio_fs)
-    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs)
+    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs, move=False)
 
     video_fs, video_signal = extract_audio_from_video(video_file)
     video_signal = video_signal[video_channel, :]
     if audio_fs != video_fs:
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
-    video_shift = argmax_correlation(video_signal, sync_signal, video_fs)
+    video_shift = argmax_correlation(video_signal, sync_signal, video_fs, move=True)
 
     print(f"Audio shift: {audio_shift} samples, Video shift: {video_shift} samples")
     print(f"Audio fs: {audio_fs}, Video fs: {video_fs}")
