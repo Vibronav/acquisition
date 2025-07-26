@@ -9,10 +9,10 @@ from vnav_acquisition.sound import generate_chirp_signal
 import argparse
 import glob
 from collections import defaultdict
-from scipy.signal import stft, correlate2d, firwin, filtfilt, windows
+from scipy.signal import stft, correlate2d, firwin, filtfilt, fftconvolve, windows
 import matplotlib.pyplot as plt
 
-def debug_plot_sync(ref, input_spec, fs, t_input, idx_sync):
+def debug_plot_sync(ref, input_spec, idx_sync):
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
     plt.title("Widmo wzorca (chirp)")
@@ -25,13 +25,26 @@ def debug_plot_sync(ref, input_spec, fs, t_input, idx_sync):
     plt.tight_layout()
     plt.show()
 
-def strength_sync_signal(signal, fs, L_LP=129, lp_cut=400, hp_cut=2000, at=80):
-    w = ('chebwin', at)
-    b_lp = firwin(L_LP, lp_cut / (fs / 2), window=w)
-    b_hp = firwin(L_LP, hp_cut / (fs / 2), window=w, pass_zero=False)
-    signal_hp = filtfilt(b_hp, 1, signal)
-    signal_lp = filtfilt(b_lp, 1, signal_hp)
-    return signal_lp
+def debug_plot_audio(x, s, corr, idx_peak, fs):
+    t_x = np.arange(len(x)) / fs
+    t_corr = np.arange(len(corr)) / fs
+
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(2, 1, 1)
+    plt.title("Sygnał audio po filtracji pasmowej")
+    plt.plot(t_x, x)
+    plt.ylabel("amplituda")
+
+    plt.subplot(2, 1, 2)
+    plt.title("Korelacja z chirpem (filtr dopasowany)")
+    plt.plot(t_corr, corr)
+    plt.axvline(idx_peak / fs, color="r", linestyle="--", label="maksimum")
+    plt.xlabel("czas [s]")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
     """EXTRACT AUDIO FILE FROM .WEBM FILE WITH FFMPEG"""
@@ -60,29 +73,24 @@ def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, s
 
     return f, t, Zxx_magnitude, energy
 
-def sync_spectrograms(ref, measured, move=True):
+def sync_spectrograms(ref, measured):
     if ref.shape == measured.shape:
         return 0
     ref = ref > np.max(ref) * 0.8
     corr = correlate2d(ref, np.log10(measured + 1e-10), 'valid').squeeze()
     print(f"Max correlation: {np.max(corr)}")
-    if move:
-        idx = len(corr) - np.argmax(corr)
-    else:
-        idx = np.argmax(corr)
+    idx = len(corr) - np.argmax(corr)
+    
     return idx
 
-def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024, move=True):
-
-    input_signal = strength_sync_signal(input_signal, fs)
-    sync_signal = strength_sync_signal(sync_signal, fs)
+def argmax_correlation(input_signal, sync_signal, fs, n_fft=1024):
     
     f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
     f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
 
-    idx_sync = sync_spectrograms(spec_sync, spec_input, move=move)
+    idx_sync = sync_spectrograms(spec_sync, spec_input)
 
-    debug_plot_sync(spec_sync, spec_input, fs, t_input, idx_sync)
+    debug_plot_sync(spec_sync, spec_input, idx_sync)
 
     if idx_sync >= len(t_input):
         return None
@@ -127,15 +135,20 @@ def find_delay_by_sync(video_file, audio_file, video_channel=0, audio_channel=-1
     :return: Audio file delay in seconds, in respect to audio from video file.
     """
     audio_fs, audio_signal = read_wave(audio_file)
+    print(audio_signal.shape, audio_signal.dtype)
+    for ch in range(audio_signal.shape[0]):
+        print(f"Kanał {ch}: RMS =",
+            np.sqrt(np.mean(audio_signal[ch].astype(np.float64)**2)))
+
     audio_signal = audio_signal[audio_channel, :]
     sync_signal = generate_chirp_signal(sample_rate=audio_fs)
-    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs, move=False)
+    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs)
 
     video_fs, video_signal = extract_audio_from_video(video_file)
     video_signal = video_signal[video_channel, :]
     if audio_fs != video_fs:
         sync_signal = generate_chirp_signal(sample_rate=video_fs)
-    video_shift = argmax_correlation(video_signal, sync_signal, video_fs, move=True)
+    video_shift = argmax_correlation(video_signal, sync_signal, video_fs)
 
     print(f"Audio shift: {audio_shift} samples, Video shift: {video_shift} samples")
     print(f"Audio fs: {audio_fs}, Video fs: {video_fs}")
@@ -155,7 +168,7 @@ def add_audio_annotations(video_file, audio_file, annotation_file):
     if "audio_annotations" in annotation_set:
         return f"'audio_annotations' already present in : {annotation_file}"
 
-    audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file)
+    audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file, audio_channel=0)
 
     if audio_delay is None:
         return f"Video file sound corrupted: {video_file}"
