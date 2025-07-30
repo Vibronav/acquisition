@@ -35,7 +35,7 @@ def save_results_to_csv(df, video_path, result_folder):
 Tracking without cube section
 """
 
-def track_aruco_no_cube(video_path, marker_length_obj=4, axis_length=4, fps=30, display=True):
+def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length=4, needle_offset=0.0, fps=30, display=True):
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -45,6 +45,7 @@ def track_aruco_no_cube(video_path, marker_length_obj=4, axis_length=4, fps=30, 
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     detector = aruco.ArucoDetector(dictionary, aruco.DetectorParameters())
 
+    needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
     height_constraint = None
     results = []
@@ -57,29 +58,62 @@ def track_aruco_no_cube(video_path, marker_length_obj=4, axis_length=4, fps=30, 
             break
 
         corners, ids, _ = detector.detectMarkers(frame)
+        corners = list(corners)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        for i, c in enumerate(corners):
+            corners[i] = cv2.cornerSubPix(
+                gray, c,
+                winSize=(5,5),
+                zeroZone=(-1,-1),
+                criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.001)
+            )        
         if ids is not None and len(ids) > 0:
             aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
-            rvec = rvecs[0]
-            tvec = tvecs[0]
-            tvec = tvec.flatten()
+            if dobot_mode:
+                rvec = rvecs[0]
+                tvec = tvecs[0].flatten()
 
-            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
+                x = tvec[0]
+                y = (tvec[1] * -1) - needle_offset
+                z = tvec[2]
+            else:
+                rvec = rvecs[0].reshape(3, 1)
+                tvec = tvecs[0].reshape(3, 1)
+                R_o, _ = cv2.Rodrigues(rvec)
 
-            pts = corners[0].reshape(-1, 2)
-            cx, cy = pts.mean(axis=0).astype(int)
-            h, w = frame.shape[:2]
-            cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
+                t_needle = (R_o @ needle_coord.T + tvec).flatten()
 
-            x = tvec[0]
-            y = (tvec[1] * -1)
-            z = tvec[2]
+                x = t_needle[0]
+                y = (t_needle[1] * -1)
+                z = t_needle[2]
+
             if height_constraint is None:
                 height_constraint = y
                 y = 0
             else:
                 y = y - height_constraint
+
+            ### Helper line to labelling
+            pts = corners[0].reshape(-1, 2)
+            cx, cy = pts.mean(axis=0).astype(int)
+            h, w = frame.shape[:2]
+            cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
+
+            if not dobot_mode:
+                tip2d, _ = cv2.projectPoints(
+                    np.array([t_needle], dtype=np.float32),
+                    np.zeros((3, 1)), np.zeros((3, 1)),
+                    camera_matrix, dist_coeffs
+                )
+                u, v = tip2d.ravel().astype(int)
+
+                cv2.circle(frame, (u, v), 2, (0, 0, 255), 1)
+                cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)            
+            ### Helper line to labelling
+
+            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
 
             if prev_y is not None:
                 vy = (y - prev_y) / dt
@@ -148,6 +182,15 @@ def make_corners(xc, yc, zc, m_len, axis):
 def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
 
     corners, ids, _ = detector.detectMarkers(frame)
+    corners = list(corners)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    for i, c in enumerate(corners):
+        corners[i] = cv2.cornerSubPix(
+            gray, c,
+            winSize=(5,5),
+            zeroZone=(-1,-1),
+            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        )
     if ids is None:
         return None
     
@@ -162,11 +205,22 @@ def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, 
     obj_pts = np.vstack(all_obj)
     img_pts = np.vstack(all_img)
     _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, camera_matrix, dist_coeffs)
+
     R_c, _ = cv2.Rodrigues(rvec)
 
     return rvec, tvec, R_c.T, corners, ids
 
-def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_length_cube=2.85, cube_edge_top=5.0, cube_edge_sides=4.95, fps=30, display=True):
+def track_aruco_cube(
+        video_path,
+        dobot_mode, 
+        marker_length_obj=4, 
+        axis_length=4, 
+        marker_length_cube=3, 
+        cube_edge_top=5.0, 
+        cube_edge_sides=5, 
+        needle_offset=0,
+        fps=30, 
+        display=True):
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -244,12 +298,13 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
         cv2.circle(init_frame, tuple(pt), 2, col, -1)
 
 
-    # aruco.drawDetectedMarkers(init_frame, corners_c, ids_c)
+    aruco.drawDetectedMarkers(init_frame, corners_c, ids_c)
     cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec_c, tvec_c, axis_length)
     if display:
         cv2.imshow('Cube Detection', init_frame)
         cv2.waitKey(5000)
 
+    needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
     results = []
     dt = 1 / fps
@@ -264,27 +319,60 @@ def track_aruco_cube(video_path, marker_length_obj=4, axis_length=4, marker_leng
             break
         
         print(f"Processing frame {frame_idx}...")
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners_o, ids_o, _ = detector_obj.detectMarkers(frame)
-        print(f"Detected {len(corners_o)} markers in frame {frame_idx}.")
+        corners_o = list(corners_o)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        for i, c in enumerate(corners_o):
+            corners_o[i] = cv2.cornerSubPix(
+                gray, c,
+                winSize=(5,5),
+                zeroZone=(-1,-1),
+                criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+            )
         if ids_o is not None and len(ids_o) > 0:
             aruco.drawDetectedMarkers(frame, corners_o, ids_o)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
 
-            t_o = tvecs[0].flatten()
-            r_o = rvecs[0]
+            if dobot_mode:
+                r_o = rvecs[0]
+                t_o = tvecs[0].flatten()
+                R_o, _ = cv2.Rodrigues(r_o)
+                # t_o = (R_o @ np.array([[0.0, 0.0, 0.0]], dtype=np.float32).T + t_o).flatten()
 
-            t_oc = R_inv.dot(t_o - t_c)
-            x = t_oc[0]
-            y = t_oc[1] + half_edge
-            z = t_oc[2]
+                t_oc = R_inv.dot(t_o - t_c)
+                x = t_oc[0]
+                y = t_oc[1] + half_edge - needle_offset
+                z = t_oc[2]
+            else:
+                r_o = rvecs[0].reshape(3, 1)
+                t_o = tvecs[0].reshape(3, 1)
+                R_o, _ = cv2.Rodrigues(r_o)
 
-            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
+                t_needle = (R_o @ needle_coord.T + t_o).flatten()
+                t_needle_cube = R_inv.dot(t_needle - t_c)
+                x = t_needle_cube[0]
+                y = t_needle_cube[1] + half_edge
+                z = t_needle_cube[2]
 
+            ### Helper line to labelling
             pts = corners_o[0].reshape(-1, 2)
             cx, cy = pts.mean(axis=0).astype(int)
             h, w = frame.shape[:2]
             cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
+
+            if not dobot_mode:
+                tip2d, _ = cv2.projectPoints(
+                    np.array([t_needle_cube], dtype=np.float32),
+                    rvec_c, tvec_c,
+                    camera_matrix, dist_coeffs
+                )
+                u, v = tip2d.ravel().astype(int)
+
+                cv2.circle(frame, (u, v), 3, (0, 0, 255), 1)
+                cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)
+            ### Helper line to labelling
+
+            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
 
             if prev_y is not None:
                 vy = (y - prev_y) / dt
@@ -324,7 +412,7 @@ def calculate_speed(file_path, fps=30, frame_interval=1):
 
     df.to_csv(file_path, index=False)
 
-def run_aruco_tracking_for_folder(folder_path, cube_mode, marker_length_obj=4.0, fps=30, display=True):
+def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, marker_length_obj=4.0, needle_offset=0.0, fps=30, display=True):
     if not os.path.exists(folder_path):
         print(f"Error: Folder {folder_path} does not exist.")
         return
@@ -334,19 +422,19 @@ def run_aruco_tracking_for_folder(folder_path, cube_mode, marker_length_obj=4.0,
     for video_path in video_paths:
         print(f"Processing video: {video_path}")
         if(cube_mode):
-            df = track_aruco_cube(video_path, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            df = track_aruco_cube(video_path, dobot_mode, marker_length_obj=marker_length_obj, needle_offset=needle_offset, fps=fps, display=display)
         else:
-            df = track_aruco_no_cube(video_path, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            df = track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=marker_length_obj, needle_offset=needle_offset, fps=fps, display=display)
 
         if not df.empty:
             save_results_to_csv(df, video_path, result_folder)
 
-def process_recursive(root_folder, cube_mode, marker_length_obj=4.0, fps=30, display=True):
+def process_recursive(root_folder, cube_mode, dobot_mode, marker_length_obj=4.0, needle_offset=0.0, fps=30, display=True):
     for root, dirs, files in os.walk(root_folder):
         video_files = [f for f in files if f.endswith('.mp4')]
         if video_files:
             print(f"Running for videos in {root}: {len(video_files)} files")
-            run_aruco_tracking_for_folder(root, cube_mode, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            run_aruco_tracking_for_folder(root, cube_mode, dobot_mode, marker_length_obj=marker_length_obj, needle_offset=needle_offset, fps=fps, display=display)
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -362,6 +450,10 @@ def parse_args():
     parser.add_argument("--display", action="store_true", default=False, help="If true will display tracker on video")
     parser.add_argument("--cube", action="store_true", help="If provided will use cube to detect table grund")
     parser.add_argument("--no-cube", action="store_true", help="If provided will NOT use cube to detect table grund")
+    parser.add_argument("--dobot", action="store_true", help="Argument need to be provided if dobot is used during recordings")
+    parser.add_argument("--no-dobot", action="store_true", help="Argument need to be provided if dobot is NOT used during recordings")
+    parser.add_argument("--needle-offset", type=float, default=0.0, help="Distance from needle tip to marker center in cm"
+                        " (When on default it will track marker center)")
     return parser.parse_args()
 
 def main():
@@ -380,6 +472,14 @@ def main():
         print("You cannot specify both --cube and --no-cube.")
         return
     
+    if not args.dobot and not args.no_dobot:
+        print("Please you have to specify either --dobot or --no-dobot.")
+        return
+    
+    if args.dobot and args.no_dobot:
+        print("You cannot specify both --dobot and --no-dobot.")
+        return
+    
     recursive = args.recursive
     display = args.display
     if(args.cube):
@@ -389,13 +489,21 @@ def main():
         print("Running in no-cube mode.")
         cube_mode = False
 
+    if(args.dobot):
+        print("Tracking for dobot.")
+        dobot_mode = True
+    elif(args.no_dobot):
+        print("Tracking for no manual.")
+        dobot_mode = False
+
     marker_length_obj = args.marker_length
     fps = args.fps
+    needle_offset = args.needle_offset
     
     if recursive:
-        process_recursive(folder_path, cube_mode, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        process_recursive(folder_path, cube_mode, dobot_mode, marker_length_obj=marker_length_obj, needle_offset=needle_offset, fps=fps, display=display)
     else:
-        run_aruco_tracking_for_folder(folder_path, cube_mode, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, marker_length_obj=marker_length_obj, needle_offset=needle_offset, fps=fps, display=display)
 
 if __name__ == "__main__":
     main()
