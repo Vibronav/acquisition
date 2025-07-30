@@ -45,7 +45,8 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     detector = aruco.ArucoDetector(dictionary, aruco.DetectorParameters())
 
-    needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+    if not dobot_mode:
+        needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
     height_constraint = None
     results = []
@@ -216,7 +217,7 @@ def track_aruco_cube(
         marker_length_obj=4, 
         axis_length=4, 
         marker_length_cube=3, 
-        cube_edge_top=5.0, 
+        cube_edge_top=5.0,
         cube_edge_sides=5, 
         needle_offset=0,
         fps=30, 
@@ -304,7 +305,8 @@ def track_aruco_cube(
         cv2.imshow('Cube Detection', init_frame)
         cv2.waitKey(5000)
 
-    needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+    if not dobot_mode:
+        needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
     results = []
     dt = 1 / fps
