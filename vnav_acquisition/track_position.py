@@ -48,6 +48,8 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
     if not dobot_mode:
         needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
+    init_positions = []
+    stability_threshold = 0.3
     height_constraint = None
     results = []
     dt = 1 / fps
@@ -91,10 +93,12 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
                 z = t_needle[2]
 
             if height_constraint is None:
-                height_constraint = y
-                y = 0
-            else:
-                y = y - height_constraint
+                if(len(init_positions) == 0 or abs(y - np.mean(init_positions)) < stability_threshold):
+                    init_positions.append(y)
+                else:
+                    height_constraint = np.mean(init_positions)
+                    print(f"Height constraint set to {height_constraint:.2f} cm in frame {frame_idx}")
+
 
             ### Helper line to labelling
             pts = corners[0].reshape(-1, 2)
