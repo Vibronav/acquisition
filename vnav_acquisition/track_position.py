@@ -45,8 +45,6 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     detector = aruco.ArucoDetector(dictionary, aruco.DetectorParameters())
 
-    if not dobot_mode:
-        needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
     prev_y = None
     init_positions = []
     stability_threshold = 0.3
@@ -77,11 +75,15 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
             if dobot_mode:
                 rvec = rvecs[0]
                 tvec = tvecs[0].flatten()
+                R_o, _ = cv2.Rodrigues(rvec)
+                # tvec = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + tvec).flatten()
 
                 x = tvec[0]
                 y = (tvec[1] * -1) - needle_offset
                 z = tvec[2]
             else:
+                needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+                
                 rvec = rvecs[0].reshape(3, 1)
                 tvec = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(rvec)
@@ -143,6 +145,7 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
     cap.release()
     cv2.destroyAllWindows()
     df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
+    df['Object_Y_cm'] = df['Object_Y_cm'] - height_constraint
     return df
 
 """
@@ -187,15 +190,6 @@ def make_corners(xc, yc, zc, m_len, axis):
 def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
 
     corners, ids, _ = detector.detectMarkers(frame)
-    corners = list(corners)
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    for i, c in enumerate(corners):
-        corners[i] = cv2.cornerSubPix(
-            gray, c,
-            winSize=(5,5),
-            zeroZone=(-1,-1),
-            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        )
     if ids is None:
         return None
     
@@ -309,8 +303,7 @@ def track_aruco_cube(
         cv2.imshow('Cube Detection', init_frame)
         cv2.waitKey(5000)
 
-    if not dobot_mode:
-        needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+
     prev_y = None
     results = []
     dt = 1 / fps
@@ -350,6 +343,8 @@ def track_aruco_cube(
                 y = t_oc[1] + half_edge - needle_offset
                 z = t_oc[2]
             else:
+                needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
