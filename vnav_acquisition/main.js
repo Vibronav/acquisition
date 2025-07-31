@@ -70,7 +70,9 @@ const waveformCtxRight = waveformCanvasRight.getContext('2d');
 const toggle = document.getElementById("modeToggle");
 const automationForm = document.getElementById("automationForm");
 const manualForm = document.getElementById("manualForm");
-
+const intervalToggle = document.getElementById("intervalToggle");
+const intervalEL = document.getElementById("interval");
+const sleepTimeEl = document.getElementById("sleepTime");
 
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
@@ -670,6 +672,12 @@ function startAutomation() {
 	const upZ = parseInt(document.getElementById("upZ").value);
 	const downZ = parseInt(document.getElementById("downZ").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
+	const sleepTime = parseInt(sleepTimeEl.value);
+
+	let interval = upZ - downZ;
+	if(intervalToggle.checked) {
+		interval = parseInt(intervalEL.value);
+	}
 
 	if(iterations <= 0) {
 		return alert("Iterations must be greater then 0");
@@ -693,6 +701,8 @@ function startAutomation() {
 		upZ: upZ,
 		downZ: downZ,
 		motionType: motionType,
+		interval: interval,
+		sleepTime: sleepTime
 	};
 
 
@@ -888,6 +898,9 @@ deleteRecordingBt.addEventListener("click", deleteLastRecording);
 toggle.addEventListener("change", updateFormVisibility);
 speedSlider.addEventListener("input", (e) => {
 	speedValueEl.textContent = e.target.value;
+})
+intervalToggle.addEventListener("change", (e) => {
+	intervalEL.style.display = e.target.checked ? "block" : "none";
 })
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);

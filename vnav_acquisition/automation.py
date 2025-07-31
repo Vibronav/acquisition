@@ -28,7 +28,22 @@ def safe_run_automation(socketio_instance, **kwargs):
         dashboard = None
 
 
-def run_automation(material, needle_type, microphone_type, description, stop_event, initX, finishX, upZ, downZ, speed, motion_type, num_iterations, socketio_instance):
+def run_automation(
+        material, 
+        needle_type, 
+        microphone_type, 
+        description, 
+        stop_event, 
+        initX, 
+        finishX, 
+        upZ, 
+        downZ, 
+        speed, 
+        motion_type, 
+        num_iterations, 
+        interval, 
+        sleep_time, 
+        socketio_instance):
     """
     Main automation functions:
       - Connects to the Dobot Mg400,
@@ -43,11 +58,11 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         "status": "running",
     })
 
-    dashboard, move = connect_robot()
-    enable_robot(dashboard)
+    # dashboard, move = connect_robot()
+    # enable_robot(dashboard)
     time.sleep(2)
 
-    dashboard.SpeedFactor(speed)
+    # dashboard.SpeedFactor(speed)
 
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
@@ -69,7 +84,7 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
             "iteration": i+1
         })
 
-        move_to_position(dashboard, move, P1)
+        # move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
         output_filename_prefix = build_filename(description, material, f'Speed-{speed}', needle_type, microphone_type)
@@ -82,18 +97,23 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         time.sleep(0.5)
         print(f"Recording {i+1}/{num_iterations} started.")
 
-        # Move to P2
-        move_to_position(dashboard, move, P2)
-        print(f'Moving to position P2: {P2}')
-        time.sleep(3)
+        curr_Z = P1[2]
+
+        curr_Z -= interval
+        while(curr_Z >= downZ):
+            P2 = (P2[0], P2[1], curr_Z, P2[3])
+            # move_to_position(dashboard, move, P2)
+            print(f'Moving to position P2: {P2}')
+            time.sleep(sleep_time)
+            curr_Z -= interval
         
         # Move back to P1
-        move_to_position(dashboard, move, P1)
+        # move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
-        time.sleep(1)
+        time.sleep(0.5)
             
-        P1 = (P1[0] + gap, P1[1], P1[2], P1[3])
-        P2 = (P2[0] + gap, P2[1], P2[2], P2[3])
+        P1 = (P1[0] + gap, P1[1], upZ, P1[3])
+        P2 = (P2[0] + gap, P2[1], downZ, P2[3])
 
         print(f'Changed P1 to: {P1}')
         print(f'Changed P2 to: {P2}')
@@ -104,8 +124,8 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
 
         print(f"Iteration {i+1} completed.")
 
-    dashboard.DisableRobot()
-    dashboard = None
+    # dashboard.DisableRobot()
+    # dashboard = None
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })
