@@ -84,6 +84,7 @@ options:
   --annotation-path ANNOTATION_PATH
                         Path to annotations files (default: same as audio
                         files)
+  --debug-plots         Show debug plots for synchronization
 ```
 
 ## Installation
