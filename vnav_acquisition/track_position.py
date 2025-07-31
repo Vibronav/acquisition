@@ -73,26 +73,29 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
             if dobot_mode:
-                rvec = rvecs[0]
-                tvec = tvecs[0].flatten()
-                R_o, _ = cv2.Rodrigues(rvec)
-                # tvec = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + tvec).flatten()
+                r_o = rvecs[0].reshape(3, 1)
+                t_o = tvecs[0].reshape(3, 1)
+                R_o, _ = cv2.Rodrigues(r_o)
+                t_final = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + t_o).flatten()
+                print(f'T_o: {t_final}')
+                t_final = (np.array([0.0, needle_offset, 0.0], dtype=np.float32) + t_final)
+                print(f'T_final: {t_final}')
 
-                x = tvec[0]
-                y = (tvec[1] * -1) - needle_offset
-                z = tvec[2]
+                x = t_final[0]
+                y = (t_final[1] * -1)
+                z = t_final[2]
             else:
                 needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
                 
-                rvec = rvecs[0].reshape(3, 1)
-                tvec = tvecs[0].reshape(3, 1)
-                R_o, _ = cv2.Rodrigues(rvec)
+                r_o = rvecs[0].reshape(3, 1)
+                t_o = tvecs[0].reshape(3, 1)
+                R_o, _ = cv2.Rodrigues(r_o)
 
-                t_needle = (R_o @ needle_coord.T + tvec).flatten()
+                t_final = (R_o @ needle_coord.T + t_o).flatten()
 
-                x = t_needle[0]
-                y = (t_needle[1] * -1)
-                z = t_needle[2]
+                x = t_final[0]
+                y = (t_final[1] * -1)
+                z = t_final[2]
 
             if height_constraint is None:
                 if(len(init_positions) == 0 or abs(y - np.mean(init_positions)) < stability_threshold):
@@ -108,19 +111,18 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
             h, w = frame.shape[:2]
             cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
 
-            if not dobot_mode:
-                tip2d, _ = cv2.projectPoints(
-                    np.array([t_needle], dtype=np.float32),
-                    np.zeros((3, 1)), np.zeros((3, 1)),
-                    camera_matrix, dist_coeffs
-                )
-                u, v = tip2d.ravel().astype(int)
+            tip2d, _ = cv2.projectPoints(
+                np.array([t_final], dtype=np.float32),
+                np.zeros((3, 1)), np.zeros((3, 1)),
+                camera_matrix, dist_coeffs
+            )
+            u, v = tip2d.ravel().astype(int)
 
-                cv2.circle(frame, (u, v), 2, (0, 0, 255), 1)
-                cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)            
+            cv2.circle(frame, (u, v), 2, (0, 0, 255), 1)
+            cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)            
             ### Helper line to labelling
 
-            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
+            cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
 
             if prev_y is not None:
                 vy = (y - prev_y) / dt
@@ -334,14 +336,15 @@ def track_aruco_cube(
 
             if dobot_mode:
                 r_o = rvecs[0]
-                t_o = tvecs[0].flatten()
+                t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                # t_o = (R_o @ np.array([[0.0, 0.0, 0.0]], dtype=np.float32).T + t_o).flatten()
+                t_o = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + t_o).flatten()
+                t_needle = (np.array([0.0, needle_offset, 0.0], dtype=np.float32) + t_o)
 
-                t_oc = R_inv.dot(t_o - t_c)
-                x = t_oc[0]
-                y = t_oc[1] + half_edge - needle_offset
-                z = t_oc[2]
+                t_final = R_inv.dot(t_needle - t_c)
+                x = t_final[0]
+                y = t_final[1] + half_edge
+                z = t_final[2]
             else:
                 needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
 
@@ -350,10 +353,10 @@ def track_aruco_cube(
                 R_o, _ = cv2.Rodrigues(r_o)
 
                 t_needle = (R_o @ needle_coord.T + t_o).flatten()
-                t_needle_cube = R_inv.dot(t_needle - t_c)
-                x = t_needle_cube[0]
-                y = t_needle_cube[1] + half_edge
-                z = t_needle_cube[2]
+                t_final = R_inv.dot(t_needle - t_c)
+                x = t_final[0]
+                y = t_final[1] + half_edge
+                z = t_final[2]
 
             ### Helper line to labelling
             pts = corners_o[0].reshape(-1, 2)
@@ -361,16 +364,15 @@ def track_aruco_cube(
             h, w = frame.shape[:2]
             cv2.line(frame, (0, cy), (w, cy), (0, 255, 0), 1)
 
-            if not dobot_mode:
-                tip2d, _ = cv2.projectPoints(
-                    np.array([t_needle_cube], dtype=np.float32),
-                    rvec_c, tvec_c,
-                    camera_matrix, dist_coeffs
-                )
-                u, v = tip2d.ravel().astype(int)
+            tip2d, _ = cv2.projectPoints(
+                np.array([t_final], dtype=np.float32),
+                rvec_c, tvec_c,
+                camera_matrix, dist_coeffs
+            )
+            u, v = tip2d.ravel().astype(int)
 
-                cv2.circle(frame, (u, v), 3, (0, 0, 255), 1)
-                cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)
+            cv2.circle(frame, (u, v), 3, (0, 0, 255), 1)
+            cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)
             ### Helper line to labelling
 
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
