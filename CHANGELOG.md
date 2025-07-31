@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.9.1] - 2025-07-31
+### Fixed
+- Detecting chirp signal in sync tool
+
 ## [1.9.0] - 2025-07-04
 ### Added
 - Specifying manual recordings time
