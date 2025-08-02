@@ -90,6 +90,21 @@ body {
     margin-top: 6px;
 }
 
+.form-group.horizontal-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-group.horizontal-group label {
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.form-group.horizontal-group input[type="number"] {
+    width: 70px;
+}
+
 label {
     font-weight: bold;
     font-size: 13px;
@@ -205,6 +220,54 @@ input[type="number"] {
   border-radius: 999px;
   transition: all 0.3s ease;
   z-index: 1;
+}
+
+.simple-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.simple-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.simple-toggle .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.simple-toggle .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.simple-toggle input:checked + .slider {
+    background-color: #4CAF50;
+}
+
+.simple-toggle input:checked + .slider:before {
+    -webkit-transform: translateX(20px);
+    -ms-transform: translateX(20px);
+    transform: translateX(20px);
 }
 
 .toggle-switch input[type="checkbox"]:checked + .switch-label .slider {

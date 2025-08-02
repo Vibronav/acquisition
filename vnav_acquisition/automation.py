@@ -28,7 +28,22 @@ def safe_run_automation(socketio_instance, **kwargs):
         dashboard = None
 
 
-def run_automation(material, needle_type, microphone_type, description, stop_event, initX, finishX, upZ, downZ, speed, motion_type, num_iterations, socketio_instance):
+def run_automation(
+        material, 
+        needle_type, 
+        microphone_type, 
+        description, 
+        stop_event, 
+        initX, 
+        finishX, 
+        upZ, 
+        downZ, 
+        speed, 
+        motion_type, 
+        num_iterations, 
+        interval, 
+        sleep_time, 
+        socketio_instance):
     """
     Main automation functions:
       - Connects to the Dobot Mg400,
@@ -56,8 +71,8 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         gap = 0
         print("No gap calculation needed for motion type: Only Up and Down")
 
-    P1 = (initX, 0, upZ, 0)
-    P2 = (initX, 0, downZ, 0)
+    P1 = (initX, 0, upZ, 130)
+    P2 = (initX, 0, downZ, 130)
 
     for i in range(num_iterations):
 
@@ -82,18 +97,31 @@ def run_automation(material, needle_type, microphone_type, description, stop_eve
         time.sleep(0.5)
         print(f"Recording {i+1}/{num_iterations} started.")
 
-        # Move to P2
-        move_to_position(dashboard, move, P2)
-        print(f'Moving to position P2: {P2}')
-        time.sleep(3)
+        curr_Z = P1[2]
+
+        curr_Z -= interval
+        while(curr_Z >= downZ):
+            P2 = (P2[0], P2[1], curr_Z, P2[3])
+            move_to_position(dashboard, move, P2)
+            print(f'Moving to position P2: {P2}')
+            time.sleep(sleep_time)
+            curr_Z -= interval
+
+        curr_Z += (2 * interval)
+        while(curr_Z <= upZ and interval != upZ - downZ):
+            P2 = (P2[0], P2[1], curr_Z, P2[3])
+            move_to_position(dashboard, move, P2)
+            print(f'Moving to position P2: {P2}')
+            time.sleep(sleep_time)
+            curr_Z += interval
         
         # Move back to P1
         move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
-        time.sleep(1)
+        time.sleep(0.5)
             
-        P1 = (P1[0] + gap, P1[1], P1[2], P1[3])
-        P2 = (P2[0] + gap, P2[1], P2[2], P2[3])
+        P1 = (P1[0] + gap, P1[1], upZ, P1[3])
+        P2 = (P2[0] + gap, P2[1], downZ, P2[3])
 
         print(f'Changed P1 to: {P1}')
         print(f'Changed P2 to: {P2}')

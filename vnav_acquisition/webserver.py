@@ -85,6 +85,8 @@ def run():
             speed = int(params["speed"]),
             motion_type = params["motionType"],
             num_iterations = params["iterations"],
+            interval = params["interval"],
+            sleep_time = params["sleepTime"],
             socketio_instance=socketio
         ),
         daemon=True
@@ -209,7 +211,7 @@ def main():
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
 
-    ssh_connect(*config['connection'], socketio_instance=socketio)
+    # ssh_connect(*config['connection'], socketio_instance=socketio)
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     

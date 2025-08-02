@@ -71,8 +71,8 @@
                         </div>
 
                         <div id="automationForm">
-                            <div class="form-group">
-                                <label for="iterations">Number of tests</label>
+                            <div class="form-group horizontal-group">
+                                <label for="iterations">Number of iterations</label>
                                 <input type="number" id="iterations" value="10" min="1" />
                             </div>
                             <div class="form-group">
@@ -115,6 +115,18 @@
                                     <label><input type="radio" name="motionType" value="Only Up and Down" checked />Only up and down</label>
                                     <label><input type="radio" name="motionType" value="Up, Down, Forward" />Up, Down, Forward</label>
                                 </div>
+                            </div>
+                            <div class="form-group horizontal-group">
+                                <label for="intervalToggle">Interval</label>
+                                <label class="simple-toggle">
+                                    <input type="checkbox" id="intervalToggle" />
+                                    <span class="slider"></span>
+                                </label>
+                                <input type="number" id="interval" style="display: none;">
+                            </div>
+                            <div class="form-group horizontal-group">
+                                <label for="sleepTime">Sleep time</label>
+                                <input type="number" id="sleepTime" value="3" min="0" />
                             </div>
                             <div id="controls">
                                 <button id="startTests">Start automation</button>
