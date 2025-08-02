@@ -58,11 +58,11 @@ def run_automation(
         "status": "running",
     })
 
-    # dashboard, move = connect_robot()
-    # enable_robot(dashboard)
+    dashboard, move = connect_robot()
+    enable_robot(dashboard)
     time.sleep(2)
 
-    # dashboard.SpeedFactor(speed)
+    dashboard.SpeedFactor(speed)
 
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
@@ -71,8 +71,8 @@ def run_automation(
         gap = 0
         print("No gap calculation needed for motion type: Only Up and Down")
 
-    P1 = (initX, 0, upZ, 0)
-    P2 = (initX, 0, downZ, 0)
+    P1 = (initX, 0, upZ, 130)
+    P2 = (initX, 0, downZ, 130)
 
     for i in range(num_iterations):
 
@@ -84,7 +84,7 @@ def run_automation(
             "iteration": i+1
         })
 
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
 
         output_filename_prefix = build_filename(description, material, f'Speed-{speed}', needle_type, microphone_type)
@@ -102,13 +102,21 @@ def run_automation(
         curr_Z -= interval
         while(curr_Z >= downZ):
             P2 = (P2[0], P2[1], curr_Z, P2[3])
-            # move_to_position(dashboard, move, P2)
+            move_to_position(dashboard, move, P2)
             print(f'Moving to position P2: {P2}')
             time.sleep(sleep_time)
             curr_Z -= interval
+
+        curr_Z += (2 * interval)
+        while(curr_Z <= upZ and interval != upZ - downZ):
+            P2 = (P2[0], P2[1], curr_Z, P2[3])
+            move_to_position(dashboard, move, P2)
+            print(f'Moving to position P2: {P2}')
+            time.sleep(sleep_time)
+            curr_Z += interval
         
         # Move back to P1
-        # move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1)
         print(f'Moving back to initial position P1: {P1}')
         time.sleep(0.5)
             
@@ -124,8 +132,8 @@ def run_automation(
 
         print(f"Iteration {i+1} completed.")
 
-    # dashboard.DisableRobot()
-    # dashboard = None
+    dashboard.DisableRobot()
+    dashboard = None
     socketio_instance.emit("automation-status", {
         "status": "idle",
     })
