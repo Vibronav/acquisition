@@ -40,8 +40,8 @@ def stop_recording(socketio_instance):
         })
 
 def delete_last_recording():
-    videos_deleted = delete_from_folder(folder='videos')
-    audios_deleted = delete_from_folder(folder=config['local_dir'])
+    videos_deleted = delete_videos(folder='videos')
+    audios_deleted = delete_audios(folder=config['local_dir'])
 
     parts = []
     if videos_deleted:
@@ -51,11 +51,33 @@ def delete_last_recording():
     
     return " + ".join(parts) if parts else ""
 
-def delete_from_folder(folder):
+def delete_videos(folder):
     files = {}
     for file in os.listdir(folder):
         parts = file.split("_")
         time_part = parts[-3] + "." + parts[-2]
+        timestamp = time.strptime(time_part, '%Y-%m-%d.%H.%M.%S')
+        file_path = os.path.join(folder, file)
+        files.setdefault(timestamp, []).append(file_path)
+
+    if not files:
+        return False
+
+    latest_timestamp = max(files.keys())
+    if len(files[latest_timestamp]) == 0:
+        return False
+    
+    for file in files[latest_timestamp]:
+        os.remove(file)
+
+    return True
+
+
+def delete_audios(folder):
+    files = {}
+    for file in os.listdir(folder):
+        parts = file.split("_")
+        time_part = parts[-2] + "." + parts[-1]
         timestamp = time.strptime(time_part, '%Y-%m-%d.%H.%M.%S')
         file_path = os.path.join(folder, file)
         files.setdefault(timestamp, []).append(file_path)
