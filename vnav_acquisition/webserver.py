@@ -7,7 +7,7 @@ from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
 from .record import start_recording, stop_recording, delete_last_recording
-from .utils import build_filename
+from .utils import build_filename, get_local_ip_address
 import threading
 import webbrowser
 import argparse
@@ -20,6 +20,7 @@ import time
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR
+IP_FILE = BASE_DIR / "pc_ip.txt"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 app.config["JSON_AS_ASCII"] = False
@@ -210,6 +211,7 @@ def main():
 
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
+    IP_FILE.write_text(get_local_ip_address())
 
     ssh_connect(*config['connection'], socketio_instance=socketio)
 

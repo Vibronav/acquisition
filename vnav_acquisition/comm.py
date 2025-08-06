@@ -50,14 +50,13 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     try:
         with ssh.open_sftp() as sftp:
             sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
+            sftp.put(os.path.join(os.path.dirname(__file__), "pc_ip.txt"), "/home/pi/pc_ip.txt")
             sftp.put(os.path.join(os.path.dirname(__file__), "micro_signal_sender.py"), "/home/pi/micro_signal_sender.py")
             print(f"SFPT setup upload completed.")
     except Exception as e:
         print(f"SFPT setup upload error.", e)
         ssh = None
         return
-
-    threading.Thread(target=broadcast_ip, daemon=True).start()
 
     if not micro_signal_thread or not micro_signal_thread.is_alive():
         threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
@@ -160,21 +159,6 @@ def start_micro_signal_sending():
     print("Starting micro signal sending on RaspberryPi")
     command = "python3 -u /home/pi/micro_signal_sender.py"
     ssh.exec_command(command)
-
-def broadcast_ip():
-    global broadcast_received
-    print("Broadcasting IP to raspberry started")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    trials = 0
-
-    while not broadcast_received and trials < 30:
-        message = b'server'
-        sock.sendto(message, (get_broadcast_address(), 54545))
-        time.sleep(1)
-        trials += 1
-
-    print("Broadcasting finished")
 
 def listen_for_micro_signals(sio):
         global micro_signal_thread, broadcast_received
@@ -285,11 +269,9 @@ def receive_and_send_micro_signals(conn, sio):
                                     print(f"Error starting output stream: {e}")
                                     warmup_done = False
 
-                # time.sleep(0.3)
         except Exception as e:
             print(f"Error receiving or sending micro signals: {e}")
         finally:
-            # conn.close()
             if output_stream:
                 output_stream.stop()
                 output_stream.close()
