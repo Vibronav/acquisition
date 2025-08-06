@@ -77,7 +77,7 @@ def delete_audios(folder):
     files = {}
     for file in os.listdir(folder):
         parts = file.split("_")
-        time_part = parts[-2] + "." + parts[-1]
+        time_part = parts[-2] + "." + ".".join(parts[-1].split(".")[:3])
         timestamp = time.strptime(time_part, '%Y-%m-%d.%H.%M.%S')
         file_path = os.path.join(folder, file)
         files.setdefault(timestamp, []).append(file_path)
