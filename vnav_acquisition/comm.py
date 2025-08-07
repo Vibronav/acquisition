@@ -240,6 +240,7 @@ def receive_and_send_micro_signals(conn, sio):
 
                 buffer += data
 
+                # Maybe bippings because of buffer. We are waiting for a full batch and then send it. For waveforms it is good, not for audio.
                 while len(buffer) >= frame_size * batch_frames:
                     chunk = buffer[:frame_size * batch_frames]
                     buffer = buffer[frame_size * batch_frames:]
