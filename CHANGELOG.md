@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [1.9.3] - 2025-08-07
+### Fixed
+- Socket connection with raspberry for live sound data
+
 ## [1.9.2] - 2025-08-02
 ### Added
 - Enable moving dobot in intervals

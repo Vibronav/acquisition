@@ -1,6 +1,7 @@
 import psutil
 import ipaddress
 import time
+import socket
 
 
 def get_broadcast_address():
@@ -16,6 +17,11 @@ def get_broadcast_address():
                 netmask = int(ipaddress.IPv4Address(addr.netmask))
                 broadcast = ip | (~netmask & 0xFFFFFFFF)
                 return str(ipaddress.IPv4Address(broadcast))
+
+def get_local_ip_address():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
         
 def build_filename(*args, sep="_"):
     timestamp = time.strftime('%Y-%m-%d_%H.%M.%S', time.localtime())
