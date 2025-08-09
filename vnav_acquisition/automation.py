@@ -71,8 +71,8 @@ def run_automation(
         gap = 0
         print("No gap calculation needed for motion type: Only Up and Down")
 
-    P1 = (initX, 0, upZ, 130)
-    P2 = (initX, 0, downZ, 130)
+    P1 = (initX, 0, upZ, -50)
+    P2 = (initX, 0, downZ, -50)
 
     for i in range(num_iterations):
 
@@ -112,8 +112,9 @@ def run_automation(
             P2 = (P2[0], P2[1], curr_Z, P2[3])
             move_to_position(dashboard, move, P2)
             print(f'Moving to position P2: {P2}')
-            time.sleep(sleep_time)
             curr_Z += interval
+            if curr_Z <= upZ:
+                time.sleep(sleep_time)
         
         # Move back to P1
         move_to_position(dashboard, move, P1)

@@ -64,7 +64,14 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     time.sleep(1)
     start_micro_signal_sending()
     
+def mock_ssh_connect(socketio_instance):
+    global ssh, micro_signal_thread
 
+    if not micro_signal_thread or not micro_signal_thread.is_alive():
+        threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
+
+    time.sleep(1)
+    start_micro_signal_sending()
 
 def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
@@ -157,8 +164,22 @@ def delete_last_recording():
 
 def start_micro_signal_sending():
     print("Starting micro signal sending on RaspberryPi")
-    command = "python3 -u /home/pi/micro_signal_sender.py"
-    ssh.exec_command(command)
+    # command = "python3 -u /home/pi/micro_signal_sender.py"
+    # ssh.exec_command(command)
+
+    import subprocess, sys, shlex
+    wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\1_6_22rpm_turkey_speed-10_shiba_2025-08-07_16.21.20.wav"
+
+    script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
+    args = [
+        sys.executable, "-u", script_path,
+        "--host", "127.0.0.1",
+        "--port", "5001",
+        "--wav", wav_path,
+    ]
+
+    print("Starting local wav sender:", args)
+    subprocess.Popen(args)
 
 def listen_for_micro_signals(sio):
         global micro_signal_thread, broadcast_received
@@ -240,7 +261,6 @@ def receive_and_send_micro_signals(conn, sio):
 
                 buffer += data
 
-                # Maybe bippings because of buffer. We are waiting for a full batch and then send it. For waveforms it is good, not for audio.
                 while len(buffer) >= frame_size * batch_frames:
                     chunk = buffer[:frame_size * batch_frames]
                     buffer = buffer[frame_size * batch_frames:]
