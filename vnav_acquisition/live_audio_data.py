@@ -93,42 +93,74 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
 
     def pacer_run():
         _win_timer_high_res(True)
-        try:            
-            next_t = time.perf_counter()
+        try:
+            last_t = time.perf_counter()
+
+            MAX_CATCHUP_PACKETS = 8
+            TARGET_BACKLOG_PACKETS = 8
+            HARD_BACKLOG_PACKETS = 64
+
             while not stop_event.is_set():
-                next_t += PACKET_PERIOD_SEC
+                now = time.perf_counter()
+                elapsed = now - last_t
 
-                with buffer_audio_lock:
-                    print(f"Buffer audio length: {len(buffer_audio)}")
-                    if len(buffer_audio) >= PACKET_BYTES:
-                        pkt = bytes(buffer_audio[:PACKET_BYTES])
-                        del buffer_audio[:PACKET_BYTES]
+                if elapsed < PACKET_PERIOD_SEC * 0.9:
+                    rem = PACKET_PERIOD_SEC - elapsed
+                    if rem > 0.002:
+                        time.sleep(0.001)
                     else:
-                        pkt = None
+                        while(PACKET_PERIOD_SEC - (time.perf_counter() - last_t)) > 0:
+                            pass
+                    continue
+                
+                should_emit = int(elapsed / PACKET_PERIOD_SEC)
+                to_emit = min(should_emit, MAX_CATCHUP_PACKETS)
+                if to_emit <= 0:
+                    to_emit = 1
 
-                if pkt:
+                emitted = 0
+                while emitted < to_emit:
+                    with buffer_audio_lock:
+                        backlog_bytes = len(buffer_audio)
+                        hard_limit_bytes = HARD_BACKLOG_PACKETS * PACKET_BYTES
+                        target_bytes = TARGET_BACKLOG_PACKETS * PACKET_BYTES
+                        if backlog_bytes > hard_limit_bytes:
+                            drop = backlog_bytes - target_bytes
+                            del buffer_audio[:drop]
+                            backlog_bytes = len(buffer_audio)
+
+                        if backlog_bytes >= PACKET_BYTES:
+                            pkt = bytes(buffer_audio[:PACKET_BYTES])
+                            del buffer_audio[:PACKET_BYTES]
+                        else:
+                            pkt = None
+
+                    if pkt is None:                        
+                        break
+
                     arr = np.frombuffer(pkt, dtype='<i4').reshape(-1, 2)
-                    block = (arr / (2 ** 31)).astype(np.float32)
-
+                    block = (arr / (2**31)).astype(np.float32)
                     try:
-                        audio_queue.put(block, timeout=0.02)
+                        audio_queue.put(block, timeout=0.002)
                     except queue.Full:
-                        pass
-
-                output_stream = state.get('output_stream')
-                if output_stream and not warmup_state["done"]:
-                    if audio_queue.qsize() >= warmup_state["target_elements"]:
                         try:
-                            warmup_state["done"] = True
-                            print("Warmup done, starting playback")
-                        except Exception as e:
-                            print(f"Error starting output stream: {e}")
+                            audio_queue.get_nowait()
+                            audio_queue.put(block, timeout=0.002)
+                        except queue.Empty:
+                            pass
+                        except queue.Full:
+                            pass
 
-                rem = next_t - time.perf_counter()
-                if rem > 0:
-                    time.sleep(rem)
-                else:
-                    next_t = time.perf_counter()
+                    emitted += 1
+
+                last_t += emitted * PACKET_PERIOD_SEC
+
+                out = state.get("output_stream")
+                if out and not warmup_state["done"]:
+                    if audio_queue.qsize() >= warmup_state["target_elements"]:
+                        warmup_state["done"] = True
+                        print("Warmup done, audio queue is ready.")
+
         finally:
             _win_timer_high_res(False)
 
@@ -232,12 +264,12 @@ def receive_and_send_micro_signals(conn, sio):
                         buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
                     )
 
+            print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
             if output_stream:
                 with buffer_audio_lock:
                     buffer_audio.extend(data)
             buffer_data.extend(data)
 
-            # process_audio_sound(buffer_audio, audio_queue, output_stream, warmup_state)
             send_audio_data(buffer_data, sio)
 
     except Exception as e:
