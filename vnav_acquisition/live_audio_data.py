@@ -2,6 +2,7 @@ import os
 import socket
 import threading
 import queue
+import time
 import numpy as np
 import sounddevice as sd
 from .runtime_config import runtime_config
@@ -16,6 +17,7 @@ PACKET_BYTES = FRAMES_PER_PACKET * BYTES_PER_FRAME
 BATCH_FRAMES = 25
 BATCH_BYTES = BATCH_FRAMES * PACKET_BYTES
 SAMPLE_RATE = 48000
+PACKET_PERIOD_SEC = FRAMES_PER_PACKET / SAMPLE_RATE
 
 def is_listener_thread_running():
     global micro_signal_thread
@@ -66,20 +68,79 @@ def _make_output_stream(device_index, callback):
         device=device_index,
         callback=callback,
         latency='high',
-        blocksize=FRAMES_PER_PACKET
+        blocksize=128
     )
 
+def clear_queue(audio_queue):
+    try:
+        while True:
+            audio_queue.get_nowait()
+    except queue.Empty:
+        pass
+
+def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state):
+    stop_event = threading.Event()
+
+    def pacer_run():
+        next_t = time.perf_counter()
+        while not stop_event.is_set():
+            next_t += PACKET_PERIOD_SEC
+
+            with buffer_audio_lock:
+                if len(buffer_audio) >= PACKET_BYTES:
+                    pkt = bytes(buffer_audio[:PACKET_BYTES])
+                    del buffer_audio[:PACKET_BYTES]
+                else:
+                    pkt = None
+
+            if pkt:
+                arr = np.frombuffer(pkt, dtype='<i4').reshape(-1, 2)
+                block = (arr / (2 ** 31)).astype(np.float32)
+
+                try:
+                    audio_queue.put(block, timeout=0.02)
+                except queue.Full:
+                    pass
+
+            output_stream = state.get('output_stream')
+            if output_stream and not warmup_state["done"]:
+                if audio_queue.qsize() >= warmup_state["target_elements"]:
+                    try:
+                        warmup_state["done"] = True
+                        try:
+                            print(f"Output stream samplerate: {output_stream.samplerate}")
+                        except Exception as e:
+                            pass
+                        print("Warmup done, starting playback")
+                    except Exception as e:
+                        print(f"Error starting output stream: {e}")
+
+            rem = next_t - time.perf_counter()
+            if rem > 0:
+                time.sleep(rem)
+            else:
+                next_t = time.perf_counter()
+
+    t = threading.Thread(target=pacer_run, daemon=True)
+    t.start()
+    return t, stop_event
+
 def receive_and_send_micro_signals(conn, sio):
-        
+
+    try:
+        conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    except Exception as e:
+        pass
+
     buffer_audio = bytearray()
     buffer_data = bytearray()
+    buffer_audio_lock = threading.Lock()
+
     audio_queue = queue.Queue(maxsize=32)
-
-    current_output_index = None
-    output_stream = None
     warmup_state = {"done": False, "target_elements": 18}
-    leftover = np.zeros((0, 2), dtype=np.float32)
+    state = {"output_stream": None}
 
+    leftover = np.zeros((0, 2), dtype=np.float32)
     def audio_callback(outdata, frames, time_info, status):
         nonlocal leftover
 
@@ -105,8 +166,9 @@ def receive_and_send_micro_signals(conn, sio):
             try:
                 block = audio_queue.get_nowait()
             except queue.Empty:
-                print("Audio queue is empty, filling with silence")
+                print("Audio queue is empty, filling with silence. Start warming up")
                 outdata[write_pos:frames, :] = 0.0
+                warmup_state["done"] = False
                 return
             
             if block.shape[0] <= needed:
@@ -116,14 +178,13 @@ def receive_and_send_micro_signals(conn, sio):
             else:
                 outdata[write_pos:write_pos + needed, :] = block[:needed, :]
                 leftover = block[needed:, :]
-                write_pos = frames
-                needed = 0
-                break
+                return
 
-        if write_pos < frames:
-            print(f'Filling remaining output buffer with silence from {write_pos} to {frames}')
-            outdata[write_pos:frames, :] = 0.0
 
+    current_output_index = None
+    output_stream = None
+    pacer_thread = None
+    pacer_stop = None
     try:
         while True:
             data = conn.recv(16384)
@@ -137,25 +198,41 @@ def receive_and_send_micro_signals(conn, sio):
                     output_stream.close()
                     output_stream = None
 
+                warmup_state["done"] = False
+                leftover = leftover[:0, :]
+                clear_queue(audio_queue)
+
                 try:
                     output_stream = _make_output_stream(new_index, audio_callback)
-                    output_stream.start()
                     current_output_index = new_index
+                    output_stream.start()
+                    state["output_stream"] = output_stream
                     print(f'Switched micro output to device index: {current_output_index}')
+
                 except Exception as e:
                     print(f"Error switching micro output: {e}")
                     current_output_index = None
                     output_stream = None
+                    state["output_stream"] = None
 
-            buffer_audio.extend(data)
+                if pacer_stop is None or not pacer_thread.is_alive():
+                    pacer_thread, pacer_stop = start_audio_pacer(
+                        buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
+                    )
+
+
+            with buffer_audio_lock:
+                buffer_audio.extend(data)
             buffer_data.extend(data)
 
-            process_audio_sound(buffer_audio, audio_queue, output_stream, warmup_state)
+            # process_audio_sound(buffer_audio, audio_queue, output_stream, warmup_state)
             send_audio_data(buffer_data, sio)
 
     except Exception as e:
         print(f"Error receiving and sending micro signals: {e}")
     finally:
+        if pacer_stop:
+            pacer_stop.set()
         if output_stream:
             try:
                 output_stream.stop()
@@ -178,26 +255,3 @@ def send_audio_data(buffer, sio):
         })
 
         del buffer[:BATCH_BYTES]
-
-def process_audio_sound(buffer, audio_queue, output_stream, warmup_state):
-
-    while len(buffer) >= PACKET_BYTES:
-        pkt = bytes(buffer[:PACKET_BYTES])
-        arr = np.frombuffer(pkt, dtype='<i4').reshape(-1, 2)
-        stereo = (arr / (2 ** 31)).astype(np.float32)
-
-        if output_stream:
-            try:
-                audio_queue.put(stereo, timeout=0.02)
-            except queue.Full:
-                pass
-
-            print(f'Elements in queue: {audio_queue.qsize()}')
-
-            if not warmup_state["done"]:
-                queued_packets = audio_queue.qsize()
-                if queued_packets >= warmup_state["target_elements"]:
-                    warmup_state["done"] = True
-                    print("Warmup done, starting playback")
-
-        del buffer[:PACKET_BYTES]
