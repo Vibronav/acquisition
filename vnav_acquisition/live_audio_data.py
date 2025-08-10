@@ -153,7 +153,10 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
 
                     emitted += 1
 
-                last_t += emitted * PACKET_PERIOD_SEC
+                if(emitted == 0):
+                    last_t = now
+                else:
+                    last_t += emitted * PACKET_PERIOD_SEC
 
                 out = state.get("output_stream")
                 if out and not warmup_state["done"]:
@@ -179,8 +182,8 @@ def receive_and_send_micro_signals(conn, sio):
     buffer_data = bytearray()
     buffer_audio_lock = threading.Lock()
 
-    audio_queue = queue.Queue(maxsize=32)
-    warmup_state = {"done": False, "target_elements": 18}
+    audio_queue = queue.Queue(maxsize=16)
+    warmup_state = {"done": False, "target_elements": 8}
     state = {"output_stream": None}
 
     leftover = np.zeros((0, 2), dtype=np.float32)
@@ -236,15 +239,31 @@ def receive_and_send_micro_signals(conn, sio):
 
             new_index = runtime_config['micro_output']
             if new_index is not None and new_index != current_output_index:
+
+                if pacer_thread:
+                    if pacer_stop:
+                        pacer_stop.set()
+                    try:
+                        pacer_thread.join(timeout=0.5)
+                    except Exception as e:
+                        pass
+
+                    pacer_thread = None
+                    pacer_stop = None
+
                 if output_stream:
-                    output_stream.stop()
-                    output_stream.close()
+                    try:
+                        output_stream.stop()
+                        output_stream.close()
+                    except Exception as e:
+                        pass
                     output_stream = None
 
                 warmup_state["done"] = False
                 leftover = leftover[:0, :]
                 clear_queue(audio_queue)
-                buffer_audio.clear()
+                with buffer_audio_lock:
+                    buffer_audio.clear()
 
                 try:
                     output_stream = _make_output_stream(new_index, audio_callback)
@@ -259,10 +278,9 @@ def receive_and_send_micro_signals(conn, sio):
                     output_stream = None
                     state["output_stream"] = None
 
-                if pacer_stop is None or not pacer_thread.is_alive():
-                    pacer_thread, pacer_stop = start_audio_pacer(
-                        buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
-                    )
+                pacer_thread, pacer_stop = start_audio_pacer(
+                    buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
+                )
 
             print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
             if output_stream:
