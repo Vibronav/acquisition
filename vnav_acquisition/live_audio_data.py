@@ -19,6 +19,16 @@ BATCH_BYTES = BATCH_FRAMES * PACKET_BYTES
 SAMPLE_RATE = 48000
 PACKET_PERIOD_SEC = FRAMES_PER_PACKET / SAMPLE_RATE
 
+def _win_timer_high_res(enable=True):
+    try:
+        import ctypes
+        if enable:
+            ctypes.windll.winmm.timeBeginPeriod(1)
+        else:
+            ctypes.windll.winmm.timeEndPeriod(1)
+    except Exception:
+        pass
+
 def is_listener_thread_running():
     global micro_signal_thread
     return micro_signal_thread is not None and micro_signal_thread.is_alive()
@@ -68,7 +78,7 @@ def _make_output_stream(device_index, callback):
         device=device_index,
         callback=callback,
         latency='high',
-        blocksize=128
+        blocksize=FRAMES_PER_PACKET
     )
 
 def clear_queue(audio_queue):
@@ -82,44 +92,45 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
     stop_event = threading.Event()
 
     def pacer_run():
-        next_t = time.perf_counter()
-        while not stop_event.is_set():
-            next_t += PACKET_PERIOD_SEC
+        _win_timer_high_res(True)
+        try:            
+            next_t = time.perf_counter()
+            while not stop_event.is_set():
+                next_t += PACKET_PERIOD_SEC
 
-            with buffer_audio_lock:
-                if len(buffer_audio) >= PACKET_BYTES:
-                    pkt = bytes(buffer_audio[:PACKET_BYTES])
-                    del buffer_audio[:PACKET_BYTES]
-                else:
-                    pkt = None
+                with buffer_audio_lock:
+                    print(f"Buffer audio length: {len(buffer_audio)}")
+                    if len(buffer_audio) >= PACKET_BYTES:
+                        pkt = bytes(buffer_audio[:PACKET_BYTES])
+                        del buffer_audio[:PACKET_BYTES]
+                    else:
+                        pkt = None
 
-            if pkt:
-                arr = np.frombuffer(pkt, dtype='<i4').reshape(-1, 2)
-                block = (arr / (2 ** 31)).astype(np.float32)
+                if pkt:
+                    arr = np.frombuffer(pkt, dtype='<i4').reshape(-1, 2)
+                    block = (arr / (2 ** 31)).astype(np.float32)
 
-                try:
-                    audio_queue.put(block, timeout=0.02)
-                except queue.Full:
-                    pass
-
-            output_stream = state.get('output_stream')
-            if output_stream and not warmup_state["done"]:
-                if audio_queue.qsize() >= warmup_state["target_elements"]:
                     try:
-                        warmup_state["done"] = True
-                        try:
-                            print(f"Output stream samplerate: {output_stream.samplerate}")
-                        except Exception as e:
-                            pass
-                        print("Warmup done, starting playback")
-                    except Exception as e:
-                        print(f"Error starting output stream: {e}")
+                        audio_queue.put(block, timeout=0.02)
+                    except queue.Full:
+                        pass
 
-            rem = next_t - time.perf_counter()
-            if rem > 0:
-                time.sleep(rem)
-            else:
-                next_t = time.perf_counter()
+                output_stream = state.get('output_stream')
+                if output_stream and not warmup_state["done"]:
+                    if audio_queue.qsize() >= warmup_state["target_elements"]:
+                        try:
+                            warmup_state["done"] = True
+                            print("Warmup done, starting playback")
+                        except Exception as e:
+                            print(f"Error starting output stream: {e}")
+
+                rem = next_t - time.perf_counter()
+                if rem > 0:
+                    time.sleep(rem)
+                else:
+                    next_t = time.perf_counter()
+        finally:
+            _win_timer_high_res(False)
 
     t = threading.Thread(target=pacer_run, daemon=True)
     t.start()
@@ -201,6 +212,7 @@ def receive_and_send_micro_signals(conn, sio):
                 warmup_state["done"] = False
                 leftover = leftover[:0, :]
                 clear_queue(audio_queue)
+                buffer_audio.clear()
 
                 try:
                     output_stream = _make_output_stream(new_index, audio_callback)
@@ -220,9 +232,9 @@ def receive_and_send_micro_signals(conn, sio):
                         buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
                     )
 
-
-            with buffer_audio_lock:
-                buffer_audio.extend(data)
+            if output_stream:
+                with buffer_audio_lock:
+                    buffer_audio.extend(data)
             buffer_data.extend(data)
 
             # process_audio_sound(buffer_audio, audio_queue, output_stream, warmup_state)
