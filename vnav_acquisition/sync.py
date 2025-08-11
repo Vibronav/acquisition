@@ -80,7 +80,7 @@ def argmax_correlation(input_signal, sync_signal, fs, debug_plots, n_fft=1024):
     return sample_index
 
 
-def find_delay_by_sync(video_file, audio_file, debug_plots, video_channel=0, audio_channel=-1) -> [float, int]:
+def find_delay_by_sync(video_file, audio_file, audio_channel, debug_plots, video_channel=0) -> [float, int]:
     """
     Finds a delay between audio and video recordings based on the position of synchronization sound.
     :param video_file: Path of video file.
@@ -107,13 +107,13 @@ def find_delay_by_sync(video_file, audio_file, debug_plots, video_channel=0, aud
         return audio_delay, audio_fs
 
 
-def add_audio_annotations(video_file, audio_file, annotation_file, debug_plots):
+def add_audio_annotations(video_file, audio_file, annotation_file, audio_channel, debug_plots):
     with open(annotation_file) as f:
         annotation_set = json.load(f)
     if "audio_annotations" in annotation_set:
         return f"'audio_annotations' already present in : {annotation_file}"
 
-    audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file, debug_plots, audio_channel=0)
+    audio_delay, audio_fs = find_delay_by_sync(video_file, audio_file, audio_channel, debug_plots)
 
     if audio_delay is None:
         return f"Video file sound corrupted: {video_file}"
@@ -158,6 +158,8 @@ def main():
                         help="Path to video (webm, mp4) files (default: same as audio files)")
     parser.add_argument("--annotation-path", type=str, default="", required=False,
                         help="Path to annotations files (default: same as audio files)")
+    parser.add_argument("--audio-channel", type=int, default=-1,
+                        help="Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1")
     parser.add_argument("--debug-plots", action="store_true", help="Show debug plots for synchronization")
     args = parser.parse_args()
 
@@ -179,13 +181,14 @@ def main():
     print(annotation_files)
 
     debug_plots = args.debug_plots
+    audio_channel = args.audio_channel
     skipped = []
     for name, annotation_file in annotation_files.items():
         audio_present = name in audio_files
         video_present = name in video_files
         if audio_present and video_present:
             print(f"Processing {name}")
-            result = add_audio_annotations(video_files[name], audio_files[name], annotation_file, debug_plots)
+            result = add_audio_annotations(video_files[name], audio_files[name], annotation_file, audio_channel, debug_plots)
             if result:
                 print(result)
                 skipped.append(result)
