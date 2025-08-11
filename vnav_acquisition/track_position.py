@@ -35,7 +35,7 @@ def save_results_to_csv(df, video_path, result_folder):
 Tracking without cube section
 """
 
-def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length=4, needle_offset=0.0, fps=30, display=True):
+def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj=4, axis_length=4, starting_position=14, fps=30, display=True):
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -43,15 +43,16 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
         return pd.DataFrame()
 
     dictionary = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-    detector = aruco.ArucoDetector(dictionary, aruco.DetectorParameters())
+    params = aruco.DetectorParameters()
+    detector = aruco.ArucoDetector(dictionary, params)
 
-    prev_y = None
-    init_positions = []
-    stability_threshold = 0.3
     height_constraint = None
     results = []
-    dt = 1 / fps
     frame_idx = 1
+    marker_margin = 2.95
+    claw = 1.2
+    attachment = 0.69
+    dobot_offset = marker_margin + claw + attachment
 
     while True:
         ret, frame = cap.read()
@@ -76,16 +77,14 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                t_final = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + t_o).flatten()
-                print(f'T_o: {t_final}')
-                t_final = (np.array([0.0, needle_offset, 0.0], dtype=np.float32) + t_final)
-                print(f'T_final: {t_final}')
+                t_o = (R_o @ np.array([[0.0, 0.0, -2.2]], dtype=np.float32).T + t_o).flatten()
+                t_final = (np.array([0.0, dobot_offset + needle_length, 0.0], dtype=np.float32) + t_o)
 
                 x = t_final[0]
                 y = (t_final[1] * -1)
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+                needle_coord = np.array([[0.0, -needle_length, -0.9]], dtype=np.float32)
                 
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
@@ -98,12 +97,9 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
                 z = t_final[2]
 
             if height_constraint is None:
-                if(len(init_positions) == 0 or abs(y - np.mean(init_positions)) < stability_threshold):
-                    init_positions.append(y)
-                else:
-                    height_constraint = np.mean(init_positions)
-                    print(f"Height constraint set to {height_constraint:.2f} cm in frame {frame_idx}")
+                height_constraint = y
 
+            y = y - height_constraint + starting_position
 
             ### Helper line to labelling
             pts = corners[0].reshape(-1, 2)
@@ -124,16 +120,11 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
 
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
 
-            if prev_y is not None:
-                vy = (y - prev_y) / dt
-
-                text = f'Speed: {vy:.2f} cm/s | Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
-                corner = tuple(corners[0][0][0].astype(int))
-                cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
+            text = f'Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
+            corner = tuple(corners[0][0][0].astype(int))
+            cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             results.append([frame_idx, round(frame_idx / fps, ndigits=2), x, y, z])
-            prev_y = y
         else:
             results.append([frame_idx, round(frame_idx / fps, ndigits=2), None, None, None])
 
@@ -147,7 +138,6 @@ def track_aruco_no_cube(video_path, dobot_mode, marker_length_obj=4, axis_length
     cap.release()
     cv2.destroyAllWindows()
     df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
-    df['Object_Y_cm'] = df['Object_Y_cm'] - height_constraint
     return df
 
 """
@@ -162,10 +152,10 @@ def make_corners(xc, yc, zc, m_len, axis):
 
     if axis == 'x-': # LEFT
         return np.array([
-            [xc, yc + mh, zc - mh],  # left-top
-            [xc, yc + mh, zc + mh],  # right-top
-            [xc, yc - mh, zc + mh],  # right-bottom
-            [xc, yc - mh, zc - mh]   # left-bottom
+            [xc, yc + mh, zc - mh + 0.1],  # left-top
+            [xc, yc + mh, zc + mh + 0.1],  # right-top
+            [xc, yc - mh, zc + mh + 0.1],  # right-bottom
+            [xc, yc - mh, zc - mh + 0.1]   # left-bottom
         ])
     elif axis == 'x+': # RIGHT
         return np.array([
@@ -213,13 +203,13 @@ def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, 
 
 def track_aruco_cube(
         video_path,
-        dobot_mode, 
+        dobot_mode,
+        needle_length, 
         marker_length_obj=4, 
         axis_length=4, 
         marker_length_cube=3, 
         cube_edge_top=5.0,
-        cube_edge_sides=5, 
-        needle_offset=0,
+        cube_edge_sides=5,
         fps=30, 
         display=True):
     
@@ -240,8 +230,7 @@ def track_aruco_cube(
     obj_pts_dict = {
         0: make_corners(0.0, half_edge, 0.0, marker_length_cube, 'y'), # TOP
         1: make_corners(0.0, 0.0, half_edge_sides, marker_length_cube, 'z'), # FRONT
-        2: make_corners(-half_edge_sides, 0.0, 0.0, marker_length_cube, 'x-'), # LEFT
-        3: make_corners(half_edge_sides, 0.0, 0.0, marker_length_cube, 'x+'), # RIGHT
+        2: make_corners(-half_edge_sides, 0.0, 0.0, marker_length_cube, 'x-') # LEFT
     }
 
     cube_data = None
@@ -306,10 +295,12 @@ def track_aruco_cube(
         cv2.waitKey(5000)
 
 
-    prev_y = None
     results = []
-    dt = 1 / fps
     frame_idx = 1
+    marker_margin = 2.95
+    claw = 1.2
+    attachement = 0.69
+    dobot_offset = marker_margin + claw + attachement
 
     cap.release()
     cap = cv2.VideoCapture(video_path)
@@ -338,15 +329,15 @@ def track_aruco_cube(
                 r_o = rvecs[0]
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                t_o = (R_o @ np.array([[0.0, 0.0, -0.9]], dtype=np.float32).T + t_o).flatten()
-                t_needle = (np.array([0.0, needle_offset, 0.0], dtype=np.float32) + t_o)
+                t_o = (R_o @ np.array([[0.0, 0.0, -2.2]], dtype=np.float32).T + t_o).flatten()
+                t_needle = (np.array([0.0, dobot_offset + needle_length, 0.0], dtype=np.float32) + t_o)
 
                 t_final = R_inv.dot(t_needle - t_c)
                 x = t_final[0]
                 y = t_final[1] + half_edge
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_offset, -0.9]], dtype=np.float32)
+                needle_coord = np.array([[0.0, -needle_length, -0.9]], dtype=np.float32)
 
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
@@ -377,17 +368,12 @@ def track_aruco_cube(
 
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
 
-            if prev_y is not None:
-                vy = (y - prev_y) / dt
-                print(f'Speed: {vy:.2f}')
 
-                text = f'Speed: {vy:.2f} cm/s | Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
-                corner = tuple(corners_o[0][0][0].astype(int))
-                cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                
+            text = f'Position: X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}'
+            corner = tuple(corners_o[0][0][0].astype(int))
+            cv2.putText(frame, text, (corner[0], corner[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             results.append([frame_idx, round(frame_idx / fps, ndigits=2), x, y, z])
-            prev_y = y
         else:
             results.append([frame_idx, round(frame_idx / fps, ndigits=2), None, None, None])
 
