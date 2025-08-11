@@ -96,16 +96,20 @@ For each processed video folder, an output folder named 'labelled_positions' wil
 as the folder containing the videos. In recursive mode , multiple such output folders will be created.
 
 options:
-  -h, --help            show this help message and exit
-  --video-path VIDEO_PATH
                         Path to folder with videos
   --marker-length MARKER_LENGTH
-                        Length of the Aruco marker in cm (default: 4.0 cm)                      
-  --recursive           Flag to run recursively in subfolders of video-path (good for annotating all     
-                        videos in dataset)
+                        Length of the Aruco marker in cm (default: 4.0 cm)
+  --recursive           Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)
+  --fps FPS             Frames per second for video processing (default: 30)
   --display             If true will display tracker on video
   --cube                If provided will use cube to detect table grund
   --no-cube             If provided will NOT use cube to detect table grund
+  --dobot               Argument need to be provided if dobot is used during recordings
+  --no-dobot            Argument need to be provided if dobot is NOT used during recordings
+  --needle-length NEEDLE_LENGTH
+                        Length of whole needle in cm
+  --starting-position STARTING_POSITION
+                        Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube
 
 ```
 

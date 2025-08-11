@@ -397,7 +397,7 @@ def calculate_speed(file_path, fps=30, frame_interval=1):
 
     df.to_csv(file_path, index=False)
 
-def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, marker_length_obj=4.0, fps=30, display=True):
+def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
     if not os.path.exists(folder_path):
         print(f"Error: Folder {folder_path} does not exist.")
         return
@@ -409,17 +409,17 @@ def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_len
         if(cube_mode):
             df = track_aruco_cube(video_path, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
         else:
-            df = track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            df = track_aruco_no_cube(video_path, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
 
         if not df.empty:
             save_results_to_csv(df, video_path, result_folder)
 
-def process_recursive(root_folder, cube_mode, dobot_mode, needle_length, marker_length_obj=4.0, fps=30, display=True):
+def process_recursive(root_folder, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
     for root, dirs, files in os.walk(root_folder):
         video_files = [f for f in files if f.endswith('.mp4')]
         if video_files:
             print(f"Running for videos in {root}: {len(video_files)} files")
-            run_aruco_tracking_for_folder(root, cube_mode, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            run_aruco_tracking_for_folder(root, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -438,6 +438,7 @@ def parse_args():
     parser.add_argument("--dobot", action="store_true", help="Argument need to be provided if dobot is used during recordings")
     parser.add_argument("--no-dobot", action="store_true", help="Argument need to be provided if dobot is NOT used during recordings")
     parser.add_argument("--needle-length", required=True, type=float, help="Length of whole needle in cm")
+    parser.add_argument("--starting-position", default=0.0, type=float, help="Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube")
     return parser.parse_args()
 
 def main():
@@ -483,11 +484,12 @@ def main():
     marker_length_obj = args.marker_length
     fps = args.fps
     needle_length = args.needle_length
+    starting_position = args.starting_position
     
     if recursive:
-        process_recursive(folder_path, cube_mode, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        process_recursive(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
     else:
-        run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
 
 if __name__ == "__main__":
     main()
