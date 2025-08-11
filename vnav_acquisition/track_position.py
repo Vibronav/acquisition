@@ -308,7 +308,6 @@ def track_aruco_cube(
         if not ret:
             break
         
-        print(f"Processing frame {frame_idx}...")
         corners_o, ids_o, _ = detector_obj.detectMarkers(frame)
         corners_o = list(corners_o)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
