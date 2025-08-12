@@ -89,6 +89,35 @@ options:
   --debug-plots         Show debug plots for synchronization
 ```
 
+## vnav_annotate_positions
+```
+usage: vnav_annotate_positions --video-path VIDEO_FOLDER_PATH (--cube | --no-cube) [--recursive] [--display]
+
+Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder
+or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset).
+For each processed video folder, an output folder named 'labelled_positions' will be created at the same level
+as the folder containing the videos. In recursive mode , multiple such output folders will be created.
+When you provide distances.txt file in the video folder, it will produce annotations to folder 'annotations'.
+distances.txt file should look like: 12,8.5,7,5.4
+
+options:
+                        Path to folder with videos
+  --marker-length MARKER_LENGTH
+                        Length of the Aruco marker in cm (default: 4.0 cm)
+  --recursive           Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)
+  --fps FPS             Frames per second for video processing (default: 30)
+  --display             If true will display tracker on video
+  --cube                If provided will use cube to detect table grund
+  --no-cube             If provided will NOT use cube to detect table grund
+  --dobot               Argument need to be provided if dobot is used during recordings
+  --no-dobot            Argument need to be provided if dobot is NOT used during recordings
+  --needle-length NEEDLE_LENGTH
+                        Length of whole needle in cm
+  --starting-position STARTING_POSITION
+                        Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube
+
+```
+
 ## Installation
 
 Requires Python 3.10. To install tool, run in command line:

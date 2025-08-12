@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': ['vnav_acquisition=vnav_acquisition.webserver:main',
                             'vnav_wav_process=vnav_acquisition.clean:main',
-                            'vnav_audio_video_sync=vnav_acquisition.sync:main'],
+                            'vnav_audio_video_sync=vnav_acquisition.sync:main',
+                            'vnav_annotate_positions=vnav_acquisition.track_position:main'],
     }
 )

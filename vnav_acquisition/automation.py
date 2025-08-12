@@ -24,7 +24,8 @@ def safe_run_automation(socketio_instance, **kwargs):
             "action": "stop",
             "shouldUpload": False
         })
-        dashboard.DisableRobot()
+        if dashboard:
+            dashboard.DisableRobot()
         dashboard = None
 
 
