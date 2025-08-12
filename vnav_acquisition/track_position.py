@@ -4,6 +4,8 @@ import cv2
 import cv2.aruco as aruco
 import pandas as pd
 import numpy as np
+from tqdm.auto import tqdm
+import json
 
 camera_matrix = np.array([[630.41, 0.0, 640],
                             [0.0, 631.93, 353],
@@ -20,16 +22,67 @@ def show_video_frame(frame, fps, display):
     key = cv2.waitKey(sleep_time) & 0xFF
     return key != ord("q")
 
-def save_results_to_csv(df, video_path, result_folder):
-    video_name = os.path.splitext(os.path.basename(video_path))[0]
-    if not os.path.exists(result_folder):
-        os.makedirs(result_folder)
-    output_path = os.path.join(result_folder, f'{video_name}.csv')
-    df.to_csv(output_path, index=False)
-    print(f'Results saved to {output_path}')
+def process_data(df, video_path, positions_folder, annotations_folder, distances_file_path, fps=30):
+    os.makedirs(positions_folder, exist_ok=True)
+    os.makedirs(annotations_folder, exist_ok=True)
 
-    calculate_speed(output_path)
-    print(f'Speed calculated and saved to {output_path}.')
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+
+    calculate_speed(df, fps=fps)
+    positions_output_path = os.path.join(positions_folder, f'{video_name}.csv')
+
+    df.to_csv(positions_output_path, index=False)
+
+    create_annotations(df, video_name, annotations_folder, distances_file_path)
+
+def calculate_speed(df, fps=30, frame_interval=1):
+    dt = frame_interval / fps
+
+    df['dx'] = df['Object_X_cm'].shift(-frame_interval) - df['Object_X_cm']
+    df['dy'] = df['Object_Y_cm'].shift(-frame_interval) - df['Object_Y_cm']
+    df['dz'] = df['Object_Z_cm'].shift(-frame_interval) - df['Object_Z_cm']
+
+    df['velocity'] = df['dy'] / dt
+    df['velocity_all'] = np.sqrt(df['dx']**2 + df['dy']**2 + df['dz']**2) / dt
+
+    return df
+
+def create_annotations(df, video_name, annotations_folder, distances_file_path):
+    df.reset_index(drop=True, inplace=True)
+    distances = read_distances_from_file(distances_file_path)
+    if distances:
+        annotations = {}
+
+        min_high = df["Object_Y_cm"].dropna().idxmin()
+        df_down = df.loc[:min_high]
+
+        tracked_high = df_down[df_down['Object_Y_cm'].notna()]
+
+        for idx, distance in enumerate(distances, start=1):
+            diffs = (tracked_high['Object_Y_cm'] - distance).abs()
+            best_row = df_down.loc[diffs.idxmin()]
+            annotations[str(idx)] = {
+                "frame": best_row["Frame"],
+                "time": best_row["Time (s)"]
+            }
+        
+    annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
+    payload = {
+        "video_file": f'{video_name}.mp4',
+        "video_annotations": annotations
+    }
+    with open(annotations_output_path, "w") as f:
+        json.dump(payload, f)
+
+def read_distances_from_file(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            raw = f.read().strip()
+        distances = [float(distance.strip()) for distance in raw.split(',') if distance.strip() != ""]
+        return distances
+    except Exception as e:
+        print(f"Error reading distances from file {file_path}: {e}")
+        return []
 
 """
 Tracking without cube section
@@ -383,35 +436,32 @@ def track_aruco_cube(
     df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
     return df
 
-def calculate_speed(file_path, fps=30, frame_interval=1):
-    df = pd.read_csv(file_path)
-    dt = frame_interval / fps
-
-    df['dx'] = df['Object_X_cm'].shift(-frame_interval) - df['Object_X_cm']
-    df['dy'] = df['Object_Y_cm'].shift(-frame_interval) - df['Object_Y_cm']
-    df['dz'] = df['Object_Z_cm'].shift(-frame_interval) - df['Object_Z_cm']
-
-    df['velocity'] = df['dy'] / dt
-    df['velocity_all'] = np.sqrt(df['dx']**2 + df['dy']**2 + df['dz']**2) / dt
-
-    df.to_csv(file_path, index=False)
-
 def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
     if not os.path.exists(folder_path):
         print(f"Error: Folder {folder_path} does not exist.")
         return
 
     video_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.mp4')]
-    result_folder = os.path.join(os.path.dirname(folder_path), 'labelled_positions')
-    for video_path in video_paths:
-        print(f"Processing video: {video_path}")
+    distances_file_path = os.path.join(folder_path, 'distances.txt')
+
+    if len(video_paths) > 0:
+        print(f"Running for videos in {folder_path}: {len(video_paths)} files")
+
+    positions_folder = os.path.join(os.path.dirname(folder_path), 'labelled_positions')
+    annotations_folder = os.path.join(os.path.dirname(folder_path), 'annotations')
+
+    for i, video_path in enumerate(
+        tqdm(video_paths, desc=f'Folder: {folder_path}', unit='video'),
+        start=1
+    ):
+        tqdm.write(f"Processing ({i}/{len(video_paths)}): {folder_path}")
         if(cube_mode):
             df = track_aruco_cube(video_path, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
         else:
             df = track_aruco_no_cube(video_path, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
 
         if not df.empty:
-            save_results_to_csv(df, video_path, result_folder)
+            process_data(df, video_path, positions_folder, annotations_folder, distances_file_path, fps=fps)
 
 def process_recursive(root_folder, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
     for root, dirs, files in os.walk(root_folder):
