@@ -6,6 +6,7 @@ import time
 import numpy as np
 import sounddevice as sd
 from .runtime_config import runtime_config
+import platform
 
 micro_signal_thread = None
 
@@ -92,7 +93,8 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
     stop_event = threading.Event()
 
     def pacer_run():
-        _win_timer_high_res(True)
+        if platform.system() == 'Windows':
+            _win_timer_high_res(True)
         try:
             last_t = time.perf_counter()
 
@@ -165,7 +167,8 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                         print("Warmup done, audio queue is ready.")
 
         finally:
-            _win_timer_high_res(False)
+            if platform.system() == 'Windows':
+                _win_timer_high_res(False)
 
     t = threading.Thread(target=pacer_run, daemon=True)
     t.start()
