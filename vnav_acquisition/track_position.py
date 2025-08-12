@@ -72,7 +72,7 @@ def create_annotations(df, video_name, annotations_folder, distances_file_path):
         "video_annotations": annotations
     }
     with open(annotations_output_path, "w") as f:
-        json.dump(payload, f)
+        json.dump(payload, f, indent=4)
 
 def read_distances_from_file(file_path):
     try:
@@ -475,7 +475,9 @@ def parse_args():
         description="Tool for annotating position of needle in videos. Can be used to annotate videos in specified folder" \
         "or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset)." \
         "For each processed video folder, an output folder named 'labelled_positions' will be created at the same level" \
-        "as the folder containing the videos. In recursive mode , multiple such output folders will be created."
+        "as the folder containing the videos. In recursive mode , multiple such output folders will be created." \
+        "When you provide distances.txt file in the video folder, it will produce annotations." \
+        "distances.txt file should look like: 12,8.5,7,5.4" 
     )
     parser.add_argument("--video-path", required=True, help="Path to folder with videos")
     parser.add_argument("--marker-length", type=float, default=4.0, help="Length of the Aruco marker in cm (default: 4.0 cm)")

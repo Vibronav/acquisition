@@ -94,6 +94,8 @@ Tool for annotating position of needle in videos. Can be used to annotate videos
 or to annotate videos in every subfolder of specified folder (useful for autonomuos annotating all dataset).
 For each processed video folder, an output folder named 'labelled_positions' will be created at the same level
 as the folder containing the videos. In recursive mode , multiple such output folders will be created.
+When you provide distances.txt file in the video folder, it will produce annotations to folder 'annotations'.
+distances.txt file should look like: 12,8.5,7,5.4
 
 options:
                         Path to folder with videos
