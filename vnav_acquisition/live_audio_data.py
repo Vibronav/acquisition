@@ -89,7 +89,7 @@ def clear_queue(audio_queue):
     except queue.Empty:
         pass
 
-def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state):
+def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state):
     stop_event = threading.Event()
 
     def pacer_run():
@@ -98,9 +98,9 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
         try:
             last_t = time.perf_counter()
 
-            MAX_CATCHUP_PACKETS = 8
+            MAX_CATCHUP_PACKETS = 16
             TARGET_BACKLOG_PACKETS = 8
-            HARD_BACKLOG_PACKETS = 64
+            HARD_BACKLOG_PACKETS = 32
 
             while not stop_event.is_set():
                 now = time.perf_counter()
@@ -115,10 +115,12 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                             pass
                     continue
                 
+                backlog_packets = len(buffer_audio) // PACKET_BYTES
+                free_slots = audio_queue.maxsize - audio_queue.qsize()
                 should_emit = int(elapsed / PACKET_PERIOD_SEC)
-                to_emit = min(should_emit, MAX_CATCHUP_PACKETS)
-                if to_emit <= 0:
-                    to_emit = 1
+                extra = max(0, backlog_packets - TARGET_BACKLOG_PACKETS)
+                to_emit = min(should_emit + extra, MAX_CATCHUP_PACKETS, free_slots, backlog_packets)
+                print(f'{should_emit + extra} | {MAX_CATCHUP_PACKETS} | {free_slots} | {backlog_packets} | {to_emit}')
 
                 emitted = 0
                 while emitted < to_emit:
@@ -128,6 +130,7 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                         target_bytes = TARGET_BACKLOG_PACKETS * PACKET_BYTES
                         if backlog_bytes > hard_limit_bytes:
                             drop = backlog_bytes - target_bytes
+                            print(f'Limit in buffer audio reached, dropping {drop} bytes')
                             del buffer_audio[:drop]
                             backlog_bytes = len(buffer_audio)
 
@@ -146,6 +149,7 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                         audio_queue.put(block, timeout=0.002)
                     except queue.Full:
                         try:
+                            print(f'Audio queue is full, dropping oldest packet')
                             audio_queue.get_nowait()
                             audio_queue.put(block, timeout=0.002)
                         except queue.Empty:
@@ -155,13 +159,12 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
 
                     emitted += 1
 
-                if(emitted == 0):
+                if(to_emit == 0):
                     last_t = now
                 else:
-                    last_t += emitted * PACKET_PERIOD_SEC
+                    last_t += should_emit * PACKET_PERIOD_SEC
 
-                out = state.get("output_stream")
-                if out and not warmup_state["done"]:
+                if not warmup_state["done"]:
                     if audio_queue.qsize() >= warmup_state["target_elements"]:
                         warmup_state["done"] = True
                         print("Warmup done, audio queue is ready.")
@@ -185,9 +188,8 @@ def receive_and_send_micro_signals(conn, sio):
     buffer_data = bytearray()
     buffer_audio_lock = threading.Lock()
 
-    audio_queue = queue.Queue(maxsize=16)
-    warmup_state = {"done": False, "target_elements": 8}
-    state = {"output_stream": None}
+    audio_queue = queue.Queue(maxsize=8)
+    warmup_state = {"done": False, "target_elements": 4}
 
     leftover = np.zeros((0, 2), dtype=np.float32)
     def audio_callback(outdata, frames, time_info, status):
@@ -272,20 +274,21 @@ def receive_and_send_micro_signals(conn, sio):
                     output_stream = _make_output_stream(new_index, audio_callback)
                     current_output_index = new_index
                     output_stream.start()
-                    state["output_stream"] = output_stream
                     print(f'Switched micro output to device index: {current_output_index}')
 
                 except Exception as e:
                     print(f"Error switching micro output: {e}")
                     current_output_index = None
                     output_stream = None
-                    state["output_stream"] = None
 
                 pacer_thread, pacer_stop = start_audio_pacer(
-                    buffer_audio, buffer_audio_lock, audio_queue, warmup_state, state
+                    buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                 )
 
-            print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
+            last_log = 0
+            if(time.time() - last_log >= 10):
+                print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
+                last_log = time.time()
             if output_stream:
                 with buffer_audio_lock:
                     buffer_audio.extend(data)
