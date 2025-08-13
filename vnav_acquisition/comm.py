@@ -55,7 +55,7 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
         threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
 
     time.sleep(1)
-    start_micro_signal_sending()
+    start_micro_signal_sending(ssh)
     
 def mock_ssh_connect(socketio_instance):
     global ssh
@@ -64,7 +64,7 @@ def mock_ssh_connect(socketio_instance):
         threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
 
     time.sleep(1)
-    start_micro_signal_sending()
+    start_micro_signal_sending(ssh)
 
 def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
