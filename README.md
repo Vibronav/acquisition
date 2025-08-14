@@ -101,6 +101,8 @@ When you provide distances.txt file in the video folder, it will produce annotat
 distances.txt file should look like: 12,8.5,7,5.4
 
 options:
+  -h, --help            show this help message and exit
+  --video-path VIDEO_PATH
                         Path to folder with videos
   --marker-length MARKER_LENGTH
                         Length of the Aruco marker in cm (default: 4.0 cm)
