@@ -213,11 +213,11 @@ def detect_cube():
     
     rvec, tvec, R_inv, corners, ids, init_frame = res
 
-    ok, png = cv2.imencode(".png", init_frame, [int(cv2.IMWRITE_PNG_COMPRESSION), 90])
+    ok, jpg = cv2.imencode(".jpg", init_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
     if not ok:
         return jsonify({"error": "Could not encode image"}), 500
 
-    data_url = "data:image/png;base64," + base64.b64encode(png.tobytes()).decode('utf-8')
+    data_url = "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode('utf-8')
 
     return jsonify({
         "detected": True,

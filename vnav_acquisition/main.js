@@ -892,9 +892,9 @@ async function detectCube() {
 
 		canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-		const blob = await new Promise((res) => canvas.toBlob(res, "image/png", 0.9));
+		const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 1.0));
 		const form = new FormData();
-		form.append("frame", blob, "frame.png");
+		form.append("frame", blob, "frame.jpg");
 
 		const response = await fetch("/detect-cube", {
 			method: "POST",
