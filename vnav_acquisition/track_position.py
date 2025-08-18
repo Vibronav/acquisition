@@ -204,10 +204,10 @@ def make_corners(xc, yc, zc, m_len, axis):
 
     if axis == 'x-': # LEFT
         return np.array([
-            [xc, yc + mh, zc - mh + 0.1],  # left-top
-            [xc, yc + mh, zc + mh + 0.1],  # right-top
-            [xc, yc - mh, zc + mh + 0.1],  # right-bottom
-            [xc, yc - mh, zc - mh + 0.1]   # left-bottom
+            [xc, yc + mh, zc - mh],  # left-top
+            [xc, yc + mh, zc + mh],  # right-top
+            [xc, yc - mh, zc + mh],  # right-bottom
+            [xc, yc - mh, zc - mh]   # left-bottom
         ])
     elif axis == 'x+': # RIGHT
         return np.array([
