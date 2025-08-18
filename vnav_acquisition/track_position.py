@@ -231,7 +231,7 @@ def make_corners(xc, yc, zc, m_len, axis):
             [xc - mh, yc - mh, zc]   # left-bottom
         ])
 
-def detect_cube_pose(frame, obj_pts_dict=None, min_markers=3, cube_edge_top=5, cube_edge_sides=5, marker_length_cube=3, axis_length=3, display=False):
+def detect_cube_pose(frame, obj_pts_dict=None, min_markers=3, cube_edge_top=5, cube_edge_sides=5, marker_length_cube=3, axis_length=3):
 
     if obj_pts_dict is None:
         half_edge = cube_edge_top / 2.0
@@ -265,51 +265,48 @@ def detect_cube_pose(frame, obj_pts_dict=None, min_markers=3, cube_edge_top=5, c
     R_c, _ = cv2.Rodrigues(rvec)
 
     ### Display cube detection
-    if display:
-        init_frame = frame.copy()
-        x_c, y_c, z_c = tvec.flatten()
-        text = f'Cube Position: X: {x_c:.2f}cm, Y: {y_c:.2f}cm, Z: {z_c:.2f}cm'
-        cv2.putText(init_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    init_frame = frame.copy()
+    x_c, y_c, z_c = tvec.flatten()
+    text = f'Cube Position: X: {x_c:.2f}cm, Y: {y_c:.2f}cm, Z: {z_c:.2f}cm'
+    cv2.putText(init_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-        origin3d = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
+    origin3d = np.array([[0.0, 0.0, 0.0]], dtype=np.float32)
 
-        corners3d = []
-        colors = []
+    corners3d = []
+    colors = []
 
-        for fid, pts3d in obj_pts_dict.items():
-            corners3d.append(pts3d)
+    for fid, pts3d in obj_pts_dict.items():
+        corners3d.append(pts3d)
 
-            if fid == 0:  # TOP
-                col = (0, 255, 0)  # green
-            elif fid == 1:  # FRONT
-                col = (255, 0, 0)  # blue
-            elif fid == 2:  # LEFT
-                col = (0, 0, 255)  # red
-            elif fid == 3:  # RIGHT
-                col = (0, 255, 255)  # yellow
-            colors += [col] * 4
+        if fid == 0:  # TOP
+            col = (0, 255, 0)  # green
+        elif fid == 1:  # FRONT
+            col = (255, 0, 0)  # blue
+        elif fid == 2:  # LEFT
+            col = (0, 0, 255)  # red
+        elif fid == 3:  # RIGHT
+            col = (0, 255, 255)  # yellow
+        colors += [col] * 4
 
-        corners3d = np.vstack(corners3d).astype(np.float32)
+    corners3d = np.vstack(corners3d).astype(np.float32)
 
-        all3d = np.vstack([origin3d, corners3d])
-        all2d, _ = cv2.projectPoints(
-            all3d, rvec, tvec, camera_matrix, dist_coeffs
-        )
+    all3d = np.vstack([origin3d, corners3d])
+    all2d, _ = cv2.projectPoints(
+        all3d, rvec, tvec, camera_matrix, dist_coeffs
+    )
 
-        all2d = all2d.reshape(-1, 2).astype(int)
+    all2d = all2d.reshape(-1, 2).astype(int)
 
-        cx, cy = all2d[0]
-        cv2.circle(init_frame, (cx, cy), 6, (255, 255, 255), -1)
+    cx, cy = all2d[0]
+    cv2.circle(init_frame, (cx, cy), 6, (255, 255, 255), -1)
 
-        for pt, col in zip(all2d[1:], colors):
-            cv2.circle(init_frame, tuple(pt), 2, col, -1)
+    for pt, col in zip(all2d[1:], colors):
+        cv2.circle(init_frame, tuple(pt), 2, col, -1)
 
-        aruco.drawDetectedMarkers(init_frame, corners, ids)
-        cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
-        cv2.imshow('Cube Detection', init_frame)
-        cv2.waitKey(5000)
+    aruco.drawDetectedMarkers(init_frame, corners, ids)
+    cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
 
-    return rvec, tvec, R_c.T, corners, ids
+    return rvec, tvec, R_c.T, corners, ids, init_frame
 
 def track_aruco_cube(
         video_path,
@@ -347,14 +344,17 @@ def track_aruco_cube(
             cube_edge_top=cube_edge_top, 
             cube_edge_sides=cube_edge_sides, 
             marker_length_cube=marker_length_cube,
-            axis_length=axis_length,
-            display=display
+            axis_length=axis_length
         )
         cube_detection_attempts += 1
 
-    rvec_c, tvec_c, R_inv, corners_c, ids_c = cube_data
+    rvec_c, tvec_c, R_inv, corners_c, ids_c, init_frame = cube_data
     r_c = rvec_c.flatten()
     t_c = tvec_c.flatten()
+
+    if display:
+        cv2.imshow('Cube Detection', init_frame)
+        cv2.waitKey(5000)
 
     results = []
     frame_idx = 1

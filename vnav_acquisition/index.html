@@ -13,6 +13,7 @@
             <div id="raspberryStatus">Raspberry status: unknown</div>
             <div id="automationStatus">Automation status: idle</div>
             <button id="deleteRecording">Delete Last Recording</button>
+            <button id="detectCube">Detect Cube</button>
             <div id="iterationCounter">Iteration: -</div>
         </div>
 
@@ -182,6 +183,12 @@
         </div>
     </div>
 
+<div id="cubeModal" class="modal">
+    <div class="modal-content">
+        <span id="cubeModalClose" class="close">&times;</span>
+        <img id="cubeModalImage" alt="Cube Detection result" />
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/gh/corbanbrook/dsp.js/dsp.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>

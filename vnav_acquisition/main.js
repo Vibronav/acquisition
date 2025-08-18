@@ -74,6 +74,11 @@ const intervalToggle = document.getElementById("intervalToggle");
 const intervalEL = document.getElementById("interval");
 const sleepTimeEl = document.getElementById("sleepTime");
 
+const detectCubeBt = document.getElementById("detectCube");
+const cubeModal = document.getElementById("cubeModal");
+const cubeModalImage = document.getElementById("cubeModalImage");
+const cubeModalClose = document.getElementById("cubeModalClose");
+
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
 	speeds: ["slow", "medium", "fast"]
@@ -451,7 +456,7 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 	const chunks = [];
 
 	const recorder = new MediaRecorder(stream, {
-		mimeType: "video/webm; codecs=vp9"
+		mimeType: "video/webm; codecs=h264"
 	})
 
 	recorder.ondataavailable = (event) => {
@@ -872,6 +877,49 @@ function deleteLastRecording() {
 	});
 }
 
+async function detectCube() {
+	try {
+		if(!liveVideoElement || !liveVideoElement.srcObject) {
+			alert("No live video stream available");
+			return;
+		}
+
+		const video = liveVideoElement;
+		const canvas = document.createElement("canvas");
+		canvas.width = video.videoWidth;
+		canvas.height = video.videoHeight;
+		const canvasCtx = canvas.getContext("2d");
+
+		canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+		const blob = await new Promise((res) => canvas.toBlob(res, "image/png", 0.9));
+		const form = new FormData();
+		form.append("frame", blob, "frame.png");
+
+		const response = await fetch("/detect-cube", {
+			method: "POST",
+			body: form
+		});
+		if (!response.ok) {
+			console.warn("Failed during detecting cube request", response.statusText);
+		}
+		const data = await response.json();
+
+		if(!data.detected) {
+			alert("Cube not detected");
+			return;
+		}
+
+		cubeModalImage.src = data.image;
+		cubeModal.style.display = "block";
+
+	} catch(e) {
+		console.error(e);
+		alert("Error while detecting cube");
+	}
+
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -901,6 +949,13 @@ speedSlider.addEventListener("input", (e) => {
 })
 intervalToggle.addEventListener("change", (e) => {
 	intervalEL.style.display = e.target.checked ? "block" : "none";
+})
+detectCubeBt.addEventListener("click", detectCube);
+cubeModalClose.addEventListener("click", () => cubeModal.style.display = "none");
+cubeModal.addEventListener("click", (e) => {
+	if(e.target === cubeModal) {
+		cubeModal.style.display = "none";
+	}
 })
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);

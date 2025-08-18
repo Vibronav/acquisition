@@ -1,6 +1,9 @@
 import eventlet
 eventlet.monkey_patch()
 
+import numpy as np
+import cv2
+import base64
 from flask import Flask, request, jsonify, send_from_directory
 from vnav_acquisition.comm import is_ssh_connected, mock_ssh_connect, ssh_connect, on_rec_start, on_rec_stop
 from vnav_acquisition.config import config
@@ -8,6 +11,7 @@ from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
 from .record import start_recording, stop_recording, delete_last_recording
 from .utils import build_filename, get_local_ip_address
+from .track_position import detect_cube_pose
 import threading
 import webbrowser
 import argparse
@@ -194,6 +198,31 @@ def post_delete_last_recording():
         return jsonify({"status": "not found", "message": "No recordings to delete."})
     return jsonify({"status": "ok", "message": message})
 
+@app.route('/detect-cube', methods=['POST'])
+def detect_cube():
+
+    buffer = request.files["frame"].read()
+    buffer_arr = np.frombuffer(buffer, dtype=np.uint8)
+    frame = cv2.imdecode(buffer_arr, cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({"error": "Invalid image data"}), 400
+
+    res = detect_cube_pose(frame)
+    if res is None:
+        return jsonify({"detected": False})
+    
+    rvec, tvec, R_inv, corners, ids, init_frame = res
+
+    ok, png = cv2.imencode(".png", init_frame, [int(cv2.IMWRITE_PNG_COMPRESSION), 90])
+    if not ok:
+        return jsonify({"error": "Could not encode image"}), 500
+
+    data_url = "data:image/png;base64," + base64.b64encode(png.tobytes()).decode('utf-8')
+
+    return jsonify({
+        "detected": True,
+        "image": data_url
+    })
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
