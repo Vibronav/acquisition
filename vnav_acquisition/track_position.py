@@ -204,10 +204,10 @@ def make_corners(xc, yc, zc, m_len, axis):
 
     if axis == 'x-': # LEFT
         return np.array([
-            [xc, yc + mh, zc - mh + 0.1],  # left-top
-            [xc, yc + mh, zc + mh + 0.1],  # right-top
-            [xc, yc - mh, zc + mh + 0.1],  # right-bottom
-            [xc, yc - mh, zc - mh + 0.1]   # left-bottom
+            [xc, yc + mh, zc - mh],  # left-top
+            [xc, yc + mh, zc + mh],  # right-top
+            [xc, yc - mh, zc + mh],  # right-bottom
+            [xc, yc - mh, zc - mh]   # left-bottom
         ])
     elif axis == 'x+': # RIGHT
         return np.array([
@@ -231,9 +231,22 @@ def make_corners(xc, yc, zc, m_len, axis):
             [xc - mh, yc - mh, zc]   # left-bottom
         ])
 
-def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, min_markers=2):
+def detect_cube_pose(frame, obj_pts_dict=None, min_markers=3, cube_edge_top=5, cube_edge_sides=5, marker_length_cube=3, axis_length=3):
 
-    corners, ids, _ = detector.detectMarkers(frame)
+    if obj_pts_dict is None:
+        half_edge = cube_edge_top / 2.0
+        half_edge_sides = cube_edge_sides / 2.0
+        obj_pts_dict = {
+            0: make_corners(0.0, half_edge, 0.0, marker_length_cube, 'y'), # TOP
+            1: make_corners(0.0, 0.0, half_edge_sides, marker_length_cube, 'z'), # FRONT
+            2: make_corners(-half_edge_sides, 0.0, 0.0, marker_length_cube, 'x-') # LEFT
+        }        
+
+    params = aruco.DetectorParameters()
+    dict_cube = aruco.getPredefinedDictionary(aruco.DICT_5X5_100)
+    detector_cube = aruco.ArucoDetector(dict_cube, params)
+
+    corners, ids, _ = detector_cube.detectMarkers(frame)
     if ids is None:
         return None
     
@@ -251,58 +264,9 @@ def detect_cube_pose(frame, detector, obj_pts_dict, camera_matrix, dist_coeffs, 
 
     R_c, _ = cv2.Rodrigues(rvec)
 
-    return rvec, tvec, R_c.T, corners, ids
-
-def track_aruco_cube(
-        video_path,
-        dobot_mode,
-        needle_length, 
-        marker_length_obj=4, 
-        axis_length=4, 
-        marker_length_cube=3, 
-        cube_edge_top=5.0,
-        cube_edge_sides=5,
-        fps=30, 
-        display=True):
-    
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"Error: Could not open video file {video_path}")
-        return pd.DataFrame()
-    
-    params = aruco.DetectorParameters()
-
-    dict_cube = aruco.getPredefinedDictionary(aruco.DICT_5X5_100)
-    detector_cube = aruco.ArucoDetector(dict_cube, params)
-    dict_marker = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-    detector_obj = aruco.ArucoDetector(dict_marker, params)
-
-    half_edge = cube_edge_top / 2.0
-    half_edge_sides = cube_edge_sides / 2.0
-    obj_pts_dict = {
-        0: make_corners(0.0, half_edge, 0.0, marker_length_cube, 'y'), # TOP
-        1: make_corners(0.0, 0.0, half_edge_sides, marker_length_cube, 'z'), # FRONT
-        2: make_corners(-half_edge_sides, 0.0, 0.0, marker_length_cube, 'x-') # LEFT
-    }
-
-    cube_data = None
-    init_frame = None
-
-    cube_detection_attempts = 0
-    while cube_data is None:
-        ret, frame = cap.read()
-        if not ret:
-            print(f'Could not find cube in video: {video_path}')
-            return pd.DataFrame()
-        
-        cube_data = detect_cube_pose(frame, detector_cube, obj_pts_dict, camera_matrix, dist_coeffs)
-        init_frame = frame.copy()
-        cube_detection_attempts += 1
-
-    rvec_c, tvec_c, R_inv, corners_c, ids_c = cube_data
-    r_c = rvec_c.flatten()
-    t_c = tvec_c.flatten()
-    x_c, y_c, z_c = t_c
+    ### Display cube detection
+    init_frame = frame.copy()
+    x_c, y_c, z_c = tvec.flatten()
     text = f'Cube Position: X: {x_c:.2f}cm, Y: {y_c:.2f}cm, Z: {z_c:.2f}cm'
     cv2.putText(init_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
@@ -328,7 +292,7 @@ def track_aruco_cube(
 
     all3d = np.vstack([origin3d, corners3d])
     all2d, _ = cv2.projectPoints(
-        all3d, rvec_c, tvec_c, camera_matrix, dist_coeffs
+        all3d, rvec, tvec, camera_matrix, dist_coeffs
     )
 
     all2d = all2d.reshape(-1, 2).astype(int)
@@ -339,9 +303,55 @@ def track_aruco_cube(
     for pt, col in zip(all2d[1:], colors):
         cv2.circle(init_frame, tuple(pt), 2, col, -1)
 
+    aruco.drawDetectedMarkers(init_frame, corners, ids)
+    cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec, tvec, axis_length)
 
-    aruco.drawDetectedMarkers(init_frame, corners_c, ids_c)
-    cv2.drawFrameAxes(init_frame, camera_matrix, dist_coeffs, rvec_c, tvec_c, axis_length)
+    return rvec, tvec, R_c.T, corners, ids, init_frame
+
+def track_aruco_cube(
+        video_path,
+        dobot_mode,
+        needle_length, 
+        marker_length_obj=4, 
+        axis_length=4, 
+        marker_length_cube=3, 
+        cube_edge_top=5.0,
+        cube_edge_sides=5,
+        fps=30, 
+        display=True):
+    
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video file {video_path}")
+        return pd.DataFrame()
+    
+    params = aruco.DetectorParameters()
+    dict_marker = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    detector_obj = aruco.ArucoDetector(dict_marker, params)
+
+    half_edge = cube_edge_top / 2.0
+    cube_data = None
+
+    cube_detection_attempts = 0
+    while cube_data is None:
+        ret, frame = cap.read()
+        if not ret:
+            print(f'Could not find cube in video: {video_path}')
+            return pd.DataFrame()
+        
+        cube_data = detect_cube_pose(
+            frame, 
+            cube_edge_top=cube_edge_top, 
+            cube_edge_sides=cube_edge_sides, 
+            marker_length_cube=marker_length_cube,
+            axis_length=axis_length
+        )
+        cube_detection_attempts += 1
+
+    rvec_c, tvec_c, R_inv, corners_c, ids_c, init_frame = cube_data
+    r_c = rvec_c.flatten()
+    t_c = tvec_c.flatten()
+
     if display:
         cv2.imshow('Cube Detection', init_frame)
         cv2.waitKey(5000)
