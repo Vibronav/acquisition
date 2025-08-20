@@ -120,7 +120,6 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
                 should_emit = int(elapsed / PACKET_PERIOD_SEC)
                 extra = max(0, backlog_packets - TARGET_BACKLOG_PACKETS)
                 to_emit = min(should_emit + extra, MAX_CATCHUP_PACKETS, free_slots, backlog_packets)
-                print(f'{should_emit + extra} | {MAX_CATCHUP_PACKETS} | {free_slots} | {backlog_packets} | {to_emit}')
 
                 emitted = 0
                 while emitted < to_emit:

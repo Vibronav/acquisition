@@ -66,13 +66,13 @@ def create_annotations(df, video_name, annotations_folder, distances_file_path):
                 "time": best_row["Time (s)"]
             }
         
-    annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
-    payload = {
-        "video_file": f'{video_name}.mp4',
-        "video_annotations": annotations
-    }
-    with open(annotations_output_path, "w") as f:
-        json.dump(payload, f, indent=4)
+        annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
+        payload = {
+            "video_file": f'{video_name}.mp4',
+            "video_annotations": annotations
+        }
+        with open(annotations_output_path, "w") as f:
+            json.dump(payload, f, indent=4)
 
 def read_distances_from_file(file_path):
     try:
