@@ -137,8 +137,8 @@ def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj
                 y = (t_final[1] * -1)
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_length, -0.9]], dtype=np.float32)
-                
+                needle_coord = np.array([[0.0, -needle_length, -3.3]], dtype=np.float32)
+
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
@@ -397,7 +397,7 @@ def track_aruco_cube(
                 y = t_final[1] + half_edge
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_length, -0.9]], dtype=np.float32)
+                needle_coord = np.array([[0.0, -needle_length, -3.3]], dtype=np.float32)
 
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
