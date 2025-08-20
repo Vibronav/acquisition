@@ -243,7 +243,7 @@ def receive_and_send_micro_signals(conn, sio):
                 break
 
             new_index = runtime_config['micro_output']
-            if new_index is not None and new_index != current_output_index:
+            if new_index != current_output_index:
 
                 if pacer_thread:
                     if pacer_stop:
@@ -270,25 +270,25 @@ def receive_and_send_micro_signals(conn, sio):
                 with buffer_audio_lock:
                     buffer_audio.clear()
 
-                try:
-                    output_stream = _make_output_stream(new_index, audio_callback)
+                if new_index is not None:
+                    try:
+                        output_stream = _make_output_stream(new_index, audio_callback)
+                        current_output_index = new_index
+                        output_stream.start()
+                        print(f'Switched micro output to device index: {current_output_index}')
+
+                    except Exception as e:
+                        print(f"Error switching micro output: {e}")
+                        current_output_index = None
+                        output_stream = None
+
+                    pacer_thread, pacer_stop = start_audio_pacer(
+                        buffer_audio, buffer_audio_lock, audio_queue, warmup_state
+                    )
+
+                else:
                     current_output_index = new_index
-                    output_stream.start()
-                    print(f'Switched micro output to device index: {current_output_index}')
 
-                except Exception as e:
-                    print(f"Error switching micro output: {e}")
-                    current_output_index = None
-                    output_stream = None
-
-                pacer_thread, pacer_stop = start_audio_pacer(
-                    buffer_audio, buffer_audio_lock, audio_queue, warmup_state
-                )
-
-            last_log = 0
-            if(time.time() - last_log >= 10):
-                print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
-                last_log = time.time()
             if output_stream:
                 with buffer_audio_lock:
                     buffer_audio.extend(data)

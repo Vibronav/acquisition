@@ -135,10 +135,13 @@ def set_micro_output():
     if not output_name:
         return jsonify({"error": "Missing 'micro_output' parameter"}), 400
     
-    for idx, dev in enumerate(sd.query_devices()):
-        if output_name in dev['name'] and dev['max_output_channels'] > 0:
-            runtime_config.set_value('micro_output', idx)
-            return jsonify({"status": "ok", "micro_output": idx})
+    if output_name == "No Audio":
+        runtime_config.set_value('micro_output', None)
+    else:
+        for idx, dev in enumerate(sd.query_devices()):
+            if output_name in dev['name'] and dev['max_output_channels'] > 0:
+                runtime_config.set_value('micro_output', idx)
+                return jsonify({"status": "ok", "micro_output": idx})
         
     return jsonify({"error": f"Audio output '{output_name}' not found"}), 404
 
@@ -157,6 +160,8 @@ def get_audio_outputs():
             and dev['hostapi'] == default_hostapi):
             outputs.append({'name': name})
             seen.add(name)
+
+    outputs.insert(0, {'name': 'No Audio'})
 
     print(f"Available audio outputs: {outputs}")
     return jsonify(outputs)
