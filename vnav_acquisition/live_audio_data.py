@@ -264,6 +264,12 @@ def receive_and_send_micro_signals(conn, sio):
                         pass
                     output_stream = None
 
+                warmup_state["done"] = False
+                leftover = leftover[:0, :]
+                clear_queue(audio_queue)
+                with buffer_audio_lock:
+                    buffer_audio.clear()
+
                 if new_index is not None:
                     try:
                         output_stream = _make_output_stream(new_index, audio_callback)
@@ -283,10 +289,6 @@ def receive_and_send_micro_signals(conn, sio):
                 else:
                     current_output_index = new_index
 
-            last_log = 0
-            if(time.time() - last_log >= 10):
-                print(f'Audio buffer size: {len(buffer_audio)} | audio queue size: {audio_queue.qsize()}')
-                last_log = time.time()
             if output_stream:
                 with buffer_audio_lock:
                     buffer_audio.extend(data)
