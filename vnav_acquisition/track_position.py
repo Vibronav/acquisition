@@ -112,17 +112,24 @@ def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj
         if not ret:
             break
 
-        corners, ids, _ = detector.detectMarkers(frame)
-        corners = list(corners)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        for i, c in enumerate(corners):
-            corners[i] = cv2.cornerSubPix(
-                gray, c,
-                winSize=(5,5),
-                zeroZone=(-1,-1),
-                criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.001)
-            )        
-        if ids is not None and len(ids) > 0:
+        corners_all, ids_all, _ = detector.detectMarkers(frame)
+        corners = []
+        if ids_all is not None and len(ids_all) > 0:
+            corners_all = list(corners_all)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            for c, marker_idx in zip(corners_all, ids_all.flatten()):
+                if marker_idx == 0:
+                    refined = cv2.cornerSubPix(
+                        gray, c,
+                        winSize=(5,5),
+                        zeroZone=(-1,-1),
+                        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.001)
+                    )
+                    corners.append(refined)
+
+        if corners and len(corners) > 0:
+            ids = np.array([0], dtype=np.int32)
             aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
@@ -371,17 +378,24 @@ def track_aruco_cube(
         if not ret:
             break
         
-        corners_o, ids_o, _ = detector_obj.detectMarkers(frame)
-        corners_o = list(corners_o)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        for i, c in enumerate(corners_o):
-            corners_o[i] = cv2.cornerSubPix(
-                gray, c,
-                winSize=(5,5),
-                zeroZone=(-1,-1),
-                criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-            )
-        if ids_o is not None and len(ids_o) > 0:
+        corners_all, ids_all, _ = detector_obj.detectMarkers(frame)
+        corners_o = []
+        if ids_all is not None and len(ids_all) > 0:
+            corners_all = list(corners_all)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            for c, marker_idx in zip(corners_all, ids_all.flatten()):
+                if marker_idx == 0:
+                    refined_corner = cv2.cornerSubPix(
+                        gray, c,
+                        winSize=(5,5),
+                        zeroZone=(-1,-1),
+                        criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+                    )
+                    corners_o.append(refined_corner)
+
+        if corners_o and len(corners_o) > 0:
+            ids_o = np.array([0], dtype=np.int32)
             aruco.drawDetectedMarkers(frame, corners_o, ids_o)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
 
@@ -389,7 +403,7 @@ def track_aruco_cube(
                 r_o = rvecs[0]
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                t_o = (R_o @ np.array([[0.0, 0.0, -2.2]], dtype=np.float32).T + t_o).flatten()
+                t_o = (R_o @ np.array([[0.0, 0.0, -3.3]], dtype=np.float32).T + t_o).flatten()
                 t_needle = (np.array([0.0, dobot_offset + needle_length, 0.0], dtype=np.float32) + t_o)
 
                 t_final = R_inv.dot(t_needle - t_c)
@@ -423,6 +437,7 @@ def track_aruco_cube(
             u, v = tip2d.ravel().astype(int)
 
             cv2.line(frame, (0, v), (w, v), (0, 255, 0), 1)
+            # cv2.circle(frame, (u, v), 3, (0, 0, 255), -1)
             ### Helper line to labelling
 
             cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, r_o, t_o, axis_length)
@@ -539,7 +554,7 @@ def main():
         print("Tracking for dobot.")
         dobot_mode = True
     elif(args.no_dobot):
-        print("Tracking for no manual.")
+        print("Tracking for manual.")
         dobot_mode = False
 
     marker_length_obj = args.marker_length
