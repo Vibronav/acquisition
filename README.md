@@ -115,6 +115,7 @@ options:
   --no-dobot            Argument need to be provided if dobot is NOT used during recordings
   --needle-length NEEDLE_LENGTH
                         Length of whole needle in cm
+  --z-offset Z_OFFSET   Z-axis offset in cm, if not provided default offset will be used
   --starting-position STARTING_POSITION
                         Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube
 

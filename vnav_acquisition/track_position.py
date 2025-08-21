@@ -88,7 +88,7 @@ def read_distances_from_file(file_path):
 Tracking without cube section
 """
 
-def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj=4, axis_length=4, starting_position=14, fps=30, display=True):
+def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj=4, axis_length=4, starting_position=14, z_offset=None, fps=30, display=True):
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -102,10 +102,6 @@ def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj
     height_constraint = None
     results = []
     frame_idx = 1
-    marker_margin = 2.95
-    claw = 1.2
-    attachment = 0.69
-    dobot_offset = marker_margin + claw + attachment
 
     while True:
         ret, frame = cap.read()
@@ -134,17 +130,30 @@ def track_aruco_no_cube(video_path, dobot_mode, needle_length, marker_length_obj
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
             if dobot_mode:
+
+                marker_margin = 2.95
+                claw = 1.2
+                attachment = 0.69
+                dobot_y_offset = marker_margin + claw + attachment
+
+                if z_offset is None:
+                    z_offset = -2.2
+
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                t_o = (R_o @ np.array([[0.0, 0.0, -2.2]], dtype=np.float32).T + t_o).flatten()
-                t_final = (np.array([0.0, dobot_offset + needle_length, 0.0], dtype=np.float32) + t_o)
+                t_o = (R_o @ np.array([[0.0, 0.0, z_offset]], dtype=np.float32).T + t_o).flatten()
+                t_final = (np.array([0.0, dobot_y_offset + needle_length, 0.0], dtype=np.float32) + t_o)
 
                 x = t_final[0]
                 y = (t_final[1] * -1)
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_length, -3.3]], dtype=np.float32)
+
+                if z_offset is None:
+                    z_offset = -3.3
+
+                needle_coord = np.array([[0.0, -needle_length, z_offset]], dtype=np.float32)
 
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
@@ -324,6 +333,7 @@ def track_aruco_cube(
         marker_length_cube=3, 
         cube_edge_top=5.0,
         cube_edge_sides=5,
+        z_offset=None,
         fps=30, 
         display=True):
     
@@ -365,10 +375,6 @@ def track_aruco_cube(
 
     results = []
     frame_idx = 1
-    marker_margin = 2.95
-    claw = 1.2
-    attachement = 0.69
-    dobot_offset = marker_margin + claw + attachement
 
     cap.release()
     cap = cv2.VideoCapture(video_path)
@@ -400,18 +406,31 @@ def track_aruco_cube(
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
 
             if dobot_mode:
+
+                marker_margin = 2.95
+                claw = 1.2
+                attachment = 0.69
+                dobot_y_offset = marker_margin + claw + attachment
+
+                if z_offset is None:
+                    z_offset = -2.2
+
                 r_o = rvecs[0]
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                t_o = (R_o @ np.array([[0.0, 0.0, -3.3]], dtype=np.float32).T + t_o).flatten()
-                t_needle = (np.array([0.0, dobot_offset + needle_length, 0.0], dtype=np.float32) + t_o)
+                t_o = (R_o @ np.array([[0.0, 0.0, z_offset]], dtype=np.float32).T + t_o).flatten()
+                t_needle = (np.array([0.0, dobot_y_offset + needle_length, 0.0], dtype=np.float32) + t_o)
 
                 t_final = R_inv.dot(t_needle - t_c)
                 x = t_final[0]
                 y = t_final[1] + half_edge
                 z = t_final[2]
             else:
-                needle_coord = np.array([[0.0, -needle_length, -3.3]], dtype=np.float32)
+
+                if z_offset is None:
+                    z_offset = -3.3
+
+                needle_coord = np.array([[0.0, -needle_length, z_offset]], dtype=np.float32)
 
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
@@ -461,7 +480,7 @@ def track_aruco_cube(
     df = pd.DataFrame(results, columns=['Frame', 'Time (s)', 'Object_X_cm', 'Object_Y_cm', 'Object_Z_cm'])
     return df
 
-def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
+def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, z_offset=0.0, fps=30, display=True):
     if not os.path.exists(folder_path):
         print(f"Error: Folder {folder_path} does not exist.")
         return
@@ -481,19 +500,19 @@ def run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_len
     ):
         tqdm.write(f"Processing ({i}/{len(video_paths)}): {folder_path}")
         if(cube_mode):
-            df = track_aruco_cube(video_path, dobot_mode, needle_length, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            df = track_aruco_cube(video_path, dobot_mode, needle_length, marker_length_obj=marker_length_obj, z_offset=z_offset, fps=fps, display=display)
         else:
-            df = track_aruco_no_cube(video_path, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            df = track_aruco_no_cube(video_path, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, z_offset=z_offset, fps=fps, display=display)
 
         if not df.empty:
             process_data(df, video_path, positions_folder, annotations_folder, distances_file_path, fps=fps)
 
-def process_recursive(root_folder, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, fps=30, display=True):
+def process_recursive(root_folder, cube_mode, dobot_mode, needle_length, starting_position=0.0, marker_length_obj=4.0, z_offset=0.0, fps=30, display=True):
     for root, dirs, files in os.walk(root_folder):
         video_files = [f for f in files if f.endswith('.mp4')]
         if video_files:
             print(f"Running for videos in {root}: {len(video_files)} files")
-            run_aruco_tracking_for_folder(root, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
+            run_aruco_tracking_for_folder(root, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, z_offset=z_offset, fps=fps, display=display)
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -514,6 +533,7 @@ def parse_args():
     parser.add_argument("--dobot", action="store_true", help="Argument need to be provided if dobot is used during recordings")
     parser.add_argument("--no-dobot", action="store_true", help="Argument need to be provided if dobot is NOT used during recordings")
     parser.add_argument("--needle-length", required=True, type=float, help="Length of whole needle in cm")
+    parser.add_argument("--z-offset", type=float, help="Z-axis offset in cm, if not provided default offset will be used")
     parser.add_argument("--starting-position", default=0.0, type=float, help="Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube")
     return parser.parse_args()
 
@@ -561,11 +581,12 @@ def main():
     fps = args.fps
     needle_length = args.needle_length
     starting_position = args.starting_position
-    
+    z_offset = args.z_offset
+
     if recursive:
-        process_recursive(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        process_recursive(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, z_offset=z_offset, fps=fps, display=display)
     else:
-        run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, fps=fps, display=display)
+        run_aruco_tracking_for_folder(folder_path, cube_mode, dobot_mode, needle_length, starting_position=starting_position, marker_length_obj=marker_length_obj, z_offset=z_offset, fps=fps, display=display)
 
 if __name__ == "__main__":
     main()
