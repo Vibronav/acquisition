@@ -87,6 +87,7 @@ def run_automation(
 
         move_to_position(dashboard, move, P1)
         print(f'Moving to initial position P1: {P1}')
+        time.sleep(0.3)
 
         output_filename_prefix = build_filename(description, material, f'Speed-{speed}', needle_type, microphone_type)
         
@@ -95,7 +96,7 @@ def run_automation(
         if not is_started:
             continue
 
-        time.sleep(0.5)
+        time.sleep(0.4)
         print(f"Recording {i+1}/{num_iterations} started.")
 
         curr_Z = P1[2]
