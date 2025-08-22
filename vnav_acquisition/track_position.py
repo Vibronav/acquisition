@@ -152,7 +152,7 @@ def track_aruco_no_cube(
                 r_o = rvecs[0].reshape(3, 1)
                 t_o = tvecs[0].reshape(3, 1)
                 R_o, _ = cv2.Rodrigues(r_o)
-                
+
                 t_o = (R_o @ np.array([[0.0, 0.0, z_offset]], dtype=np.float32).T + t_o).flatten()
                 t_final = (np.array([0.0, dobot_y_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
 
@@ -164,7 +164,7 @@ def track_aruco_no_cube(
                 attachment_offset = marker_length_obj / 2 + marker_margin_obj
 
                 if z_offset is None:
-                    z_offset = -3.3
+                    z_offset = 0.0
 
                 needle_coord = np.array([[0.0, -attachment_offset - needle_offset, z_offset]], dtype=np.float32)
 
@@ -444,7 +444,7 @@ def track_aruco_cube(
                 attachment_offset = marker_length_obj / 2 + marker_margin_obj
 
                 if z_offset is None:
-                    z_offset = -3.3
+                    z_offset = 0.0
 
                 needle_coord = np.array([[0.0, -attachment_offset - needle_offset, z_offset]], dtype=np.float32)
 
