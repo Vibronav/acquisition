@@ -75,6 +75,11 @@ def create_annotations(df, video_name, annotations_folder, distances_file_path):
             json.dump(payload, f, indent=4)
 
 def read_distances_from_file(file_path):
+
+    if not os.path.isfile(file_path):
+        print(f'Distance file for annotations not found, skipping annotationg.')
+        return []
+
     try:
         with open(file_path, 'r') as f:
             raw = f.read().strip()
