@@ -105,7 +105,9 @@ options:
   --video-path VIDEO_PATH
                         Path to folder with videos
   --marker-length MARKER_LENGTH
-                        Length of the Aruco marker in cm (default: 4.0 cm)
+                        Length of the Aruco marker in cm (From protocol)
+  --marker-margin MARKER_MARGIN
+                        Margin around the Aruco marker in cm (From protocol)
   --recursive           Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)
   --fps FPS             Frames per second for video processing (default: 30)
   --display             If true will display tracker on video
@@ -113,11 +115,13 @@ options:
   --no-cube             If provided will NOT use cube to detect table grund
   --dobot               Argument need to be provided if dobot is used during recordings
   --no-dobot            Argument need to be provided if dobot is NOT used during recordings
-  --needle-length NEEDLE_LENGTH
-                        Length of whole needle in cm
+  --needle-offset NEEDLE_OFFSET
+                        Needle offset in cm (From protocol)
   --z-offset Z_OFFSET   Z-axis offset in cm, if not provided default offset will be used
   --starting-position STARTING_POSITION
                         Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube
+  --table-offset TABLE_OFFSET
+                        E.g. when provided 2cm, level 0 will be 2 cm above table (By default 0.0 cm)
 
 ```
 

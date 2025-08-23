@@ -97,6 +97,7 @@ def track_aruco_no_cube(
         axis_length=4, 
         starting_position=14, 
         z_offset=None, 
+        table_offset=0.0,
         fps=30, 
         display=True
     ):
@@ -157,7 +158,7 @@ def track_aruco_no_cube(
                 t_final = (np.array([0.0, dobot_y_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
 
                 x = t_final[0]
-                y = (t_final[1] * -1)
+                y = (t_final[1] * -1) - table_offset
                 z = t_final[2]
             else:
 
@@ -175,7 +176,7 @@ def track_aruco_no_cube(
                 t_final = (R_o @ needle_coord.T + t_o).flatten()
 
                 x = t_final[0]
-                y = (t_final[1] * -1)
+                y = (t_final[1] * -1) - table_offset
                 z = t_final[2]
 
             if height_constraint is None:
@@ -348,6 +349,7 @@ def track_aruco_cube(
         cube_edge_top=5.0,
         cube_edge_sides=5,
         z_offset=None,
+        table_offset=0.0,
         fps=30, 
         display=True):
     
@@ -437,7 +439,7 @@ def track_aruco_cube(
                 t_final = R_inv.dot(t_needle - t_c)
 
                 x = t_final[0]
-                y = t_final[1] + half_edge
+                y = t_final[1] + half_edge - table_offset
                 z = t_final[2]
             else:
 
@@ -456,7 +458,7 @@ def track_aruco_cube(
                 t_final = R_inv.dot(t_needle - t_c)
 
                 x = t_final[0]
-                y = t_final[1] + half_edge
+                y = t_final[1] + half_edge - table_offset
                 z = t_final[2]
 
             ### Helper line to labelling
@@ -506,6 +508,7 @@ def run_aruco_tracking_for_folder(
         needle_offset, 
         starting_position=0.0, 
         z_offset=None, 
+        table_offset=0.0,
         fps=30, 
         display=True
     ):
@@ -535,6 +538,7 @@ def run_aruco_tracking_for_folder(
                 marker_margin_obj, 
                 needle_offset, 
                 z_offset=z_offset, 
+                table_offset=table_offset,
                 fps=fps, 
                 display=display
             )
@@ -547,6 +551,7 @@ def run_aruco_tracking_for_folder(
                 needle_offset, 
                 starting_position=starting_position, 
                 z_offset=z_offset, 
+                table_offset=table_offset,
                 fps=fps, 
                 display=display
             )
@@ -563,6 +568,7 @@ def process_recursive(
         needle_offset, 
         starting_position=0.0, 
         z_offset=None, 
+        table_offset=0.0,
         fps=30, 
         display=True
     ):
@@ -579,6 +585,7 @@ def process_recursive(
                 needle_offset, 
                 starting_position=starting_position, 
                 z_offset=z_offset, 
+                table_offset=table_offset,
                 fps=fps, 
                 display=display
             )
@@ -605,6 +612,8 @@ def parse_args():
     parser.add_argument("--needle-offset", required=True, type=float, help="Needle offset in cm (From protocol)")
     parser.add_argument("--z-offset", type=float, help="Z-axis offset in cm, if not provided default offset will be used")
     parser.add_argument("--starting-position", default=0.0, type=float, help="Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube")
+    parser.add_argument("--table-offset", default=0.0, type=float,
+                         help="E.g. when provided 2cm, level 0 will be 2 cm above table (By default 0.0 cm)")
     return parser.parse_args()
 
 def main():
@@ -653,6 +662,7 @@ def main():
     needle_offset = args.needle_offset
     starting_position = args.starting_position
     z_offset = args.z_offset
+    table_offset = args.table_offset
 
     if recursive:
         process_recursive(
@@ -664,6 +674,7 @@ def main():
             needle_offset, 
             starting_position=starting_position, 
             z_offset=z_offset, 
+            table_offset=table_offset,
             fps=fps, 
             display=display
         )
@@ -677,6 +688,7 @@ def main():
             needle_offset, 
             starting_position=starting_position, 
             z_offset=z_offset, 
+            table_offset=table_offset,
             fps=fps, 
             display=display
         )
