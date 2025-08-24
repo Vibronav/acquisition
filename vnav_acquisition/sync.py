@@ -21,7 +21,7 @@ def debug_plot_sync(ref, input_spec, idx_sync):
     plt.subplot(1, 2, 2)
     plt.title("Input sound spectrum")
     plt.imshow(np.log10(input_spec + 1e-10), aspect='auto', origin='lower')
-    plt.axvline(x=idx_sync, color='r', linestyle='--', label='Dopasowanie')
+    plt.axvline(x=idx_sync, color='r', linestyle='--', label='Correlation')
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -216,6 +216,7 @@ def main():
     audio_channel = args.audio_channel
 
     files_to_process = set(annotation_files.keys() | needle_position_files.keys())
+    files_to_process = sorted(files_to_process)
     skipped = []
     for filename in files_to_process:
         audio_present = filename in audio_files
