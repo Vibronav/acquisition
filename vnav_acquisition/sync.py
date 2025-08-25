@@ -117,14 +117,7 @@ def modify_annotation_file(annotation_file, audio_file, audio_delay, audio_fs):
     
     video_annotations = annotation_set["video_annotations"]
     if type(video_annotations) is list:
-        audio_annotations = list()
-        for video_annotation in video_annotations:
-            audio_annotation = dict()
-            audio_annotation["start_time"] = video_annotation["start_time"] + audio_delay
-            audio_annotation["end_time"] = video_annotation["end_time"] + audio_delay
-            audio_annotation["start_sample"] = int(audio_annotation["start_time"] * audio_fs)
-            audio_annotation["end_sample"] = int(audio_annotation["end_time"] * audio_fs)
-            audio_annotations.append(audio_annotation)
+        print(f'Annotation file format no longer supported: {annotation_file}')
     elif type(video_annotations) is dict:
         audio_annotations = defaultdict(dict)
         for event, video_annotation in video_annotations.items():
