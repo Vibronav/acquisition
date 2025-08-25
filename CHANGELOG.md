@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.2.0] - 2025-08-25
+### Added
+- Synchronizing needle position file
+- More arguments for track position script
+
 ## [2.1.0] - 2025-08-19
 ### Added
 - Button for cube position validation
