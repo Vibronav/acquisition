@@ -48,6 +48,7 @@ def calculate_speed(df, fps=30, frame_interval=1):
     return df
 
 def create_annotations(df, video_name, annotations_folder, distances_file_path):
+    df = df.copy()
     df.reset_index(drop=True, inplace=True)
     distances = read_distances_from_file(distances_file_path)
     if distances:
@@ -56,14 +57,33 @@ def create_annotations(df, video_name, annotations_folder, distances_file_path):
         min_high = df["Object_Y_cm"].dropna().idxmin()
         df_down = df.loc[:min_high]
 
-        tracked_high = df_down[df_down['Object_Y_cm'].notna()]
+        tracked_high = df_down[df_down['Object_Y_cm'].notna()].copy()
+        tracked_high['velocity_mean'] = tracked_high['velocity'].rolling(window=5, min_periods=2).mean()
 
         for idx, distance in enumerate(distances, start=1):
-            diffs = (tracked_high['Object_Y_cm'] - distance).abs()
-            best_row = df_down.loc[diffs.idxmin()]
+            y = tracked_high['Object_Y_cm']
+            velocity_mean = tracked_high['velocity_mean']
+
+            cross_condition = (y.shift(1) > distance) & (y.shift(-1) < distance)
+            velocity_condition = (velocity_mean < 0)
+            candidates = tracked_high[cross_condition & velocity_condition]
+
+            if not candidates.empty:
+                chosen_row = candidates.iloc[0]
+            else:
+                mask_moving_down = velocity_condition
+                if mask_moving_down.any():
+                    diffs = (y - distance).abs()
+                    best_idx = diffs[mask_moving_down].idxmin()
+                    chosen_row = tracked_high.loc[best_idx]
+                else:
+                    diffs = (y - distance).abs()
+                    best_idx = diffs.idxmin()
+                    chosen_row = tracked_high.loc[best_idx]
+
             annotations[str(idx)] = {
-                "frame": best_row["Frame"],
-                "time": best_row["Time (s)"]
+                "frame": chosen_row["Frame"],
+                "time": chosen_row["Time (s)"]
             }
         
         annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
