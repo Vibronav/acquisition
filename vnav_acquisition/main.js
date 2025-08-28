@@ -581,7 +581,7 @@ function startFirstCamera() {
 			deviceId: videoSource ? {exact: videoSource} : undefined,
 			width:{min:640,ideal:1280,max:1280 },
 			height:{ min:480,ideal:720,max:720}, 
-			framerate: 60
+			framerate: 30
 		}
     };
 
@@ -608,7 +608,7 @@ function startSecondCamera() {
 			deviceId: videoSource2 ? {exact: videoSource2} : undefined,
 			width:{min:640,ideal:1280,max:1280 },
 			height:{ min:480,ideal:720,max:720}, 
-			framerate: 60
+			framerate: 30
 		}
     };
 
