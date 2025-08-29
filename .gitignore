@@ -1,2 +1,6 @@
 .acq
 __pycache__
+annotations
+labelled_positions
+rec
+tracked_frames
