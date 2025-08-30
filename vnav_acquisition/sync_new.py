@@ -1,0 +1,167 @@
+from email.mime import audio
+import json
+import numpy as np
+import subprocess
+import tempfile
+import os
+from vnav_acquisition.clean import highpass, read_wave
+from vnav_acquisition.sound import generate_chirp_signal
+import argparse
+import glob
+from collections import defaultdict
+from scipy.signal import stft, correlate2d, firwin, filtfilt, fftconvolve, windows
+import matplotlib.pyplot as plt
+import pandas as pd
+
+def debug_plot_sync(ref, input_spec, idx_sync):
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.title("Chirp spectrum")
+    plt.imshow(np.log10(ref + 1e-10), aspect='auto', origin='lower')
+    plt.subplot(1, 2, 2)
+    plt.title("Input sound spectrum")
+    plt.imshow(np.log10(input_spec + 1e-10), aspect='auto', origin='lower')
+    plt.axvline(x=idx_sync, color='r', linestyle='--', label='Correlation')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
+    """EXTRACT AUDIO FILE FROM .WEBM FILE WITH FFMPEG"""
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # convert .webm file to .wav file (extract audio from video file)
+        tmp_wav_file = os.path.join(tmpdirname, os.path.basename(video_file) + ".wav")
+        ffmpeg_command = ['ffmpeg', '-loglevel', 'error', '-i', video_file, tmp_wav_file]
+
+        # execute FFmpeg from PowerShell
+        try:
+            subprocess.run(ffmpeg_command)
+            fs, x = read_wave(tmp_wav_file)
+            os.remove(tmp_wav_file)
+            return fs, x
+        except subprocess.CalledProcessError as e:
+            print(f'Error while executing FFmpeg: {e}')
+            raise e
+        
+def cut_video(video_path, cut_seconds):
+    print(f'Cutting video {video_path} at {cut_seconds:.6f} seconds')
+    tmp_path = video_path.replace(".mp4", "_shifted.mp4")
+    ffmpeg_command = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-i", video_path,
+        "-ss", f'{cut_seconds:.6f}',
+        "-map", "0",
+        "-c:v", "libx264",
+        tmp_path
+    ]
+
+    subprocess.run(ffmpeg_command)
+    os.replace(tmp_path, video_path)
+
+def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, show=False):
+    signal = signal - signal.mean()
+    f, t, Zxx = stft(signal, fs, window='hann', nperseg=n_fft)
+    Zxx_magnitude = np.abs(Zxx)
+
+    # Signal is squared to calculate energy
+    energy = np.sum(Zxx_magnitude ** 2, axis=1)
+
+    return f, t, Zxx_magnitude, energy
+
+def sync_spectrograms(ref, measured):
+    if ref.shape == measured.shape:
+        return 0
+    ref = ref > np.max(ref) * 0.8
+    corr = correlate2d(ref, np.log10(measured + 1e-10), 'valid').squeeze()
+    idx = len(corr) - np.argmax(corr)
+    
+    return idx
+
+def argmax_correlation(input_signal, sync_signal, fs, debug_plots, n_fft=1024):
+    
+    f_input, t_input, spec_input, energy_input = calculate_energy_with_stft(input_signal, fs, n_fft)
+    f_sync, t_sync, spec_sync, energy_sync = calculate_energy_with_stft(sync_signal, fs, n_fft)
+
+    idx_sync = sync_spectrograms(spec_sync, spec_input)
+
+    if debug_plots:
+        debug_plot_sync(spec_sync, spec_input, idx_sync)
+
+    if idx_sync >= len(t_input):
+        return None
+    
+    sync_signal_time = t_input[idx_sync]
+
+    sample_index = int(sync_signal_time * fs)
+    return sample_index
+
+
+def find_delay_by_sync(video_file, audio_file, audio_channel, debug_plots, video_channel=0) -> [float, int]:
+    """
+    Finds a delay between audio and video recordings based on the position of synchronization sound.
+    :param video_file: Path of video file.
+    :param audio_file: Path of audio file.
+    :param audio_channel: Which channel to look for sync wave in audio file.
+    :param video_channel: Which channel to look for sync wave in vieo file.
+    :return: Audio file delay in seconds, in respect to audio from video file.
+    """
+    audio_fs, audio_signal = read_wave(audio_file)
+    audio_signal = audio_signal[audio_channel, :]
+    sync_signal = generate_chirp_signal(sample_rate=audio_fs)
+    audio_shift = argmax_correlation(audio_signal, sync_signal, audio_fs, debug_plots)
+
+    video_fs, video_signal = extract_audio_from_video(video_file)
+    video_signal = video_signal[video_channel, :]
+    if audio_fs != video_fs:
+        sync_signal = generate_chirp_signal(sample_rate=video_fs)
+    video_shift = argmax_correlation(video_signal, sync_signal, video_fs, debug_plots)
+
+    if None in [audio_shift, video_shift]:
+        return video_shift, audio_shift
+    else:
+        audio_delay = audio_shift/audio_fs - video_shift/video_fs
+        return audio_delay, audio_fs
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Writes audio annotation based on synchronization between audio, "
+                                                 "video and video annotations.")
+    parser.add_argument("--audio-path", type=str, required=True,
+                        help="Path to audio files")
+    parser.add_argument("--first-video-path", type=str, required=True,
+                        help="Path to video (mp4) files")
+    parser.add_argument("--second-video-path", type=str, required=True,
+                        help="Path to video (mp4) files")
+    parser.add_argument("--audio-channel", type=int, default=-1,
+                        help="Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1")
+    parser.add_argument("--debug-plots", action="store_true", help="Show debug plots for synchronization")
+    args = parser.parse_args()
+
+    audio_folder_path = args.audio_path
+    video1_folder_path = args.video_path
+    video2_folder_path = args.second_video_path
+    debug_plots = args.debug_plots
+    audio_channel = args.audio_channel
+
+    files_to_process = [
+        os.path.splitext(f)[0] 
+        for f in os.listdir(audio_folder_path)
+        if f.endswith('.wav')]
+    
+    files_to_process = sorted(files_to_process)
+    for filename in files_to_process:
+        audio_file = os.path.join(audio_folder_path, f'{filename}.wav')
+        video1_file = os.path.join(video1_folder_path, f'{filename}.mp4')
+        video2_file = os.path.join(video2_folder_path, f'{filename}.mp4')
+        if not os.path.exists(video1_file) or not os.path.exists(video2_file) or not os.path.exists(audio_file):
+            print(f"Missing video file: {video1_file} or {video2_file} or audio file: {audio_file}")
+            continue
+
+        audio_video1_delay = find_delay_by_sync(video1_file, audio_file, audio_channel, debug_plots)
+        cut_video(video1_file, audio_video1_delay)
+        audio_video2_delay = find_delay_by_sync(video2_file, audio_file, audio_channel, debug_plots)
+        cut_video(video2_file, audio_video2_delay)
+
+
+if __name__ == "__main__":
+    main()
