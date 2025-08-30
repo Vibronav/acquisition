@@ -84,6 +84,8 @@ options:
   --annotation-path ANNOTATION_PATH
                         Path to annotations files (default: same as audio
                         files)
+  --needle-position-path NEEDLE_POSITION_PATH
+                        Path to needle position files If not provided needle position files will not be processed
   --audio-channel AUDIO_CHANNEL
                         Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1
   --debug-plots         Show debug plots for synchronization
