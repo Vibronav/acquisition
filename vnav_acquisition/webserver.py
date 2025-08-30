@@ -12,7 +12,6 @@ from vnav_acquisition.automation import safe_run_automation
 from .record import start_recording, stop_recording, delete_last_recording
 from .utils import build_filename, get_local_ip_address
 from .track_position import detect_cube_pose
-from .sync_videos import cut_video
 import threading
 import webbrowser
 import argparse
