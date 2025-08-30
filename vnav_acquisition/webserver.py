@@ -48,12 +48,6 @@ def upload_video():
     file.save(file_path)
     print(f"File saved to {file_path}")
 
-    try:
-        t = threading.Thread(target=cut_video, args=(file_path,), daemon=True)
-        t.start()
-    except Exception as e:
-        print(f"Error occurred while cutting video: {e}")
-
     return jsonify({"status": "ok", "filename": filename})
 
 
