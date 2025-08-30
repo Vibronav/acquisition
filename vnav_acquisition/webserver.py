@@ -46,6 +46,7 @@ def upload_video():
     file_path = os.path.join(video_output_dir, filename)
     file.save(file_path)
     print(f"File saved to {file_path}")
+
     return jsonify({"status": "ok", "filename": filename})
 
 

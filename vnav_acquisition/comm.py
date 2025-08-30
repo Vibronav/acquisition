@@ -89,6 +89,7 @@ def on_rec_start(connection, socketio_instance, output_filename):
         print("Start command ===================================================================== \n")
         print(start_command)
         ssh.exec_command(start_command)
+        time.sleep(0.2)
         play_chirp_signal()
     else:
         return False
