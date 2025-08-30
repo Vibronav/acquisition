@@ -125,6 +125,24 @@ options:
 
 ```
 
+## vnav_video_video_sync
+```
+usage: vnav_video_video_sync [-h] --first-video-folder FIRST_VIDEO_FOLDER --second-video-folder SECOND_VIDEO_FOLDER [--debug-plots]
+
+Tool for synchrozing video to make them start at same time. Tool is cutting videos and override! Tool will synchronize videos with same filename in both folders. Video will be cut to start 0.2 seconds before chirp  
+sound. If it is to short, it will be cut to the start of chirp sound.
+
+options:
+  -h, --help            show this help message and exit
+  --first-video-folder FIRST_VIDEO_FOLDER
+                        Path to folder with first video(s).
+  --second-video-folder SECOND_VIDEO_FOLDER
+                        Path to folder with second video(s).
+  --debug-plots         If set, debug plots will be shown.
+```
+
+
+
 ## Installation
 
 Requires Python 3.10. To install tool, run in command line:
