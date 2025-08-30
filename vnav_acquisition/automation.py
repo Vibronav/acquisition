@@ -39,6 +39,8 @@ def run_automation(
         finishX, 
         upZ, 
         downZ, 
+        y,
+        r,
         speed, 
         motion_type, 
         num_iterations, 
@@ -72,8 +74,8 @@ def run_automation(
         gap = 0
         print("No gap calculation needed for motion type: Only Up and Down")
 
-    P1 = (initX, 0, upZ, -50)
-    P2 = (initX, 0, downZ, -50)
+    P1 = (initX, y, upZ, r)
+    P2 = (initX, y, downZ, r)
 
     for i in range(num_iterations):
 
@@ -96,7 +98,7 @@ def run_automation(
         if not is_started:
             continue
 
-        time.sleep(0.4)
+        time.sleep(0.5)
         print(f"Recording {i+1}/{num_iterations} started.")
 
         curr_Z = P1[2]

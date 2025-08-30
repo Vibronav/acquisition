@@ -676,6 +676,8 @@ function startAutomation() {
 	const finishX = parseInt(document.getElementById("finishX").value);
 	const upZ = parseInt(document.getElementById("upZ").value);
 	const downZ = parseInt(document.getElementById("downZ").value);
+	const y = parseInt(document.getElementById("y").value);
+	const r = parseInt(document.getElementById("r").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
 	const sleepTime = parseInt(sleepTimeEl.value);
 
@@ -705,6 +707,8 @@ function startAutomation() {
 		finishX: finishX,
 		upZ: upZ,
 		downZ: downZ,
+		y: y,
+		r: r,
 		motionType: motionType,
 		interval: interval,
 		sleepTime: sleepTime
