@@ -42,6 +42,32 @@ def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
         except subprocess.CalledProcessError as e:
             print(f'Error while executing FFmpeg: {e}')
             raise e
+        
+def ffprobe_value(filename, select_stream):
+
+    command = [
+        "ffprobe", "-v", "error",
+        "-select_streams", select_stream,
+        "-show_entries", "stream=start_time",
+        "-of", "csv=p=0",
+        filename
+    ]
+    p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    out = p.stdout.strip()
+    if not out:
+        return None
+    
+    try:
+        val = float([l for l in out.splitlines() if l.strip()][-1])
+        return val
+    except ValueError:
+        return None
+
+def get_stream_start_times(filename):
+    v_start = ffprobe_value(filename, "v:0")
+    a_start = ffprobe_value(filename, "a:0")
+    return (0.0 if v_start is None else v_start,
+            0.0 if a_start is None else a_start)
 
 def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, show=False):
     signal = signal - signal.mean()
