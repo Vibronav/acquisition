@@ -18,6 +18,24 @@ def cut_video(video_path, cut_seconds):
     subprocess.run(ffmpeg_command)
     os.replace(tmp_path, video_path)
 
+def move_audio_to_beginning(video_path, audio_offset):
+    tmp_path = video_path.replace(".mp4", "_audio_shifted.mp4")
+    ffmpeg_command = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-i", video_path,
+        "-itsoffset", f'{-audio_offset:.6f}',
+        "-i", video_path,
+        "-map", "0:v", "-map", "1:a:0",
+        "-map", "0:s?",
+        "-map_metadata", "0",
+        "-c", "copy",
+        "-avoid_negative_ts", "make_zero",
+        "-movflags", "+faststart",
+        tmp_path
+    ]
+
+    subprocess.run(ffmpeg_command)
+    os.replace(tmp_path, video_path)
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -47,29 +65,34 @@ def main():
             print(f"Missing video file(s) for synchronization: {first_video_path}, {second_video_path}")
             continue
 
+        v1_start, a1_start = get_stream_start_times(first_video_path)
+        v2_start, a2_start = get_stream_start_times(second_video_path)
+
+        audio1_offset = a1_start - v1_start
+        audio2_offset = a2_start - v2_start
+        move_audio_to_beginning(first_video_path, audio1_offset)
+        move_audio_to_beginning(second_video_path, audio2_offset)
+
         fs1, signal1 = extract_audio_from_video(first_video_path)
         signal1 = signal1[0, :]
         sync_signal = generate_chirp_signal(sample_rate=fs1)
-        audio1_shift = argmax_correlation(signal1, sync_signal, fs1, debug_plots=debug_plots)
+        video1_shift = argmax_correlation(signal1, sync_signal, fs1, debug_plots=debug_plots)
 
         fs2, signal2 = extract_audio_from_video(second_video_path)
         signal2 = signal2[0, :]
         if fs2 != fs1:
             sync_signal = generate_chirp_signal(sample_rate=fs2)
-        audio2_shift = argmax_correlation(signal2, sync_signal, fs2, debug_plots=debug_plots)
+        video2_shift = argmax_correlation(signal2, sync_signal, fs2, debug_plots=debug_plots)
 
-        v1_start, a1_start = get_stream_start_times(first_video_path)
-        v2_start, a2_start = get_stream_start_times(second_video_path)
+        video1_shift_seconds = (video1_shift / fs1)
+        video2_shift_seconds = (video2_shift / fs2)
 
-        video1_shift = (a1_start - v1_start) + (audio1_shift / fs1)
-        video2_shift = (a2_start - v2_start) + (audio2_shift / fs2)
-
-        if video1_shift - 0.2 > 0 and video2_shift - 0.2 > 0:
-            cut1 = video1_shift - 0.2
-            cut2 = video2_shift - 0.2
+        if video1_shift_seconds - 0.2 > 0 and video2_shift_seconds - 0.2 > 0:
+            cut1 = video1_shift_seconds - 0.2
+            cut2 = video2_shift_seconds - 0.2
         else:
-            cut1 = video1_shift
-            cut2 = video2_shift
+            cut1 = video1_shift_seconds
+            cut2 = video2_shift_seconds
 
         cut_video(first_video_path, cut1)
         cut_video(second_video_path, cut2)
