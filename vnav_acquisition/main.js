@@ -45,6 +45,7 @@ let recordedChunks2 = [];
 let shouldUpload = true;
 let recordingStartTime = null;
 let recordingTimerInterval = null;
+let sharedAudioTrack = null;
 
 const spectrogram = document.getElementById('spectrogram');
 const ctx = spectrogram.getContext('2d');
@@ -118,6 +119,11 @@ socket.on("record", async (msg) => {
 		});
 		console.log("Browser started recording");
 
+		Promise.resolve().then(() => {
+			mediaRecorder.start();
+			mediaRecorder2.start();
+		})
+
 	}
 
 	console.log(mediaRecorder, mediaRecorder2);
@@ -126,9 +132,13 @@ socket.on("record", async (msg) => {
 		if(!shouldUpload) {
 			alert("Recording is not saved!")
 		}
-		mediaRecorder.stop();
-		mediaRecorder2.stop();
-		console.log("Browser stopped recording");
+		mediaRecorder.requestData();
+		mediaRecorder2.requestData();
+		Promise.resolve().then(() => {
+			mediaRecorder.stop();
+			mediaRecorder2.stop();
+			console.log("Browser stopped recording");
+		})
 	}
 
 });
@@ -481,9 +491,8 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 			console.warn("Backend forced not to upload video");
 		}
 	
-	}
+	};
 
-	recorder.start();
 	setRecorder(recorder);
 	setChunks(chunks);
 
@@ -566,59 +575,70 @@ function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
 
-// https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output
-function startFirstCamera() {
-    if (window.stream) {
-        window.stream.getTracks().forEach(track => {
-          track.stop();
-        });
-    }
-    const audioSource = audioInputSelect.value;
-    const videoSource = videoSelect.value;
-    const constraints = {
-        audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {
-			deviceId: videoSource ? {exact: videoSource} : undefined,
-			width:{min:640,ideal:1280,max:1280 },
-			height:{ min:480,ideal:720,max:720}, 
-			framerate: 30
-		}
-    };
+async function getSharedAudioTrack() {
+	if(sharedAudioTrack && sharedAudioTrack.readyState === "live") {
+		return sharedAudioTrack;
+	}
 
-    navigator.mediaDevices.getUserMedia(constraints)
-		.then((stream) => {
-			localStream = stream;
-			liveVideoElement.srcObject = stream;
-			liveVideoElement.play();
-		})
-		.catch(handleError);
+	const audioSource = audioInputSelect.value;
+	const audioStream = await navigator.mediaDevices.getUserMedia({
+		audio: {
+			deviceId: audioSource ? { exact: audioSource } : undefined,
+			channelCount: 1,
+			sampleRate: 48000,
+			echoCancellation: false,
+			noiseSuppression: false,
+			autoGainControl: false
+		},
+		video: false
+	});
+	sharedAudioTrack = audioStream.getAudioTracks()[0];
+	return sharedAudioTrack;
+
 }
 
-function startSecondCamera() {
-    if (window.stream) {
-        window.stream.getTracks().forEach(track => {
-          track.stop();
-        });
-    }
-	const audioSource = audioInputSelect.value;
-    const videoSource2 = videoSelect2.value;
-    const constraints2 = {
-		audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-        video: {
-			deviceId: videoSource2 ? {exact: videoSource2} : undefined,
-			width:{min:640,ideal:1280,max:1280 },
-			height:{ min:480,ideal:720,max:720}, 
-			framerate: 30
-		}
-    };
+async function buildComposedStream(videoDeviceId) {
+	const audioTrack = await getSharedAudioTrack();
+	const videoStream = await navigator.mediaDevices.getUserMedia({
+		video: {
+			deviceId: videoDeviceId ? { exact: videoDeviceId } : undefined,
+			width: { min: 640, ideal: 1280, max: 1280 },
+			height: { min: 480, ideal: 720, max: 720 },
+			frameRate: 30
+		},
+		audio: false
+	});
+	const videoTrack = videoStream.getVideoTracks()[0];
 
-    navigator.mediaDevices.getUserMedia(constraints2)
-		.then((stream) => {
-			localStream2 = stream;
-			liveVideoElement2.srcObject = stream;
-			liveVideoElement2.play();
-		})
-		.catch(handleError);
+	const composed = new MediaStream([videoTrack, audioTrack]);
+	return { composed, videoTrack }
+}
+
+// https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output
+async function startFirstCamera() {
+
+	try {
+		const videoSource = videoSelect.value;
+		const { composed } = await buildComposedStream(videoSource);
+		localStream = composed;
+		liveVideoElement.srcObject = localStream;
+		await liveVideoElement.play();
+	} catch(e) {
+		handleError(e);
+	}
+
+}
+
+async function startSecondCamera() {
+    try {
+		const videoSource2 = videoSelect2.value;
+		const { composed } = await buildComposedStream(videoSource2);
+		localStream2 = composed;
+		liveVideoElement2.srcObject = localStream2;
+		await liveVideoElement2.play();
+	} catch(e) {
+		handleError(e);
+	}
 }
 
 function selectMicroOutput() {
