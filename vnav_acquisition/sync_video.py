@@ -3,8 +3,10 @@ import os
 import subprocess
 from .sync import extract_audio_from_video, argmax_correlation, get_stream_start_times
 from vnav_acquisition.sound import generate_chirp_signal
+import time
 
 def cut_video(video_path, cut_seconds):
+    print(f'Cutting video {video_path} at {cut_seconds:.6f} seconds')
     tmp_path = video_path.replace(".mp4", "_shifted.mp4")
     ffmpeg_command = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -18,7 +20,10 @@ def cut_video(video_path, cut_seconds):
     subprocess.run(ffmpeg_command)
     os.replace(tmp_path, video_path)
 
-def move_audio_to_beginning(video_path, audio_offset):
+def remove_audio_offset(video_path):
+    video_start, audio_start = get_stream_start_times(video_path)
+    audio_offset = audio_start - video_start
+
     tmp_path = video_path.replace(".mp4", "_audio_shifted.mp4")
     ffmpeg_command = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -65,13 +70,8 @@ def main():
             print(f"Missing video file(s) for synchronization: {first_video_path}, {second_video_path}")
             continue
 
-        v1_start, a1_start = get_stream_start_times(first_video_path)
-        v2_start, a2_start = get_stream_start_times(second_video_path)
-
-        audio1_offset = a1_start - v1_start
-        audio2_offset = a2_start - v2_start
-        move_audio_to_beginning(first_video_path, audio1_offset)
-        move_audio_to_beginning(second_video_path, audio2_offset)
+        remove_audio_offset(first_video_path)
+        remove_audio_offset(second_video_path)
 
         fs1, signal1 = extract_audio_from_video(first_video_path)
         signal1 = signal1[0, :]
