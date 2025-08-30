@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [2.3.0] - 2025-08-30
+## [Unreleased] - 2025-08-30
 ### Added
 - Script for synchronizing video with video
 
