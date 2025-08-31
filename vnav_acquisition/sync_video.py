@@ -40,6 +40,8 @@ def cut_video(video_path, cut_seconds):
         "-ss", f'{cut_seconds:.6f}',
         "-map", "0",
         "-c:v", "libx264",
+        "-movflags", "+faststart",
+        "-map_metadata", "0",
         tmp_path
     ]
 
