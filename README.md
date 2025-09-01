@@ -185,7 +185,7 @@ python -m pip install https://github.com/Vibronav/acquisition/archive/refs/tags/
 
 Then to run it you need to open terminal in folder with tool and enter environment as above
 
-## Basic instalation (not recommended)
+### Basic instalation (not recommended)
 
 ```commandline
 python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
