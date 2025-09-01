@@ -144,10 +144,48 @@ options:
 ```
 
 
-
 ## Installation
 
-Requires Python 3.10. To install tool, run in command line:
+### Highly recommended instalation
+
+Requires Python 3.10. and ffmpeg 4.3.1 To install tool, run in command line:
+
+1. create folder for tool and enter it
+2. open commandline in this folder, then type command to create environment:
+```commandline
+python -m venv .acq
+```
+
+3. Enter envorinment
+
+On windows:
+Can be required:
+```commandline
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+Then:
+```commandline
+.acq/Scripts/Activate.ps1
+```
+
+On linux:
+```commandline
+source .acq/bin/activate
+```
+
+4. Then for both operating systems to install tool:
+
+```commandline
+python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
+```
+Or if you want specific version:
+```commandline
+python -m pip install https://github.com/Vibronav/acquisition/archive/refs/tags/<version>.zip
+```
+
+Then to run it you need to open terminal in folder with tool and enter environment as above
+
+## Basic instalation (not recommended)
 
 ```commandline
 python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
