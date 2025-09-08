@@ -12,7 +12,6 @@ from vnav_acquisition.automation import safe_run_automation
 from .record import start_recording, stop_recording, delete_last_recording
 from .utils import build_filename, get_local_ip_address
 from .track_position import detect_cube_pose
-from .sync_video import remove_audio_offset
 import threading
 import webbrowser
 import argparse
@@ -47,12 +46,6 @@ def upload_video():
     file_path = os.path.join(video_output_dir, filename)
     file.save(file_path)
     print(f"File saved to {file_path}")
-
-    try:
-        t = threading.Thread(target=remove_audio_offset, args=(file_path,), daemon=True)
-        t.start()
-    except:
-        print(f"Error occurred while removing audio offset in video: {filename}")
 
     return jsonify({"status": "ok", "filename": filename})
 

@@ -119,10 +119,11 @@ socket.on("record", async (msg) => {
 		});
 		console.log("Browser started recording");
 
-		Promise.resolve().then(() => {
-			mediaRecorder.start();
-			mediaRecorder2.start();
-		})
+		await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+		startSimultaneously(
+			() => mediaRecorder.start(),
+			() => mediaRecorder2.start()
+		)
 
 	}
 
@@ -575,6 +576,28 @@ function handleError(error) {
   console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
 
+function waitTrackLive(track) {
+	if (track && track.readyState === 'live') {
+		return Promise.resolve();
+	}
+	return new Promise(res => track.addEventListener('unmute', res, { once: true }));
+}
+
+function waitVideoPlaying(videoEl) {
+	const ready = () => videoEl.readyState >= 2;
+	const p = ready()
+		? Promise.resolve()
+		: new Promise(r => videoEl.addEventListener('loadeddata', r, { once: true }));
+	
+	return p.then(() => videoEl.play());
+}
+
+function startSimultaneously(...starts) {
+	const mc = new MessageChannel();
+	mc.port1.onmessage = () => starts.forEach(s => s());
+	mc.port2.postMessage(null);
+}
+
 async function getSharedAudioTrack() {
 	if(sharedAudioTrack && sharedAudioTrack.readyState === "live") {
 		return sharedAudioTrack;
@@ -622,7 +645,8 @@ async function startFirstCamera() {
 		const { composed } = await buildComposedStream(videoSource);
 		localStream = composed;
 		liveVideoElement.srcObject = localStream;
-		await liveVideoElement.play();
+		await waitTrackLive(localStream.getAudioTracks()[0]);
+		await waitVideoPlaying(liveVideoElement);
 	} catch(e) {
 		handleError(e);
 	}
@@ -635,7 +659,8 @@ async function startSecondCamera() {
 		const { composed } = await buildComposedStream(videoSource2);
 		localStream2 = composed;
 		liveVideoElement2.srcObject = localStream2;
-		await liveVideoElement2.play();
+		await waitTrackLive(localStream2.getAudioTracks()[0]);
+		await waitVideoPlaying(liveVideoElement2);
 	} catch(e) {
 		handleError(e);
 	}
