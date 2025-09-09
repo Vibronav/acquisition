@@ -26,6 +26,7 @@ setup(
                             'vnav_wav_process=vnav_acquisition.clean:main',
                             'vnav_audio_video_sync=vnav_acquisition.sync:main',
                             'vnav_annotate_positions=vnav_acquisition.track_position:main',
-                            'vnav_video_video_sync=vnav_acquisition.sync_video:main'],
+                            'vnav_video_video_sync=vnav_acquisition.sync_video:main',
+                            'vnav_audio_video_sync_new=vnav_acquisition.sync_new:main'],
     }
 )

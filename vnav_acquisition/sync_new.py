@@ -172,8 +172,7 @@ def find_delay_by_sync(video_file, audio_file, audio_channel, debug_plots, video
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Writes audio annotation based on synchronization between audio, "
-                                                 "video and video annotations.")
+    parser = argparse.ArgumentParser(description="Cut video files to start at the same time as audio files.")
     parser.add_argument("--audio-path", type=str, required=True,
                         help="Path to audio files")
     parser.add_argument("--first-video-path", type=str, required=True,
