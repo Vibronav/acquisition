@@ -119,7 +119,6 @@ socket.on("record", async (msg) => {
 		});
 		console.log("Browser started recording");
 
-		await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 		startSimultaneously(
 			() => mediaRecorder.start(),
 			() => mediaRecorder2.start()
@@ -607,7 +606,6 @@ async function getSharedAudioTrack() {
 	const audioStream = await navigator.mediaDevices.getUserMedia({
 		audio: {
 			deviceId: audioSource ? { exact: audioSource } : undefined,
-			channelCount: 1,
 			sampleRate: 48000,
 			echoCancellation: false,
 			noiseSuppression: false,
