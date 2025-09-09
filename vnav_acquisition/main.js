@@ -605,11 +605,7 @@ async function getSharedAudioTrack() {
 	const audioSource = audioInputSelect.value;
 	const audioStream = await navigator.mediaDevices.getUserMedia({
 		audio: {
-			deviceId: audioSource ? { exact: audioSource } : undefined,
-			sampleRate: 48000,
-			echoCancellation: false,
-			noiseSuppression: false,
-			autoGainControl: false
+			deviceId: audioSource ? { exact: audioSource } : undefined
 		},
 		video: false
 	});
