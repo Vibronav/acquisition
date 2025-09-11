@@ -60,7 +60,7 @@ options:
 
 ```
 
-## vnav_audio_video_sync
+## vnav_audio_video_sync (deprecated)
 
 ```
 usage: vnav_audio_video_sync [-h] --audio-path AUDIO_PATH
@@ -86,6 +86,31 @@ options:
                         files)
   --needle-position-path NEEDLE_POSITION_PATH
                         Path to needle position files If not provided needle position files will not be processed
+  --audio-channel AUDIO_CHANNEL
+                        Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1
+  --debug-plots         Show debug plots for synchronization
+```
+
+## vnav_audio_video_sync_new
+
+```
+usage: sync_new.py [-h]
+                   --audio-path AUDIO_PATH 
+                   --first-video-path FIRST_VIDEO_PATH 
+                   --second-video-path SECOND_VIDEO_PATH 
+                   [--audio-channel AUDIO_CHANNEL] 
+                   [--debug-plots]
+
+Cut video files to start at the same time as audio files.
+
+options:
+  -h, --help            show this help message and exit
+  --audio-path AUDIO_PATH
+                        Path to audio files
+  --first-video-path FIRST_VIDEO_PATH
+                        Path to video (mp4) files
+  --second-video-path SECOND_VIDEO_PATH
+                        Path to video (mp4) files
   --audio-channel AUDIO_CHANNEL
                         Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1
   --debug-plots         Show debug plots for synchronization
