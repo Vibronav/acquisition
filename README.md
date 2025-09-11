@@ -60,7 +60,7 @@ options:
 
 ```
 
-## vnav_audio_video_sync
+## vnav_audio_video_sync (deprecated)
 
 ```
 usage: vnav_audio_video_sync [-h] --audio-path AUDIO_PATH
