@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Script for synchronizing video with video
 - New synchrozing script
+- Remove postprocessing audio shift after recording
 
 ## [2.2.0] - 2025-08-25
 ### Added

@@ -84,6 +84,8 @@ options:
   --annotation-path ANNOTATION_PATH
                         Path to annotations files (default: same as audio
                         files)
+  --needle-position-path NEEDLE_POSITION_PATH
+                        Path to needle position files If not provided needle position files will not be processed
   --audio-channel AUDIO_CHANNEL
                         Index of channel in WAV audio file to use for sync (e.g. 0=left, 1=right, -1=last). Default: -1
   --debug-plots         Show debug plots for synchronization
@@ -150,9 +152,65 @@ options:
 
 ```
 
+## vnav_video_video_sync
+```
+usage: vnav_video_video_sync [-h] --first-video-folder FIRST_VIDEO_FOLDER --second-video-folder SECOND_VIDEO_FOLDER [--debug-plots]
+
+Tool for synchrozing video to make them start at same time. Tool is cutting videos and override! Tool will synchronize videos with same filename in both folders. Video will be cut to start 0.2 seconds before chirp  
+sound. If it is to short, it will be cut to the start of chirp sound.
+
+options:
+  -h, --help            show this help message and exit
+  --first-video-folder FIRST_VIDEO_FOLDER
+                        Path to folder with first video(s).
+  --second-video-folder SECOND_VIDEO_FOLDER
+                        Path to folder with second video(s).
+  --debug-plots         If set, debug plots will be shown.
+```
+
+
 ## Installation
 
-Requires Python 3.10. To install tool, run in command line:
+### Highly recommended instalation
+
+Requires Python 3.10. and ffmpeg 4.3.1 To install tool, run in command line:
+
+1. create folder for tool and enter it
+2. open commandline in this folder, then type command to create environment:
+```commandline
+python -m venv .acq
+```
+
+3. Enter envorinment
+
+On windows:
+Can be required:
+```commandline
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+Then:
+```commandline
+.acq/Scripts/Activate.ps1
+```
+
+On linux:
+```commandline
+source .acq/bin/activate
+```
+
+4. Then for both operating systems to install tool:
+
+```commandline
+python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
+```
+Or if you want specific version:
+```commandline
+python -m pip install https://github.com/Vibronav/acquisition/archive/refs/tags/<version>.zip
+```
+
+Then to run it you need to open terminal in folder with tool and enter environment as above
+
+### Basic instalation (not recommended)
 
 ```commandline
 python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
