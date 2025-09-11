@@ -73,6 +73,10 @@ def remove_audio_offset(video_path):
     video_start, audio_start = get_stream_start_times(video_path)
     audio_offset = audio_start - video_start
 
+    if abs(audio_offset) < 0.001:
+        print('No audio offset detected')
+        return
+
     tmp_path = video_path.replace(".mp4", "_audio_shifted.mp4")
     ffmpeg_command = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -92,6 +96,10 @@ def remove_audio_offset(video_path):
     os.replace(tmp_path, video_path)
         
 def cut_video(video_path, cut_seconds):
+    if abs(cut_seconds) < 0.001:
+        print('No cutting needed')
+        return
+    
     print(f'Cutting video {video_path} at {cut_seconds:.6f} seconds')
     tmp_path = video_path.replace(".mp4", "_shifted.mp4")
     ffmpeg_command = [
