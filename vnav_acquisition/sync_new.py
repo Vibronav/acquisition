@@ -72,6 +72,7 @@ def get_stream_start_times(filename):
 def remove_audio_offset(video_path):
     video_start, audio_start = get_stream_start_times(video_path)
     audio_offset = audio_start - video_start
+    print(f'Audio offset in {video_path}: {audio_offset:.6f} seconds')
 
     if abs(audio_offset) < 0.001:
         print('No audio offset detected')
@@ -106,6 +107,29 @@ def cut_video(video_path, cut_seconds):
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", video_path,
         "-ss", f'{cut_seconds:.6f}',
+        "-map", "0",
+        "-c:v", "libx264",
+        tmp_path
+    ]
+
+    subprocess.run(ffmpeg_command)
+    os.replace(tmp_path, video_path)
+
+def get_audio_duration(audio_file, audio_channel):
+    audio_fs, audio_signal = read_wave(audio_file)
+    audio_signal = audio_signal[audio_channel, :]
+    audio_duration = len(audio_signal) / audio_fs
+    return audio_duration
+
+def trim_video_end(video_path, target_duration):
+    
+    print(f'Trimming video {video_path} to {target_duration:.6f} seconds')
+
+    tmp_path = video_path.replace(".mp4", "_trimmed.mp4")
+    ffmpeg_command = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-i", video_path,
+        "-t", f'{target_duration:.6f}',
         "-map", "0",
         "-c:v", "libx264",
         tmp_path
@@ -219,6 +243,11 @@ def main():
         cut_video(video1_file, -audio_video1_delay)
         audio_video2_delay, audio_fs2 = find_delay_by_sync(video2_file, audio_file, audio_channel, debug_plots)
         cut_video(video2_file, -audio_video2_delay)
+
+        audio_duration = get_audio_duration(audio_file, audio_channel)
+        trim_video_end(video1_file, audio_duration)
+        trim_video_end(video2_file, audio_duration)
+
 
 
 if __name__ == "__main__":
