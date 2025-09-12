@@ -535,6 +535,7 @@ def run_aruco_tracking_for_folder(
         z_offset=None, 
         table_offset=0.0,
         fps=30, 
+        distances_path=None,
         display=True
     ):
     if not os.path.exists(folder_path):
@@ -542,7 +543,6 @@ def run_aruco_tracking_for_folder(
         return
 
     video_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.mp4')]
-    distances_file_path = os.path.join(folder_path, 'distances.txt')
 
     if len(video_paths) > 0:
         print(f"Running for videos in {folder_path}: {len(video_paths)} files")
@@ -582,7 +582,7 @@ def run_aruco_tracking_for_folder(
             )
 
         if not df.empty:
-            process_data(df, video_path, positions_folder, annotations_folder, distances_file_path, fps=fps)
+            process_data(df, video_path, positions_folder, annotations_folder, distances_path, fps=fps)
 
 def process_recursive(
         root_folder, 
@@ -595,6 +595,7 @@ def process_recursive(
         z_offset=None, 
         table_offset=0.0,
         fps=30, 
+        distances_path=None,
         display=True
     ):
     for root, dirs, files in os.walk(root_folder):
@@ -612,6 +613,7 @@ def process_recursive(
                 z_offset=z_offset, 
                 table_offset=table_offset,
                 fps=fps, 
+                distances_path=distances_path,
                 display=display
             )
 
@@ -639,6 +641,7 @@ def parse_args():
     parser.add_argument("--starting-position", default=0.0, type=float, help="Starting position of the needle in cm (default: 0.0 cm). Used only by mode without cube")
     parser.add_argument("--table-offset", default=0.0, type=float,
                          help="E.g. when provided 2cm, level 0 will be 2 cm above table (By default 0.0 cm)")
+    parser.add_argument("--distances-path", type=str, help="Path to distances.txt file for annotations (if not provided, will not annotate, only track positions)")
     return parser.parse_args()
 
 def main():
@@ -688,6 +691,7 @@ def main():
     starting_position = args.starting_position
     z_offset = args.z_offset
     table_offset = args.table_offset
+    distances_path = args.distances_path
 
     if recursive:
         process_recursive(
@@ -701,6 +705,7 @@ def main():
             z_offset=z_offset, 
             table_offset=table_offset,
             fps=fps, 
+            distances_path=distances_path,
             display=display
         )
     else:
@@ -715,6 +720,7 @@ def main():
             z_offset=z_offset, 
             table_offset=table_offset,
             fps=fps, 
+            distances_path=distances_path,
             display=display
         )
 
