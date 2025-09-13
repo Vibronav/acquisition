@@ -122,8 +122,6 @@ def on_rec_stop(delete=False):
             print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
 
         recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
-        if recording_status:
-            recorded_files = clean_wav(local_path, os.path.dirname(local_path), offset=0.02)
 
         if delete:
             delete_command = f"rm {remote_path}"
@@ -132,7 +130,7 @@ def on_rec_stop(delete=False):
         print("SSH not connected during stopping recording")
         return False
     
-    return len(recorded_files) > 0
+    return recording_status
 
 
 def delete_last_recording():
