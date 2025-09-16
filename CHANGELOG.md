@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [Unreleased] - 2025-09-16
+### Added
+- Audio annotations if audio and video synchronized
+
 ## [2.3.0] - 2025-09-13
 ### Added
 - Script for synchronizing video with video
