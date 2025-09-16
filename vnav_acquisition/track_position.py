@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from tqdm.auto import tqdm
 import json
+from .clean import read_wave
 
 camera_matrix = np.array([[630.41, 0.0, 640],
                             [0.0, 631.93, 353],
@@ -22,7 +23,18 @@ def show_video_frame(frame, fps, display):
     key = cv2.waitKey(sleep_time) & 0xFF
     return key != ord("q")
 
-def process_data(df, video_path, positions_folder, annotations_folder, distances_file_path, fps=30):
+
+def durations_match(df, audio_sr, audio_signal, fps, tolerance=0.1):
+
+    total_frames = df['Frame'].max()
+
+    video_duration = total_frames / fps
+    audio_duration = audio_signal.shape[1] / audio_sr
+
+    return abs(video_duration - audio_duration) <= tolerance
+    
+
+def process_data(df, video_path, audio_path, positions_folder, annotations_folder, distances_file_path, fps=30):
     os.makedirs(positions_folder, exist_ok=True)
     os.makedirs(annotations_folder, exist_ok=True)
 
@@ -33,7 +45,7 @@ def process_data(df, video_path, positions_folder, annotations_folder, distances
 
     df.to_csv(positions_output_path, index=False)
 
-    create_annotations(df, video_name, annotations_folder, distances_file_path)
+    create_annotations(df, video_name, audio_path, annotations_folder, distances_file_path)
 
 def calculate_speed(df, fps=30, frame_interval=1):
     dt = frame_interval / fps
@@ -47,12 +59,20 @@ def calculate_speed(df, fps=30, frame_interval=1):
 
     return df
 
-def create_annotations(df, video_name, annotations_folder, distances_file_path):
+def create_annotations(df, video_name, audio_path, annotations_folder, distances_file_path):
     df = df.copy()
     df.reset_index(drop=True, inplace=True)
+
+    if audio_path is not None:
+        audio_sr, audio_signal = read_wave(audio_path)
+        data_synchronized = durations_match(df, audio_sr, audio_signal, fps=30)
+    else:
+        data_synchronized = False
+
     distances = read_distances_from_file(distances_file_path)
     if distances:
-        annotations = {}
+        video_annotations = {}
+        audio_annotations = {} if audio_path is not None and data_synchronized else None
 
         min_high = df["Object_Y_cm"].dropna().idxmin()
         df_down = df.loc[:min_high]
@@ -81,16 +101,28 @@ def create_annotations(df, video_name, annotations_folder, distances_file_path):
                     best_idx = diffs.idxmin()
                     chosen_row = tracked_high.loc[best_idx]
 
-            annotations[str(idx)] = {
+            video_annotations[str(idx)] = {
                 "frame": chosen_row["Frame"],
                 "time": chosen_row["Time (s)"]
             }
+            if data_synchronized:
+                audio_annotations[str(idx)] = {
+                    "sample": int(chosen_row["Time (s)"] * audio_sr),
+                    "time": chosen_row["Time (s)"]
+                }
         
         annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
-        payload = {
-            "video_file": f'{video_name}.mp4',
-            "video_annotations": annotations
-        }
+        if data_synchronized:
+            payload = {
+                "video_file": f'{video_name}.mp4',
+                "video_annotations": video_annotations,
+                "audio_annotations": audio_annotations
+            }
+        else:
+            payload = {
+                "video_file": f'{video_name}.mp4',
+                "video_annotations": video_annotations,
+            }
         with open(annotations_output_path, "w") as f:
             json.dump(payload, f, indent=4)
 
@@ -526,7 +558,8 @@ def track_aruco_cube(
     return df
 
 def run_aruco_tracking_for_folder(
-        folder_path, 
+        video_folder_path,
+        audio_folder_path, 
         cube_mode, 
         dobot_mode, 
         marker_length_obj, 
@@ -539,23 +572,24 @@ def run_aruco_tracking_for_folder(
         distances_path=None,
         display=True
     ):
-    if not os.path.exists(folder_path):
-        print(f"Error: Folder {folder_path} does not exist.")
+    if not os.path.exists(video_folder_path):
+        print(f"Error: Folder {video_folder_path} does not exist.")
         return
 
-    video_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('.mp4')]
+    filenames = [os.path.splitext(f)[0] for f in os.listdir(video_folder_path) if f.endswith('.mp4')]
 
-    if len(video_paths) > 0:
-        print(f"Running for videos in {folder_path}: {len(video_paths)} files")
+    if len(filenames) > 0:
+        print(f"Running for videos in {video_folder_path}: {len(filenames)} files")
 
-    positions_folder = os.path.join(os.path.dirname(folder_path), 'labelled_positions')
-    annotations_folder = os.path.join(os.path.dirname(folder_path), 'annotations')
+    positions_folder = os.path.join(os.path.dirname(video_folder_path), 'labelled_positions')
+    annotations_folder = os.path.join(os.path.dirname(video_folder_path), 'annotations')
 
-    for i, video_path in enumerate(
-        tqdm(video_paths, desc=f'Folder: {folder_path}', unit='video'),
+    for i, filename in enumerate(
+        tqdm(filenames, desc=f'Folder: {video_folder_path}', unit='video'),
         start=1
     ):
-        tqdm.write(f"Processing ({i}/{len(video_paths)}): {folder_path}")
+        tqdm.write(f"Processing ({i}/{len(filenames)}): {video_folder_path}")
+        video_path = os.path.join(video_folder_path, filename + '.mp4')
         if(cube_mode):
             df = track_aruco_cube(
                 video_path, 
@@ -583,40 +617,11 @@ def run_aruco_tracking_for_folder(
             )
 
         if not df.empty:
-            process_data(df, video_path, positions_folder, annotations_folder, distances_path, fps=fps)
+            audio_path = None
+            if audio_folder_path is not None:
+                audio_path = os.path.join(audio_folder_path, filename + '.wav')
+            process_data(df, video_path, audio_path, positions_folder, annotations_folder, distances_path, fps=fps)
 
-def process_recursive(
-        root_folder, 
-        cube_mode, 
-        dobot_mode, 
-        marker_length_obj, 
-        marker_margin_obj, 
-        needle_offset, 
-        starting_position=0.0, 
-        z_offset=None, 
-        table_offset=0.0,
-        fps=30, 
-        distances_path=None,
-        display=True
-    ):
-    for root, dirs, files in os.walk(root_folder):
-        video_files = [f for f in files if f.endswith('.mp4')]
-        if video_files:
-            print(f"Running for videos in {root}: {len(video_files)} files")
-            run_aruco_tracking_for_folder(
-                root, 
-                cube_mode, 
-                dobot_mode, 
-                marker_length_obj, 
-                marker_margin_obj, 
-                needle_offset, 
-                starting_position=starting_position, 
-                z_offset=z_offset, 
-                table_offset=table_offset,
-                fps=fps, 
-                distances_path=distances_path,
-                display=display
-            )
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -628,9 +633,9 @@ def parse_args():
         "distances.txt file should look like: 12,8.5,7,5.4" 
     )
     parser.add_argument("--video-path", required=True, help="Path to folder with videos")
+    parser.add_argument("--audio-path", type=str, help="Path to folder with audio files. If not provided, will produce annotations only for video.")
     parser.add_argument("--marker-length", required=True, type=float, help="Length of the Aruco marker in cm (From protocol)")
     parser.add_argument("--marker-margin", required=True, type=float, help="Margin around the Aruco marker in cm (From protocol)")
-    parser.add_argument("--recursive", action="store_true", help="Flag to run recursively in subfolders of video-path (good for annotating all videos in dataset)")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second for video processing (default: 30)")
     parser.add_argument("--display", action="store_true", default=False, help="If true will display tracker on video")
     parser.add_argument("--cube", action="store_true", help="If provided will use cube to detect table grund")
@@ -648,10 +653,14 @@ def parse_args():
 def main():
     args = parse_args()
 
-    folder_path = args.video_path
-    if not os.path.exists(folder_path):
-        print(f"Folder {folder_path} not found.")
+    video_folder_path = args.video_path
+    if not os.path.exists(video_folder_path):
+        print(f"Folder {video_folder_path} not found.")
         return
+    
+    audio_folder_path = args.audio_path
+    if audio_folder_path is not None and not os.path.exists(audio_folder_path):
+        print(f"Audio folder {audio_folder_path} not found, will not produce audio annotations.")
 
     if not args.cube and not args.no_cube:
         print("Please you have to specify either --cube or --no-cube.")
@@ -669,7 +678,6 @@ def main():
         print("You cannot specify both --dobot and --no-dobot.")
         return
     
-    recursive = args.recursive
     display = args.display
     if(args.cube):
         print("Running in cube mode.")
@@ -694,36 +702,21 @@ def main():
     table_offset = args.table_offset
     distances_path = args.distances_path
 
-    if recursive:
-        process_recursive(
-            folder_path, 
-            cube_mode, 
-            dobot_mode, 
-            marker_length_obj, 
-            marker_margin_obj, 
-            needle_offset, 
-            starting_position=starting_position, 
-            z_offset=z_offset, 
-            table_offset=table_offset,
-            fps=fps, 
-            distances_path=distances_path,
-            display=display
-        )
-    else:
-        run_aruco_tracking_for_folder(
-            folder_path, 
-            cube_mode, 
-            dobot_mode, 
-            marker_length_obj, 
-            marker_margin_obj, 
-            needle_offset, 
-            starting_position=starting_position, 
-            z_offset=z_offset, 
-            table_offset=table_offset,
-            fps=fps, 
-            distances_path=distances_path,
-            display=display
-        )
+    run_aruco_tracking_for_folder(
+        video_folder_path, 
+        audio_folder_path,
+        cube_mode, 
+        dobot_mode, 
+        marker_length_obj, 
+        marker_margin_obj, 
+        needle_offset, 
+        starting_position=starting_position, 
+        z_offset=z_offset, 
+        table_offset=table_offset,
+        fps=fps, 
+        distances_path=distances_path,
+        display=display
+    )
 
 if __name__ == "__main__":
     main()
