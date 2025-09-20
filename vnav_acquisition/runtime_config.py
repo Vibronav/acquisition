@@ -3,9 +3,9 @@
 class RuntimeConfig:
     _DEFAULT_CONFIG = {
         'micro_output': None,
-        'micro_bandpass_enabled': True,
-        'micro_bandpass_low': 4000,
-        'micro_bandpass_high': 6000,
+        'micro_bandpass_enabled': False,
+        'micro_bandpass_low': 1e-6,
+        'micro_bandpass_high': 47500,
     }
 
     def __init__(self):

@@ -329,33 +329,36 @@ def _ensure_bandpass_initialized(fs):
 
     current_cfg = (enabled, f1, f2)
     if current_cfg == BP_LAST_CFG and BP_SOS is not None:
-        return
+        return True
     
     if not enabled:
         BP_SOS = None
         BP_ZI_L = None
         BP_ZI_R = None
         BP_LAST_CFG = current_cfg
-        return
+        return False
     
     BP_SOS = _build_bandpass_sos(fs, f1, f2, order=4)
     BP_ZI_L = sosfilt_zi(BP_SOS)
     BP_ZI_R = sosfilt_zi(BP_SOS)
     BP_LAST_CFG = current_cfg
+    return True
 
 def _apply_bandpass(left, right, fs):
     global BP_SOS, BP_ZI_L, BP_ZI_R
-
-    _ensure_bandpass_initialized(fs)
 
     scale = 2**31
     xL = left.astype(np.float32) / scale
     xR = right.astype(np.float32) / scale
 
+    initialized = _ensure_bandpass_initialized(fs)
+    if not initialized:
+        return xL.astype('<f4'), xR.astype('<f4')
+
     yL, BP_ZI_L = sosfilt(BP_SOS, xL, zi=BP_ZI_L)
     yR, BP_ZI_R = sosfilt(BP_SOS, xR, zi=BP_ZI_R)
 
-    return (yL * scale).astype('<i4'), (yR * scale).astype('<i4')
+    return yL.astype('<f4'), yR.astype('<f4')
     
 
 def send_audio_data(buffer, sio):
