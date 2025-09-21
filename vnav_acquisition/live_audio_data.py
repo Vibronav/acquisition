@@ -16,7 +16,7 @@ BYTES_PER_SAMPLE = 4
 CHANNELS = 2
 BYTES_PER_FRAME = CHANNELS * BYTES_PER_SAMPLE
 PACKET_BYTES = FRAMES_PER_PACKET * BYTES_PER_FRAME
-BATCH_FRAMES = 10
+BATCH_FRAMES = 12
 BATCH_BYTES = BATCH_FRAMES * PACKET_BYTES
 SAMPLE_RATE = 48000
 PACKET_PERIOD_SEC = FRAMES_PER_PACKET / SAMPLE_RATE
@@ -338,7 +338,7 @@ def _ensure_bandpass_initialized(fs):
         BP_LAST_CFG = current_cfg
         return False
     
-    BP_SOS = _build_bandpass_sos(fs, f1, f2, order=4)
+    BP_SOS = _build_bandpass_sos(fs, f1, f2, order=10)
     BP_ZI_L = sosfilt_zi(BP_SOS)
     BP_ZI_R = sosfilt_zi(BP_SOS)
     BP_LAST_CFG = current_cfg

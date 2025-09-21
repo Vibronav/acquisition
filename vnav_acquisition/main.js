@@ -407,13 +407,11 @@ function drawColumn(spectrum) {
 function drawFrequencyLabels() {
 	const sampleRate = 48000;
 	const fontSize = 10;
-	const numTicks = 5;
+	const numTicks = 10;
 	const nyquist = sampleRate / 2;
-	const padding = 10;
 	const labelOffsetX = 2
 	const spectrogramWidth = spectrogram.width;
 	const spectrogramHeight = spectrogram.height;
-	const availableHeight = spectrogramHeight - 2 * padding;
 
 	ctx.font = `${fontSize}px sans-serif`;
 	ctx.textAlign = "left";
@@ -424,11 +422,11 @@ function drawFrequencyLabels() {
 	ctx.fillStyle = "white";
 
 	ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-	ctx.lineWidth = 1;
+	ctx.lineWidth = 0.3;
 
-	for (let i = 0; i <= numTicks; i++) {
+	for (let i = 1; i <= numTicks - 2; i++) {
 		const rel = i / (numTicks - 1);
-		const y = padding + (1 - rel) * availableHeight;
+		const y = (1 - rel) * (spectrogramHeight - 1);
 		const freq = Math.round(rel * nyquist);
 
 		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
