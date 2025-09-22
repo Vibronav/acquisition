@@ -36,23 +36,23 @@ def is_listener_thread_running():
     return micro_signal_thread is not None and micro_signal_thread.is_alive()
 
 def start_micro_signal_sending(ssh):
-    # print("Starting micro signal sending on RaspberryPi")
-    # command = "python3 -u /home/pi/micro_signal_sender.py"
-    # ssh.exec_command(command)
+    print("Starting micro signal sending on RaspberryPi")
+    command = "python3 -u /home/pi/micro_signal_sender.py"
+    ssh.exec_command(command)
 
-    import subprocess, sys
-    wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\record.wav"
+    # import subprocess, sys
+    # wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\record.wav"
 
-    script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
-    args = [
-        sys.executable, "-u", script_path,
-        "--host", "127.0.0.1",
-        "--port", "5001",
-        "--wav", wav_path,
-    ]
+    # script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
+    # args = [
+    #     sys.executable, "-u", script_path,
+    #     "--host", "127.0.0.1",
+    #     "--port", "5001",
+    #     "--wav", wav_path,
+    # ]
 
-    print("Starting local wav sender:", args)
-    subprocess.Popen(args)
+    # print("Starting local wav sender:", args)
+    # subprocess.Popen(args)
 
 def listen_for_micro_signals(sio):
         global micro_signal_thread
@@ -338,7 +338,7 @@ def _ensure_bandpass_initialized(fs):
         BP_LAST_CFG = current_cfg
         return False
     
-    BP_SOS = _build_bandpass_sos(fs, f1, f2, order=10)
+    BP_SOS = _build_bandpass_sos(fs, f1, f2, order=25)
     BP_ZI_L = sosfilt_zi(BP_SOS)
     BP_ZI_R = sosfilt_zi(BP_SOS)
     BP_LAST_CFG = current_cfg
@@ -355,7 +355,9 @@ def _apply_bandpass(left, right, fs):
     if not initialized:
         return xL.astype('<f4'), xR.astype('<f4')
 
+    start = time.time()
     yL, BP_ZI_L = sosfilt(BP_SOS, xL, zi=BP_ZI_L)
+    print(f'Bandpass filter left took {time.time() - start:.6f} seconds')
     yR, BP_ZI_R = sosfilt(BP_SOS, xR, zi=BP_ZI_R)
 
     return yL.astype('<f4'), yR.astype('<f4')
