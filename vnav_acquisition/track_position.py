@@ -200,11 +200,8 @@ def track_aruco_no_cube(
             aruco.drawDetectedMarkers(frame, corners, ids)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners, marker_length_obj, camera_matrix, dist_coeffs)
 
+            attachment_offset = marker_length_obj / 2 + marker_margin_obj
             if dobot_mode:
-
-                claw = 1.2
-                attachment = 0.69
-                dobot_y_offset = marker_length_obj / 2 + marker_margin_obj + claw + attachment
 
                 if z_offset is None:
                     z_offset = 2.2
@@ -214,14 +211,12 @@ def track_aruco_no_cube(
                 R_o, _ = cv2.Rodrigues(r_o)
 
                 t_o = (R_o @ np.array([[0.0, 0.0, -z_offset]], dtype=np.float32).T + t_o).flatten()
-                t_final = (np.array([0.0, dobot_y_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
+                t_final = (np.array([0.0, attachment_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
 
                 x = t_final[0]
                 y = (t_final[1] * -1) - table_offset
                 z = t_final[2]
             else:
-
-                attachment_offset = marker_length_obj / 2 + marker_margin_obj
 
                 if z_offset is None:
                     z_offset = 0.0
@@ -480,11 +475,8 @@ def track_aruco_cube(
             aruco.drawDetectedMarkers(frame, corners_o, ids_o)
             rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners_o, marker_length_obj, camera_matrix, dist_coeffs)
 
+            attachment_offset = marker_length_obj / 2 + marker_margin_obj
             if dobot_mode:
-
-                claw = 1.2
-                attachment = 0.69
-                dobot_y_offset = marker_length_obj / 2 + marker_margin_obj + claw + attachment
 
                 if z_offset is None:
                     z_offset = 2.2
@@ -494,15 +486,13 @@ def track_aruco_cube(
                 R_o, _ = cv2.Rodrigues(r_o)
 
                 t_o = (R_o @ np.array([[0.0, 0.0, -z_offset]], dtype=np.float32).T + t_o).flatten()
-                t_needle = (np.array([0.0, dobot_y_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
+                t_needle = (np.array([0.0, attachment_offset + needle_offset, 0.0], dtype=np.float32) + t_o)
                 t_final = R_inv.dot(t_needle - t_c)
 
                 x = t_final[0]
                 y = t_final[1] + half_edge - table_offset
                 z = t_final[2]
             else:
-
-                attachment_offset = marker_length_obj / 2 + marker_margin_obj
 
                 if z_offset is None:
                     z_offset = 0.0
