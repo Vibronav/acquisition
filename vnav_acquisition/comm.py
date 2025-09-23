@@ -57,7 +57,6 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
     time.sleep(1)
     start_micro_signal_sending(ssh)
 
-
 def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
     global ssh

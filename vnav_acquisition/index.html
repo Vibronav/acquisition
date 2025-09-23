@@ -177,6 +177,28 @@
                     </div>
                 </div>
 
+                <div class="filter-bar">
+                    <label class="inline">
+                        <span>Audio bandpass</span>
+                        <label class="simple-toggle">
+                            <input type="checkbox" id="filterToggle" />
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                    
+                    <div class="filter-fields hidden">
+                        <label class="inline">
+                            Low [Hz]
+                            <input type="number" id="bpLow" min="0" max="23499" step="1" value="0" />
+                        </label>
+                        <label class="inline">
+                            High [Hz]
+                            <input type="number" id="bpHigh" min="1" max="23500" step="1" value="23500" />
+                        </label>
+                        <button id="applyFilter">Apply</button>
+                    </div>
+                </div>
+
                 <div class="canvas-container-horizontal">
                     <div class="canvas-column">
                         <div class="canvas-wrapper">

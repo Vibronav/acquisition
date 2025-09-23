@@ -232,6 +232,23 @@ def detect_cube():
         "image": data_url
     })
 
+@app.route('/set-micro-filter', methods=['POST'])
+def set_filter_settings():
+    print("Received set-micro-filter/POST request")
+    params = request.get_json(force=True)
+    print(f'With params: {params}')
+
+    enabled = params.get("enabled")
+    low = params.get("low")
+    high = params.get("high")
+
+    runtime_config.set_value('micro_bandpass_enabled', enabled)
+    runtime_config.set_value('micro_bandpass_low', low)
+    runtime_config.set_value('micro_bandpass_high', high)
+    
+    return jsonify({"status": "ok"})
+    
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Web browser interface for synchronous acquisition of audio "
                                                  "(from rasberry_pi/banana_pi devboard) and video from webcam")

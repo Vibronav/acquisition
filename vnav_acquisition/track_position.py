@@ -114,6 +114,7 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
         annotations_output_path = os.path.join(annotations_folder, f'{video_name}.json')
         if data_synchronized:
             payload = {
+                "audio_file": f'{os.path.basename(audio_path)}',
                 "video_file": f'{video_name}.mp4',
                 "video_annotations": video_annotations,
                 "audio_annotations": audio_annotations

@@ -80,6 +80,12 @@ const cubeModal = document.getElementById("cubeModal");
 const cubeModalImage = document.getElementById("cubeModalImage");
 const cubeModalClose = document.getElementById("cubeModalClose");
 
+const filterToggle = document.getElementById("filterToggle");
+const filterFields = document.querySelector(".filter-fields");
+const bpLowEl = document.getElementById("bpLow");
+const bpHighEl = document.getElementById("bpHigh");
+const applyFilterBt = document.getElementById("applyFilter");
+
 const DEFAULT_CONFIG = {
 	materials: ["slime", "Silicone", "Chicken"],
 	speeds: ["slow", "medium", "fast"]
@@ -168,9 +174,9 @@ socket.on("iteration", (msg) => {
 socket.on("micro-signal", (msg) => {
 
 	console.log(typeof msg.left[0]);
-	const bufferLeft = new Int32Array(msg.left);
-	const bufferRight = new Int32Array(msg.right);
-	
+	const bufferLeft = new Float32Array(msg.left);
+	const bufferRight = new Float32Array(msg.right);
+
 	const meanLeft = average(bufferLeft);
 	const bufferLeftDC = bufferLeft.map((x) => x - meanLeft);
 	const meanRight = average(bufferRight);
@@ -269,7 +275,7 @@ function generateMockStereoSamples() {
 function drawWaveform(buffer, canvas, ctx) {
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 31) / waveformZoom;
+	const fullScale = 1 / waveformZoom;
 
 	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
@@ -317,7 +323,7 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 		const rel = i / (numTicks - 1);
 		const y = paddingY + rel * availableHeight;
 
-		const value = ((centerY - y) / (availableHeight / 2)) * fullScale;
+		const value = ((centerY - y) / (availableHeight / 2)) * fullScale * 2**31;
 		ctx.fillText(formatLargeNumber(value), YAXIS_WAVEFORM_WIDTH - 5, y);
 
 		ctx.beginPath();
@@ -332,7 +338,7 @@ function redrawWaveform(canvas, ctx, history) {
 	console.log(history.length);
 	const width = canvas.width;
 	const height = canvas.height;
-	const fullScale = Math.pow(2, 31) / waveformZoom;
+	const fullScale = 1 / waveformZoom;
 	const centerY = height / 2 + waveformOffset;
 	const colWidth = 3;
 	const rightX = width - 5;
@@ -376,7 +382,7 @@ function processAndDrawSpectrogram(samples) {
 		const chunk = specBuffer.slice(0, fftSize);
 		specBuffer = specBuffer.slice(fftSize / 2);
 
-		const input = new Float32Array(chunk.map(x => x / Math.pow(2, 31))); // Normalize to have cleaner spectrogram
+		const input = new Float32Array(chunk);
 		fft.forward(input);
 		drawColumn(fft.spectrum);
 	}
@@ -401,13 +407,11 @@ function drawColumn(spectrum) {
 function drawFrequencyLabels() {
 	const sampleRate = 48000;
 	const fontSize = 10;
-	const numTicks = 5;
+	const numTicks = 10;
 	const nyquist = sampleRate / 2;
-	const padding = 10;
 	const labelOffsetX = 2
 	const spectrogramWidth = spectrogram.width;
 	const spectrogramHeight = spectrogram.height;
-	const availableHeight = spectrogramHeight - 2 * padding;
 
 	ctx.font = `${fontSize}px sans-serif`;
 	ctx.textAlign = "left";
@@ -418,11 +422,11 @@ function drawFrequencyLabels() {
 	ctx.fillStyle = "white";
 
 	ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-	ctx.lineWidth = 1;
+	ctx.lineWidth = 0.3;
 
-	for (let i = 0; i <= numTicks; i++) {
+	for (let i = 1; i <= numTicks - 2; i++) {
 		const rel = i / (numTicks - 1);
-		const y = padding + (1 - rel) * availableHeight;
+		const y = (1 - rel) * (spectrogramHeight - 1);
 		const freq = Math.round(rel * nyquist);
 
 		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
@@ -963,6 +967,33 @@ async function detectCube() {
 
 }
 
+async function applyFilterSettings() {
+
+	const enabled = filterToggle.checked;
+	const low = parseFloat(bpLowEl.value);
+	const high = parseFloat(bpHighEl.value);
+
+	applyFilterBt.disabled = true;
+
+	try {
+		const res = await fetch("/set-micro-filter", {
+			method: "POST",
+			headers: {"Content-Type": "application/json"},
+			body: JSON.stringify({
+				enabled: enabled,
+				low: low,
+				high: high
+			})
+		});
+		if (!res.ok) throw new Error("Server error");
+	} catch(e) {
+		console.error("Error applying filter settings: ", e);
+	} finally {
+		applyFilterBt.disabled = false;
+	}
+	
+}
+
 (async function init() {
 
 	const cfg = await loadConfig();
@@ -1000,6 +1031,17 @@ cubeModal.addEventListener("click", (e) => {
 		cubeModal.style.display = "none";
 	}
 })
+filterToggle.addEventListener("change", () => {
+	
+	if (filterToggle.checked) {
+		filterFields.classList.remove("hidden");
+	} else {
+		filterFields.classList.add("hidden");
+		applyFilterSettings();
+	}
+
+})
+applyFilterBt.addEventListener("click", applyFilterSettings);
 setInterval(getRaspberryStatus, 3000);
 // setInterval(mockMicroSignal, interval);
 

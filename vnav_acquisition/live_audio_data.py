@@ -7,6 +7,7 @@ import numpy as np
 import sounddevice as sd
 from .runtime_config import runtime_config
 import platform
+from scipy.signal import butter, sosfilt, sosfilt_zi
 
 micro_signal_thread = None
 
@@ -15,7 +16,7 @@ BYTES_PER_SAMPLE = 4
 CHANNELS = 2
 BYTES_PER_FRAME = CHANNELS * BYTES_PER_SAMPLE
 PACKET_BYTES = FRAMES_PER_PACKET * BYTES_PER_FRAME
-BATCH_FRAMES = 25
+BATCH_FRAMES = 12
 BATCH_BYTES = BATCH_FRAMES * PACKET_BYTES
 SAMPLE_RATE = 48000
 PACKET_PERIOD_SEC = FRAMES_PER_PACKET / SAMPLE_RATE
@@ -40,7 +41,7 @@ def start_micro_signal_sending(ssh):
     ssh.exec_command(command)
 
     # import subprocess, sys
-    # wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\1_6_22rpm_turkey_speed-10_shiba_2025-08-07_16.21.20.wav"
+    # wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\record.wav"
 
     # script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
     # args = [
@@ -307,6 +308,61 @@ def receive_and_send_micro_signals(conn, sio):
             except Exception as e:
                 pass
 
+BP_SOS = None
+BP_ZI_L = None
+BP_ZI_R = None
+BP_LAST_CFG = None
+
+def _build_bandpass_sos(fs, f1, f2, order=4):
+    nyq = fs * 0.5
+    wl = max(f1 / nyq, 1e-6)
+    wh = min(f2 / nyq, 0.999999)
+    sos = butter(order, [wl, wh], btype='bandpass', output='sos')
+    return sos
+
+def _ensure_bandpass_initialized(fs):
+    global BP_SOS, BP_ZI_L, BP_ZI_R, BP_LAST_CFG
+
+    enabled = runtime_config['micro_bandpass_enabled']
+    f1 = runtime_config['micro_bandpass_low']
+    f2 = runtime_config['micro_bandpass_high']
+
+    current_cfg = (enabled, f1, f2)
+    if current_cfg == BP_LAST_CFG and BP_SOS is not None:
+        return True
+    
+    if not enabled:
+        BP_SOS = None
+        BP_ZI_L = None
+        BP_ZI_R = None
+        BP_LAST_CFG = current_cfg
+        return False
+    
+    BP_SOS = _build_bandpass_sos(fs, f1, f2, order=25)
+    BP_ZI_L = sosfilt_zi(BP_SOS)
+    BP_ZI_R = sosfilt_zi(BP_SOS)
+    BP_LAST_CFG = current_cfg
+    return True
+
+def _apply_bandpass(left, right, fs):
+    global BP_SOS, BP_ZI_L, BP_ZI_R
+
+    scale = 2**31
+    xL = left.astype(np.float32) / scale
+    xR = right.astype(np.float32) / scale
+
+    initialized = _ensure_bandpass_initialized(fs)
+    if not initialized:
+        return xL.astype('<f4'), xR.astype('<f4')
+
+    start = time.time()
+    yL, BP_ZI_L = sosfilt(BP_SOS, xL, zi=BP_ZI_L)
+    print(f'Bandpass filter left took {time.time() - start:.6f} seconds')
+    yR, BP_ZI_R = sosfilt(BP_SOS, xR, zi=BP_ZI_R)
+
+    return yL.astype('<f4'), yR.astype('<f4')
+    
+
 def send_audio_data(buffer, sio):
 
     while len(buffer) >= BATCH_BYTES:
@@ -315,6 +371,8 @@ def send_audio_data(buffer, sio):
         arr = np.frombuffer(batch_bytes, dtype='<i4')
         left = arr[::2]
         right = arr[1::2]
+
+        left, right = _apply_bandpass(left, right, SAMPLE_RATE)
 
         sio.emit('micro-signal', {
             'left': left.tobytes(),
