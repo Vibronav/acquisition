@@ -374,8 +374,6 @@ def send_audio_data(buffer, sio):
 
         left, right = _apply_bandpass(left, right, SAMPLE_RATE)
 
-        print(f'Sending {len(left)} samples per channel to web client')
-
         sio.emit('micro-signal', {
             'left': left.tobytes(),
             'right': right.tobytes()
