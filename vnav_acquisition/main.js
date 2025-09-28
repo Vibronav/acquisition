@@ -506,14 +506,22 @@ function storeSpectrumColumn(spectrum) {
 
 function renderColumnAtX(spectrum, x) {
 	const H = spectrogram.height;
+	const dbMin = -120;
+	const dbMax = 0;
 	for(let y=0; y<H; y++) {
 		const idx = yToIndex(y, spectrum.length);
 		const db = 20 * Math.log10(spectrum[idx] + 1e-6);
-		const value = Math.max(0, Math.min(255, db + 100));
+
+		let normDb = (db - dbMin) / (dbMax - dbMin);
+		normDb = clamp(normDb, 0, 1);
+
+		const rgbValue = Math.round(normDb * 255);
 		const freq = idx * sampleRate / fftSize;
-		const color = valueToHSL(value, freq);
+
+		const color = valueToHSL(rgbValue, freq);
 		ctx.fillStyle = color;
 		ctx.fillRect(x, y, 1, 1);
+
 	}
 }
 

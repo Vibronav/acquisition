@@ -16,7 +16,7 @@ BYTES_PER_SAMPLE = 4
 CHANNELS = 2
 BYTES_PER_FRAME = CHANNELS * BYTES_PER_SAMPLE
 PACKET_BYTES = FRAMES_PER_PACKET * BYTES_PER_FRAME
-BATCH_FRAMES = 12
+BATCH_FRAMES = 4
 BATCH_BYTES = BATCH_FRAMES * PACKET_BYTES
 SAMPLE_RATE = 48000
 PACKET_PERIOD_SEC = FRAMES_PER_PACKET / SAMPLE_RATE
@@ -355,9 +355,7 @@ def _apply_bandpass(left, right, fs):
     if not initialized:
         return xL.astype('<f4'), xR.astype('<f4')
 
-    start = time.time()
     yL, BP_ZI_L = sosfilt(BP_SOS, xL, zi=BP_ZI_L)
-    print(f'Bandpass filter left took {time.time() - start:.6f} seconds')
     yR, BP_ZI_R = sosfilt(BP_SOS, xR, zi=BP_ZI_R)
 
     return yL.astype('<f4'), yR.astype('<f4')
