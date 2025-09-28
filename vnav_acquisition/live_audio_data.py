@@ -36,23 +36,23 @@ def is_listener_thread_running():
     return micro_signal_thread is not None and micro_signal_thread.is_alive()
 
 def start_micro_signal_sending(ssh):
-    print("Starting micro signal sending on RaspberryPi")
-    command = "python3 -u /home/pi/micro_signal_sender.py"
-    ssh.exec_command(command)
+    # print("Starting micro signal sending on RaspberryPi")
+    # command = "python3 -u /home/pi/micro_signal_sender.py"
+    # ssh.exec_command(command)
 
-    # import subprocess, sys
-    # wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\record.wav"
+    import subprocess, sys
+    wav_path = r"C:\Users\jakub\Desktop\ncn\acquisition\record.wav"
 
-    # script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
-    # args = [
-    #     sys.executable, "-u", script_path,
-    #     "--host", "127.0.0.1",
-    #     "--port", "5001",
-    #     "--wav", wav_path,
-    # ]
+    script_path = os.path.join(os.path.dirname(__file__), "micro_signal_sender_file.py")
+    args = [
+        sys.executable, "-u", script_path,
+        "--host", "127.0.0.1",
+        "--port", "5001",
+        "--wav", wav_path,
+    ]
 
-    # print("Starting local wav sender:", args)
-    # subprocess.Popen(args)
+    print("Starting local wav sender:", args)
+    subprocess.Popen(args)
 
 def listen_for_micro_signals(sio):
         global micro_signal_thread

@@ -277,7 +277,7 @@ function drawWaveform(buffer, canvas, ctx) {
 	const height = canvas.height;
 	const fullScale = 1 / waveformZoom;
 
-	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
+	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 1, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 1, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
 
 	drawWaveformLabels(canvas, ctx, fullScale);
@@ -340,7 +340,7 @@ function redrawWaveform(canvas, ctx, history) {
 	const height = canvas.height;
 	const fullScale = 1 / waveformZoom;
 	const centerY = height / 2 + waveformOffset;
-	const colWidth = 3;
+	const colWidth = 1;
 	const rightX = width - 5;
 
 	ctx.clearRect(YAXIS_WAVEFORM_WIDTH, 0, width - YAXIS_WAVEFORM_WIDTH, height);
