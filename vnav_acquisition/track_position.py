@@ -607,7 +607,7 @@ def run_aruco_tracking_for_folder(
                 display=display
             )
 
-        if not df.empty:
+        if not df.empty and 'Object_Y_cm' in df and df["Object_Y_cm"].notna().any():
             audio_path = None
             if audio_folder_path is not None:
                 audio_path = os.path.join(audio_folder_path, filename + '.wav')
