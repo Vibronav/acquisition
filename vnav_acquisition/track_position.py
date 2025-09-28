@@ -535,7 +535,7 @@ def track_aruco_cube(
 
             results.append([frame_idx, round(frame_idx / fps, ndigits=2), x, y, z])
         else:
-            results.append([frame_idx, round(frame_idx / fps, ndigits=2), None, None, None])
+            results.append([frame_idx, round(frame_idx / fps, ndigits=2), np.nan, np.nan, np.nan])
 
         cv2.imwrite(f'tracked_frames/frame_{frame_idx}.jpg', frame)
         if not show_video_frame(frame, fps, display):
