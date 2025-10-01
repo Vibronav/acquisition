@@ -347,6 +347,11 @@ button {
     color: white;
 }
 
+#applySpecScale {
+    background-color: #2196F3;
+    color: white;
+}
+
 button:hover:enabled {
     filter: brightness(1.1);
 }
@@ -512,6 +517,17 @@ input[type="range"] {
   display: none;
 }
 
+.spec-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0 6px;
+}
+.spec-controls .inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 @media (max-width: 1000px) {
     .sidebar {

@@ -267,7 +267,7 @@ def main():
     url = "http://127.0.0.1:{0}".format(port)
     IP_FILE.write_text(get_local_ip_address())
 
-    ssh_connect(*config["connection"], socketio_instance=socketio)
+    ssh_connect(*config['connection'], socketio_instance=socketio)
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     

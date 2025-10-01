@@ -56,9 +56,9 @@ const fftSize = 4096;
 const fft = new FFT(fftSize, sampleRate);
 let specBuffer = []
 
-let isCtrlZooming = false;
-let lastY = null;
-let isPanning = false;
+let isCtrlZoomingWaveform = false;
+let lastYWaveform = null;
+let isPanningWaveform = false;
 let waveformZoom = 1;
 let waveformOffset = 0;
 let singalLeftHistory = [];
@@ -67,6 +67,17 @@ const waveformCanvasLeft = document.getElementById('micSignalLeft');
 const waveformCanvasRight = document.getElementById('micSignalRight');
 const waveformCtxLeft = waveformCanvasLeft.getContext('2d');
 const waveformCtxRight = waveformCanvasRight.getContext('2d');
+
+const specCenterFreqEl = document.getElementById("specCenterFreq");
+const specZoomEl = document.getElementById("specZoom");
+const applySpecScaleBt = document.getElementById("applySpecScale");
+
+let specZoom = 1;
+let specOffset = 0;
+let isCtrlZoomingSpec = false;
+let isPanningSpec = false;
+let lastYSpec = null;
+let specHistory = [];
 
 const toggle = document.getElementById("modeToggle");
 const automationForm = document.getElementById("automationForm");
@@ -173,7 +184,6 @@ socket.on("iteration", (msg) => {
 
 socket.on("micro-signal", (msg) => {
 
-	console.log(typeof msg.left[0]);
 	const bufferLeft = new Float32Array(msg.left);
 	const bufferRight = new Float32Array(msg.right);
 
@@ -277,7 +287,7 @@ function drawWaveform(buffer, canvas, ctx) {
 	const height = canvas.height;
 	const fullScale = 1 / waveformZoom;
 
-	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 3, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 3, canvas.height);
+	const imageData = ctx.getImageData(YAXIS_WAVEFORM_WIDTH + 1, 0, canvas.width - YAXIS_WAVEFORM_WIDTH - 1, canvas.height);
 	ctx.putImageData(imageData, YAXIS_WAVEFORM_WIDTH, 0);
 
 	drawWaveformLabels(canvas, ctx, fullScale);
@@ -340,7 +350,7 @@ function redrawWaveform(canvas, ctx, history) {
 	const height = canvas.height;
 	const fullScale = 1 / waveformZoom;
 	const centerY = height / 2 + waveformOffset;
-	const colWidth = 3;
+	const colWidth = 1;
 	const rightX = width - 5;
 
 	ctx.clearRect(YAXIS_WAVEFORM_WIDTH, 0, width - YAXIS_WAVEFORM_WIDTH, height);
@@ -369,7 +379,7 @@ function redrawWaveform(canvas, ctx, history) {
 
 function formatLargeNumber(val) {
 	const absVal = Math.abs(val);
-	if (absVal >= 1e9) return (val / 1e9).toFixed(2) + 'G';
+	if (absVal >= 1e9) return (val / 1e9).toFixed(2) + 'B';
 	if (absVal >= 1e6) return (val / 1e6).toFixed(2) + 'M';
 	if (absVal >= 1e3) return (val / 1e3).toFixed(2) + 'K';
 	return val.toString();
@@ -389,26 +399,23 @@ function processAndDrawSpectrogram(samples) {
 }
 
 function drawColumn(spectrum) {
-	const imageData = ctx.getImageData(YAXIS_SPECTROGRAM_WIDTH + 1, 0, spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1, spectrogram.height);
+	storeSpectrumColumn(spectrum);
+
+	const imageData = ctx.getImageData(
+		YAXIS_SPECTROGRAM_WIDTH + 1, 
+		0, 
+		spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1, 
+		spectrogram.height
+	);
 	ctx.putImageData(imageData, YAXIS_SPECTROGRAM_WIDTH, 0);
 
-	for (let y=0; y<spectrogram.height; y++) {
-		const idx = Math.floor((y / spectrogram.height) * spectrum.length);
-		const db = 20 * Math.log10(spectrum[idx] + 1e-6)
-		const value = Math.max(0, Math.min(255, db + 100))
-		const freq = idx * sampleRate / fftSize
-		const color = valueToHSL(value, freq);
-		ctx.fillStyle = color;
-		ctx.fillRect(spectrogram.width - 1, spectrogram.height - y - 1, 1, 1);
-	}
+	renderColumnAtX(spectrum, spectrogram.width - 1);
 	drawFrequencyLabels();
 }
 
 function drawFrequencyLabels() {
-	const sampleRate = 48000;
 	const fontSize = 10;
 	const numTicks = 10;
-	const nyquist = sampleRate / 2;
 	const labelOffsetX = 2
 	const spectrogramWidth = spectrogram.width;
 	const spectrogramHeight = spectrogram.height;
@@ -426,8 +433,8 @@ function drawFrequencyLabels() {
 
 	for (let i = 1; i <= numTicks - 2; i++) {
 		const rel = i / (numTicks - 1);
-		const y = (1 - rel) * (spectrogramHeight - 1);
-		const freq = Math.round(rel * nyquist);
+		const y = rel * (spectrogramHeight - 1);
+		const freq = yToFreq(y);
 
 		ctx.fillText(`${freq} Hz`, labelOffsetX, y);
 
@@ -455,6 +462,95 @@ function valueToHSL(value, freq) {
 	const lightness = (clamped / 255) * 50 + 10;
 
 	return `hsl(${hue},${saturation}%,${lightness}%)`;
+}
+
+function clamp(val, min, max) {
+	return Math.max(min, Math.min(max, val));
+}
+
+function yToIndex(y, SpectrumLen) {
+	const H = spectrogram.height;
+	const yVirtual = (y - specOffset) / specZoom;
+	const rel = clamp(yVirtual / H, 0, 1);
+	const relTopDown = 1 - rel;
+	return Math.floor(relTopDown * (SpectrumLen - 1));
+}
+
+function yToFreq(y) {
+	const nyquist = sampleRate / 2;
+	const H = spectrogram.height;
+	const yVirtual = (y - specOffset) / specZoom;
+	const rel = clamp(yVirtual / H, 0, 1);
+	const relTopDown = 1 - rel;
+	return Math.floor(relTopDown * nyquist);
+}
+
+function freqToY(freq) {
+	const nyquist = sampleRate / 2;
+	const H = spectrogram.height;
+
+	const rel = 1 - clamp(freq / nyquist, 0, 1);
+	const yVirtual = rel * H;
+	return yVirtual * specZoom + specOffset;
+}
+
+function storeSpectrumColumn(spectrum) {
+	const col = Float32Array.from(spectrum);
+	specHistory.push(col);
+
+	const maxCols = spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1;
+	if(specHistory.length > maxCols) {
+		specHistory.shift();
+	}
+}
+
+function renderColumnAtX(spectrum, x) {
+	const H = spectrogram.height;
+	const dbMin = -120;
+	const dbMax = 0;
+	for(let y=0; y<H; y++) {
+		const idx = yToIndex(y, spectrum.length);
+		const db = 20 * Math.log10(spectrum[idx] + 1e-6);
+
+		let normDb = (db - dbMin) / (dbMax - dbMin);
+		normDb = clamp(normDb, 0, 1);
+
+		const rgbValue = Math.round(normDb * 255);
+		const freq = idx * sampleRate / fftSize;
+
+		const color = valueToHSL(rgbValue, freq);
+		ctx.fillStyle = color;
+		ctx.fillRect(x, y, 1, 1);
+
+	}
+}
+
+function centerSpectrogramAt(freq) {
+	const H = spectrogram.height;
+	const yTarget = H / 2;
+	const nyquist = sampleRate / 2;
+
+	const f = clamp(freq, 0, nyquist);
+
+	const rel = 1 - (f / nyquist);
+	const yVirtual = rel * H;
+	specOffset = yTarget - yVirtual * specZoom;
+}
+
+function redrawSpectrogram() {
+	const W = spectrogram.width;
+	const H = spectrogram.height;
+	const rightX = W - 1;
+	const drawAreaWidth = W - YAXIS_SPECTROGRAM_WIDTH - 1;
+
+	ctx.clearRect(YAXIS_SPECTROGRAM_WIDTH, 0, drawAreaWidth, H);
+
+	const visible = specHistory.slice(-drawAreaWidth);
+	for(let j=0; j<visible.length; j++) {
+		const x = rightX - (visible.length - 1 - j);
+		renderColumnAtX(visible[j], x);
+	}
+	drawFrequencyLabels();
 }
 
 function addSuffix(filename, suffix) {
@@ -1048,26 +1144,26 @@ setInterval(getRaspberryStatus, 3000);
 /// waveforms scaling
 waveformCanvasLeft.addEventListener('mousedown', (e) => {
 	if(e.ctrlKey) {
-		isCtrlZooming = true;
+		isCtrlZoomingWaveform = true;
 	} else {
-		isPanning = true;
+		isPanningWaveform = true;
 	}
-	lastY = e.clientY;
+	lastYWaveform = e.clientY;
 
 });
 
 waveformCanvasLeft.addEventListener('mousemove', (e) => {
-	if(isCtrlZooming) {
-		const deltaY = e.clientY - lastY;
-		lastY = e.clientY;
+	if(isCtrlZoomingWaveform) {
+		const deltaY = e.clientY - lastYWaveform;
+		lastYWaveform = e.clientY;
 
 		waveformZoom *= (1 - deltaY * 0.01);
 		waveformZoom = Math.max(1, Math.min(waveformZoom, 100));
 		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
 		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
-	} else if(isPanning) {
-		const deltaY = e.clientY - lastY;
-		lastY = e.clientY;
+	} else if(isPanningWaveform) {
+		const deltaY = e.clientY - lastYWaveform;
+		lastYWaveform = e.clientY;
 
 		waveformOffset += deltaY;
 		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
@@ -1076,9 +1172,20 @@ waveformCanvasLeft.addEventListener('mousemove', (e) => {
 });
 
 waveformCanvasLeft.addEventListener('mouseup', () => {
-	isCtrlZooming = false;
-	isPanning = false;
-	lastY = null;
+	isCtrlZoomingWaveform = false;
+	isPanningWaveform = false;
+	lastYWaveform = null;
+});
+
+/// spectrogram scaling
+applySpecScaleBt.addEventListener('click', () => {
+	console.log("Apply spectrogram scale");
+	const centerFreq = parseFloat(specCenterFreqEl.value);
+	const zoom = parseFloat(specZoomEl.value);
+
+	specZoom = clamp(zoom, 1, 1000);
+	centerSpectrogramAt(centerFreq);
+	redrawSpectrogram();
 });
 
 ///Shortcuts

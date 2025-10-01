@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.4.1] - 2025-10-01
+### Changed
+- More sample per column on waveform
+- Scalable spectrogram
+- Log scale on spectrogram
+
 ## [2.4.0] - 2025-09-23
 ### Added
 - Audio annotations if audio and video synchronized
