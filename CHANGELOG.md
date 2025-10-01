@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [Unreleased] - 2025-10-01
+## [2.4.1] - 2025-10-01
 ### Changed
 - More sample per column on waveform
 - Scalable spectrogram
