@@ -54,8 +54,8 @@ def calculate_speed(df, fps=30, frame_interval=1):
     df['dy'] = df['Object_Y_cm'].shift(-frame_interval) - df['Object_Y_cm']
     df['dz'] = df['Object_Z_cm'].shift(-frame_interval) - df['Object_Z_cm']
 
-    df['velocity'] = df['dy'] / dt
-    df['velocity_all'] = np.sqrt(df['dx']**2 + df['dy']**2 + df['dz']**2) / dt
+    df['velocity_cm/s'] = df['dy'] / dt
+    df['velocity_all_cm/s'] = np.sqrt(df['dx']**2 + df['dy']**2 + df['dz']**2) / dt
 
     return df
 
@@ -78,7 +78,7 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
         df_down = df.loc[:min_high]
 
         tracked_high = df_down[df_down['Object_Y_cm'].notna()].copy()
-        tracked_high['velocity_mean'] = tracked_high['velocity'].rolling(window=5, min_periods=2).mean()
+        tracked_high['velocity_mean'] = tracked_high['velocity_cm/s'].rolling(window=5, min_periods=2).mean()
 
         for idx, distance in enumerate(distances, start=1):
             y = tracked_high['Object_Y_cm']
