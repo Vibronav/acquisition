@@ -26,14 +26,11 @@ def debug_plot_sync(ref, input_spec, idx_sync):
     plt.tight_layout()
     plt.show()
 
-def extract_audio_from_video(video_file: str) -> [int, np.ndarray]:
-    """EXTRACT AUDIO FILE FROM .WEBM FILE WITH FFMPEG"""
+def extract_audio_from_video(video_file):
     with tempfile.TemporaryDirectory() as tmpdirname:
-        # convert .webm file to .wav file (extract audio from video file)
         tmp_wav_file = os.path.join(tmpdirname, os.path.basename(video_file) + ".wav")
         ffmpeg_command = ['ffmpeg', '-loglevel', 'error', '-i', video_file, tmp_wav_file]
 
-        # execute FFmpeg from PowerShell
         try:
             subprocess.run(ffmpeg_command)
             fs, x = read_wave(tmp_wav_file)
