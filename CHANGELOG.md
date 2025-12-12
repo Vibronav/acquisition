@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.4.2] - 2025-12-12
+### Fixed
+- Add units to velocity from tracker
+
 ## [2.4.1] - 2025-10-01
 ### Changed
 - More sample per column on waveform
