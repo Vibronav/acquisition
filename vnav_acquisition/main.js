@@ -16,6 +16,8 @@ const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
 const recordingDurationEl = document.getElementById("recordingDuration");
 const deleteRecordingBt = document.getElementById("deleteRecording");
+const toggleDataStreamBt = document.getElementById("toggleDataStream");
+
 
 const materialsContainter = document.getElementById("material");
 const speedSlider = document.getElementById("speed");
@@ -24,7 +26,7 @@ const needleTypeContainer = document.getElementById("needleType");
 const microphoneTypeContainer = document.getElementById("microphoneType");
 const timerEl = document.getElementById("recordingTimer");
 
-const audioInputSelect  = document.getElementById("audioSource");
+const audioInputSelect = document.getElementById("audioSource");
 const microOutputSelect = document.getElementById("microOutput");
 const videoSelect = document.getElementById("videoSource");
 const videoSelect2 = document.getElementById("videoSource2");
@@ -115,12 +117,12 @@ socket.on("record", async (msg) => {
 	const filename = msg.filename;
 	console.log(action);
 
-	if(!localStream || !localStream2) {
+	if (!localStream || !localStream2) {
 		console.warn("No media stream available to record");
 		return;
 	}
 
-	if(action === "start") {
+	if (action === "start") {
 
 		onRecordStart({
 			filename: addSuffix(filename, "_cam1"),
@@ -144,9 +146,9 @@ socket.on("record", async (msg) => {
 	}
 
 	console.log(mediaRecorder, mediaRecorder2);
-	if(action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
+	if (action === "stop" && mediaRecorder && mediaRecorder.state === "recording" && mediaRecorder2 && mediaRecorder2.state === "recording") {
 		shouldUpload = msg.shouldUpload;
-		if(!shouldUpload) {
+		if (!shouldUpload) {
 			alert("Recording is not saved!")
 		}
 		mediaRecorder.requestData();
@@ -164,7 +166,7 @@ socket.on("automation-status", (msg) => {
 	const status = msg.status;
 	automationStatusEl.textContent = `Automation status: ${status}`;
 	automationStatusEl.style.color = status === "running" ? "green" : "red";
-	if(status === "running") {
+	if (status === "running") {
 		toggleButtons(true);
 		startRecordingTimer();
 		stopRecordingBt.disabled = true;
@@ -196,8 +198,8 @@ socket.on("micro-signal", (msg) => {
 	if (bufferLeftDC && bufferLeftDC.length > 0) {
 		const min = Math.min(...bufferLeftDC);
 		const max = Math.max(...bufferLeftDC);
-		singalLeftHistory.push({min, max});
-		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+		singalLeftHistory.push({ min, max });
+		if (singalLeftHistory.length > waveformCanvasLeft.width) {
 			singalLeftHistory.shift();
 		}
 		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
@@ -205,14 +207,14 @@ socket.on("micro-signal", (msg) => {
 	if (bufferRightDC && bufferRightDC.length > 0) {
 		const min = Math.min(...bufferRightDC);
 		const max = Math.max(...bufferRightDC);
-		signalRightHistory.push({min, max});
-		if(signalRightHistory.length > waveformCanvasRight.width) {
+		signalRightHistory.push({ min, max });
+		if (signalRightHistory.length > waveformCanvasRight.width) {
 			signalRightHistory.shift();
 		}
 		drawWaveform(bufferRightDC, waveformCanvasRight, waveformCtxRight);
 	}
 
-	if( bufferLeftDC && bufferLeftDC.length > 0) {
+	if (bufferLeftDC && bufferLeftDC.length > 0) {
 		processAndDrawSpectrogram(bufferLeftDC);
 	}
 
@@ -229,8 +231,8 @@ function mockMicroSignal() {
 	if (bufferLeft && bufferLeft.length > 0) {
 		const min = Math.min(...bufferLeft);
 		const max = Math.max(...bufferLeft);
-		singalLeftHistory.push({min, max});
-		if(singalLeftHistory.length > waveformCanvasLeft.width) {
+		singalLeftHistory.push({ min, max });
+		if (singalLeftHistory.length > waveformCanvasLeft.width) {
 			singalLeftHistory.shift();
 		}
 		drawWaveform(bufferLeft, waveformCanvasLeft, waveformCtxLeft);
@@ -238,14 +240,14 @@ function mockMicroSignal() {
 	if (bufferRight && bufferRight.length > 0) {
 		const min = Math.min(...bufferRight);
 		const max = Math.max(...bufferRight);
-		signalRightHistory.push({min, max});
-		if(signalRightHistory.length > waveformCanvasRight.width) {
+		signalRightHistory.push({ min, max });
+		if (signalRightHistory.length > waveformCanvasRight.width) {
 			signalRightHistory.shift();
 		}
 		drawWaveform(bufferRight, waveformCanvasRight, waveformCtxRight);
 	}
 
-	if( bufferLeft && bufferLeft.length > 0) {
+	if (bufferLeft && bufferLeft.length > 0) {
 		processAndDrawSpectrogram(bufferLeft);
 	}
 }
@@ -318,7 +320,7 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	const paddingY = 10;
 	const availableHeight = height - 2 * paddingY;
 	const centerY = height / 2 + waveformOffset;
-	
+
 	ctx.clearRect(0, 0, YAXIS_WAVEFORM_WIDTH, height);
 
 	ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -329,11 +331,11 @@ function drawWaveformLabels(canvas, ctx, fullScale) {
 	ctx.lineWidth = 1;
 
 	const numTicks = 7
-	for(let i=0; i<numTicks; i++) {
+	for (let i = 0; i < numTicks; i++) {
 		const rel = i / (numTicks - 1);
 		const y = paddingY + rel * availableHeight;
 
-		const value = ((centerY - y) / (availableHeight / 2)) * fullScale * 2**31;
+		const value = ((centerY - y) / (availableHeight / 2)) * fullScale * 2 ** 31;
 		ctx.fillText(formatLargeNumber(value), YAXIS_WAVEFORM_WIDTH - 5, y);
 
 		ctx.beginPath();
@@ -361,8 +363,8 @@ function redrawWaveform(canvas, ctx, history) {
 	ctx.strokeStyle = "blue";
 	ctx.lineWidth = 1;
 
-	for(let j=0; j<visibleHistory.length; j++) {
-		const {min, max} = visibleHistory[j];
+	for (let j = 0; j < visibleHistory.length; j++) {
+		const { min, max } = visibleHistory[j];
 		const x = rightX - (visibleHistory.length - 1 - j) * colWidth;
 		const yMax = centerY - (max / fullScale) * (height / 2);
 		const yMin = centerY - (min / fullScale) * (height / 2);
@@ -388,7 +390,7 @@ function formatLargeNumber(val) {
 function processAndDrawSpectrogram(samples) {
 	specBuffer = specBuffer.concat(Array.from(samples));
 
-	while(specBuffer.length >= fftSize) {
+	while (specBuffer.length >= fftSize) {
 		const chunk = specBuffer.slice(0, fftSize);
 		specBuffer = specBuffer.slice(fftSize / 2);
 
@@ -402,9 +404,9 @@ function drawColumn(spectrum) {
 	storeSpectrumColumn(spectrum);
 
 	const imageData = ctx.getImageData(
-		YAXIS_SPECTROGRAM_WIDTH + 1, 
-		0, 
-		spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1, 
+		YAXIS_SPECTROGRAM_WIDTH + 1,
+		0,
+		spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1,
 		spectrogram.height
 	);
 	ctx.putImageData(imageData, YAXIS_SPECTROGRAM_WIDTH, 0);
@@ -448,7 +450,7 @@ function drawFrequencyLabels() {
 
 function average(arr) {
 	let sum = 0;
-	for (let i=0; i<arr.length; i++) {
+	for (let i = 0; i < arr.length; i++) {
 		sum += arr[i];
 	}
 	return sum / arr.length;
@@ -456,7 +458,7 @@ function average(arr) {
 
 function valueToHSL(value, freq) {
 	const clamped = Math.max(0, Math.min(255, value));
-	
+
 	const hue = (freq / sampleRate) * sampleRate / 100;
 	const saturation = 100;
 	const lightness = (clamped / 255) * 50 + 10;
@@ -499,7 +501,7 @@ function storeSpectrumColumn(spectrum) {
 	specHistory.push(col);
 
 	const maxCols = spectrogram.width - YAXIS_SPECTROGRAM_WIDTH - 1;
-	if(specHistory.length > maxCols) {
+	if (specHistory.length > maxCols) {
 		specHistory.shift();
 	}
 }
@@ -508,7 +510,7 @@ function renderColumnAtX(spectrum, x) {
 	const H = spectrogram.height;
 	const dbMin = -120;
 	const dbMax = 0;
-	for(let y=0; y<H; y++) {
+	for (let y = 0; y < H; y++) {
 		const idx = yToIndex(y, spectrum.length);
 		const db = 20 * Math.log10(spectrum[idx] + 1e-6);
 
@@ -546,7 +548,7 @@ function redrawSpectrogram() {
 	ctx.clearRect(YAXIS_SPECTROGRAM_WIDTH, 0, drawAreaWidth, H);
 
 	const visible = specHistory.slice(-drawAreaWidth);
-	for(let j=0; j<visible.length; j++) {
+	for (let j = 0; j < visible.length; j++) {
 		const x = rightX - (visible.length - 1 - j);
 		renderColumnAtX(visible[j], x);
 	}
@@ -561,7 +563,7 @@ function addSuffix(filename, suffix) {
 	return filename.slice(0, dotIndex) + suffix + filename.slice(dotIndex);
 }
 
-function onRecordStart({filename, stream, setRecorder, setChunks}) {
+function onRecordStart({ filename, stream, setRecorder, setChunks }) {
 
 	const chunks = [];
 
@@ -570,7 +572,7 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 	})
 
 	recorder.ondataavailable = (event) => {
-		if(event.data.size > 0) {
+		if (event.data.size > 0) {
 			chunks.push(event.data);
 		}
 	}
@@ -578,7 +580,7 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 	recorder.onstop = async () => {
 		console.log('stopping');
 
-		if(shouldUpload) {
+		if (shouldUpload) {
 			const blob = new Blob(chunks, { type: "video/webm" });
 			const formData = new FormData();
 			formData.append("file", blob, filename);
@@ -590,7 +592,7 @@ function onRecordStart({filename, stream, setRecorder, setChunks}) {
 		} else {
 			console.warn("Backend forced not to upload video");
 		}
-	
+
 	};
 
 	setRecorder(recorder);
@@ -602,11 +604,11 @@ function renderSelectOptions(selectElement, values, renderEmpty = true) {
 
 	selectElement.innerHTML = "";
 
-	if(renderEmpty) {
+	if (renderEmpty) {
 		const emptyOption = document.createElement("option");
 		emptyOption.value = "";
 		emptyOption.textContent = "";
-		selectElement.appendChild(emptyOption);		
+		selectElement.appendChild(emptyOption);
 	}
 
 	values.forEach(val => {
@@ -620,7 +622,7 @@ function renderSelectOptions(selectElement, values, renderEmpty = true) {
 async function loadConfig() {
 	try {
 		const res = await fetch("/config");
-		if(!res.ok) throw new Error();
+		if (!res.ok) throw new Error();
 		return await res.json();
 	} catch {
 		console.warn("/api/config caused error. Default config to be used")
@@ -629,50 +631,50 @@ async function loadConfig() {
 }
 
 function gotDevices(deviceInfos) {
-  // Handles being called several times to update labels. Preserve values.
-  const values = selectors.map(select => select.value);
-  selectors.forEach((select) => (select.innerHTML = ""));
+	// Handles being called several times to update labels. Preserve values.
+	const values = selectors.map(select => select.value);
+	selectors.forEach((select) => (select.innerHTML = ""));
 
-  console.log(deviceInfos)
+	console.log(deviceInfos)
 
-  deviceInfos.forEach((info) => {
-	const option = document.createElement("option");
-	option.value = info.deviceId
-	option.text = info.label || `${info.kind}`
+	deviceInfos.forEach((info) => {
+		const option = document.createElement("option");
+		option.value = info.deviceId
+		option.text = info.label || `${info.kind}`
 
-	if(info.kind == "audioinput") {
-		audioInputSelect.appendChild(option)
-	}
-	if(info.kind == "videoinput") {
-		const option1 = option.cloneNode(true);
-		const option2 = option.cloneNode(true);
-		videoSelect.appendChild(option1)
-		videoSelect2.appendChild(option2)
-	}
-  });
+		if (info.kind == "audioinput") {
+			audioInputSelect.appendChild(option)
+		}
+		if (info.kind == "videoinput") {
+			const option1 = option.cloneNode(true);
+			const option2 = option.cloneNode(true);
+			videoSelect.appendChild(option1)
+			videoSelect2.appendChild(option2)
+		}
+	});
 
-  selectors.forEach((select, idx) => {
-	if([...select.childNodes].some((n) => n.value === values[idx])) {
-		select.value = values[idx];
-	}
-  });
+	selectors.forEach((select, idx) => {
+		if ([...select.childNodes].some((n) => n.value === values[idx])) {
+			select.value = values[idx];
+		}
+	});
 }
 
 function setOutputDevices() {
 	fetch('/get-audio-outputs')
-	.then(res => res.json())
-	.then(devices => {
-		devices.forEach(device => {
-			const option = document.createElement("option");
-			option.value = device.name;
-			option.textContent = device.name;
-			microOutputSelect.appendChild(option);
+		.then(res => res.json())
+		.then(devices => {
+			devices.forEach(device => {
+				const option = document.createElement("option");
+				option.value = device.name;
+				option.textContent = device.name;
+				microOutputSelect.appendChild(option);
+			})
 		})
-	})
 }
 
 function handleError(error) {
-  console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+	console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
 
 function waitTrackLive(track) {
@@ -687,7 +689,7 @@ function waitVideoPlaying(videoEl) {
 	const p = ready()
 		? Promise.resolve()
 		: new Promise(r => videoEl.addEventListener('loadeddata', r, { once: true }));
-	
+
 	return p.then(() => videoEl.play());
 }
 
@@ -698,7 +700,7 @@ function startSimultaneously(...starts) {
 }
 
 async function getSharedAudioTrack() {
-	if(sharedAudioTrack && sharedAudioTrack.readyState === "live") {
+	if (sharedAudioTrack && sharedAudioTrack.readyState === "live") {
 		return sharedAudioTrack;
 	}
 
@@ -741,21 +743,21 @@ async function startFirstCamera() {
 		liveVideoElement.srcObject = localStream;
 		await waitTrackLive(localStream.getAudioTracks()[0]);
 		await waitVideoPlaying(liveVideoElement);
-	} catch(e) {
+	} catch (e) {
 		handleError(e);
 	}
 
 }
 
 async function startSecondCamera() {
-    try {
+	try {
 		const videoSource2 = videoSelect2.value;
 		const { composed } = await buildComposedStream(videoSource2);
 		localStream2 = composed;
 		liveVideoElement2.srcObject = localStream2;
 		await waitTrackLive(localStream2.getAudioTracks()[0]);
 		await waitVideoPlaying(liveVideoElement2);
-	} catch(e) {
+	} catch (e) {
 		handleError(e);
 	}
 }
@@ -768,16 +770,16 @@ function selectMicroOutput() {
 
 	fetch('/set-micro-output', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
+		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload)
 	})
-	.then(res => res.json())
-	.then(data => {
-		console.log("Microphone output set: ", data);
-	})
-	.catch(err => {
-		console.error("Error setting microphone output: ", err);
-	});
+		.then(res => res.json())
+		.then(data => {
+			console.log("Microphone output set: ", data);
+		})
+		.catch(err => {
+			console.error("Error setting microphone output: ", err);
+		});
 }
 
 
@@ -787,11 +789,11 @@ videoSelect2.onchange = startSecondCamera;
 microOutputSelect.onchange = selectMicroOutput;
 
 
-navigator.mediaDevices.ondevicechange = function(event) {
+navigator.mediaDevices.ondevicechange = function (event) {
 	log("mediaDevices.ondevicechange");
 }
 
-function log(message){
+function log(message) {
 	console.log(message)
 }
 
@@ -821,17 +823,17 @@ function startAutomation() {
 	const sleepTime = parseInt(sleepTimeEl.value);
 
 	let interval = upZ - downZ;
-	if(intervalToggle.checked) {
+	if (intervalToggle.checked) {
 		interval = parseInt(intervalEL.value);
 	}
 
-	if(iterations <= 0) {
+	if (iterations <= 0) {
 		return alert("Iterations must be greater then 0");
 	}
-	if(motionType === "Up, Down, Forward" && finishX <= initX) {
+	if (motionType === "Up, Down, Forward" && finishX <= initX) {
 		return alert("Finish X must be greater than Init X in 'Up, Down, Forward' motion type");
 	}
-	if(motionType === "Up, Down, Forward" && (finishX - initX) / iterations < 2) {
+	if (motionType === "Up, Down, Forward" && (finishX - initX) / iterations < 2) {
 		alert("Your gap between punctures is very small: " + (finishX - initX) / iterations + " mm. But experiment is performing.");
 	}
 
@@ -856,39 +858,39 @@ function startAutomation() {
 
 	fetch("/run", {
 		method: "POST",
-		headers: {"Content-Type": "application/json"},
+		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(payload)
 	})
-	.then(res => {
-		if(!res.ok) throw new Error("Server error");
-		return res.json();
-	})
-	.then(data => {
-		startAutomationBt.disabled = true;
-		console.log("Automation started: ", data);
-	})
-	.catch(err => {
-		toggleButtons(false);
-		console.error(err);
-	})
+		.then(res => {
+			if (!res.ok) throw new Error("Server error");
+			return res.json();
+		})
+		.then(data => {
+			startAutomationBt.disabled = true;
+			console.log("Automation started: ", data);
+		})
+		.catch(err => {
+			toggleButtons(false);
+			console.error(err);
+		})
 
 }
 
 function stopAutomation() {
-	
+
 
 	fetch("/stop", {
 		method: "POST"
 	})
-	.then(res => {
-		if(!res.ok) throw new Error("Server error");
-		return res.json();
-	})
-	.then(data => {
-		stopAutomationBt.disabled = true;
-		console.log("Automation stopped: ", data);
-		alert("Tests will be stopped after this iteration.");
-	});
+		.then(res => {
+			if (!res.ok) throw new Error("Server error");
+			return res.json();
+		})
+		.then(data => {
+			stopAutomationBt.disabled = true;
+			console.log("Automation stopped: ", data);
+			alert("Tests will be stopped after this iteration.");
+		});
 
 }
 
@@ -915,10 +917,10 @@ function startRecording() {
 	const material = materialsContainter.value;
 	const needleType = needleTypeContainer.value;
 	const microphoneType = microphoneTypeContainer.value;
-	const description = descriptionEl.value; 
+	const description = descriptionEl.value;
 	const duration = parseInt(recordingDurationEl?.value || "0");
 
-	if(!username) {
+	if (!username) {
 		return alert("Please pass username");
 	}
 
@@ -932,31 +934,31 @@ function startRecording() {
 
 	fetch("/start-recording", {
 		method: "POST",
-		headers: {"Content-Type": "application/json"},
+		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(payload)
 	})
-	.then(res => res.json())
-	.then(data => {
-		if(data.status == "ok") {
-			toggleButtons(true);
-			startRecordingTimer();
-			stopAutomationBt.disabled = true;
+		.then(res => res.json())
+		.then(data => {
+			if (data.status == "ok") {
+				toggleButtons(true);
+				startRecordingTimer();
+				stopAutomationBt.disabled = true;
 
-			if(duration > 0) {
-				setTimeout(() => {
-					if(!stopRecordingBt.disabled) {
-						stopRecording();
-					}
-				}, duration * 1000);
+				if (duration > 0) {
+					setTimeout(() => {
+						if (!stopRecordingBt.disabled) {
+							stopRecording();
+						}
+					}, duration * 1000);
+				}
+
+			} else {
+				console.warn("Failed to start recording: ", data.message);
 			}
-
-		} else {
-			console.warn("Failed to start recording: ", data.message);
-		}
-	})
-	.catch(err => {
-		console.error("Error starting recording: ", err);
-	})
+		})
+		.catch(err => {
+			console.error("Error starting recording: ", err);
+		})
 }
 
 function stopRecording() {
@@ -964,20 +966,20 @@ function stopRecording() {
 	fetch("/stop-recording", {
 		method: "POST"
 	})
-	.then(res => res.json())
-	.then(data => {
-		if(data.status == "ok") {
-			toggleButtons(false);
-			stopRecordingTimer();
-		}
-	})
-	.catch(err => {
-		console.error("Error stopping recording: ", err);
-	})
+		.then(res => res.json())
+		.then(data => {
+			if (data.status == "ok") {
+				toggleButtons(false);
+				stopRecordingTimer();
+			}
+		})
+		.catch(err => {
+			console.error("Error stopping recording: ", err);
+		})
 }
 
 function updateFormVisibility() {
-	if(toggle.checked) {
+	if (toggle.checked) {
 		automationForm.style.display = "none";
 		manualForm.style.display = "block";
 	} else {
@@ -1004,25 +1006,55 @@ function deleteLastRecording() {
 	fetch("/delete-last-recording", {
 		method: "POST"
 	})
-	.then(res => res.json())
-	.then(data => {
+		.then(res => res.json())
+		.then(data => {
 
-		if(data.status === "not found") {
-			alert("No recordings found to delete");
-		} else if(data.status === "ok") {
-			alert("Deleted recordings: " + data.message);
-		}
+			if (data.status === "not found") {
+				alert("No recordings found to delete");
+			} else if (data.status === "ok") {
+				alert("Deleted recordings: " + data.message);
+			}
 
-		deleteRecordingBt.disabled = false;
-	})
-	.catch(err => {
-		console.error("Error deleting last recording: ", err);
-	});
+			deleteRecordingBt.disabled = false;
+		})
+		.catch(err => {
+			console.error("Error deleting last recording: ", err);
+		});
+}
+
+let isDataStreamRunning = false;
+function toggleDataStream() {
+	toggleDataStreamBt.disabled = true;
+	if (!isDataStreamRunning) {
+		fetch('/start-stream', { method: 'POST' })
+			.then(res => res.json())
+			.then(data => {
+				if (data.status === 'ok') {
+					isDataStreamRunning = true;
+					toggleDataStreamBt.textContent = "Stop Live Data";
+				} else {
+					alert("Failed to start stream: " + (data.message || "Unknown error"));
+				}
+			})
+			.catch(err => console.error(err))
+			.finally(() => toggleDataStreamBt.disabled = false);
+	} else {
+		fetch('/stop-stream', { method: 'POST' })
+			.then(res => res.json())
+			.then(data => {
+				if (data.status === 'ok') {
+					isDataStreamRunning = false;
+					toggleDataStreamBt.textContent = "Start Live Data";
+				}
+			})
+			.catch(err => console.error(err))
+			.finally(() => toggleDataStreamBt.disabled = false);
+	}
 }
 
 async function detectCube() {
 	try {
-		if(!liveVideoElement || !liveVideoElement.srcObject) {
+		if (!liveVideoElement || !liveVideoElement.srcObject) {
 			alert("No live video stream available");
 			return;
 		}
@@ -1048,7 +1080,7 @@ async function detectCube() {
 		}
 		const data = await response.json();
 
-		if(!data.detected) {
+		if (!data.detected) {
 			alert("Cube not detected");
 			return;
 		}
@@ -1056,7 +1088,7 @@ async function detectCube() {
 		cubeModalImage.src = data.image;
 		cubeModal.style.display = "block";
 
-	} catch(e) {
+	} catch (e) {
 		console.error(e);
 		alert("Error while detecting cube");
 	}
@@ -1074,7 +1106,7 @@ async function applyFilterSettings() {
 	try {
 		const res = await fetch("/set-micro-filter", {
 			method: "POST",
-			headers: {"Content-Type": "application/json"},
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				enabled: enabled,
 				low: low,
@@ -1082,12 +1114,12 @@ async function applyFilterSettings() {
 			})
 		});
 		if (!res.ok) throw new Error("Server error");
-	} catch(e) {
+	} catch (e) {
 		console.error("Error applying filter settings: ", e);
 	} finally {
 		applyFilterBt.disabled = false;
 	}
-	
+
 }
 
 (async function init() {
@@ -1098,7 +1130,7 @@ async function applyFilterSettings() {
 	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
 
 	// for getting devices and permissions
-	const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+	const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 	stream.getTracks().forEach((t) => t.stop())
 	const devices = await navigator.mediaDevices.enumerateDevices();
 	gotDevices(devices);
@@ -1123,12 +1155,12 @@ intervalToggle.addEventListener("change", (e) => {
 detectCubeBt.addEventListener("click", detectCube);
 cubeModalClose.addEventListener("click", () => cubeModal.style.display = "none");
 cubeModal.addEventListener("click", (e) => {
-	if(e.target === cubeModal) {
+	if (e.target === cubeModal) {
 		cubeModal.style.display = "none";
 	}
 })
 filterToggle.addEventListener("change", () => {
-	
+
 	if (filterToggle.checked) {
 		filterFields.classList.remove("hidden");
 	} else {
@@ -1143,7 +1175,7 @@ setInterval(getRaspberryStatus, 3000);
 
 /// waveforms scaling
 waveformCanvasLeft.addEventListener('mousedown', (e) => {
-	if(e.ctrlKey) {
+	if (e.ctrlKey) {
 		isCtrlZoomingWaveform = true;
 	} else {
 		isPanningWaveform = true;
@@ -1153,7 +1185,7 @@ waveformCanvasLeft.addEventListener('mousedown', (e) => {
 });
 
 waveformCanvasLeft.addEventListener('mousemove', (e) => {
-	if(isCtrlZoomingWaveform) {
+	if (isCtrlZoomingWaveform) {
 		const deltaY = e.clientY - lastYWaveform;
 		lastYWaveform = e.clientY;
 
@@ -1161,7 +1193,7 @@ waveformCanvasLeft.addEventListener('mousemove', (e) => {
 		waveformZoom = Math.max(1, Math.min(waveformZoom, 100));
 		redrawWaveform(waveformCanvasLeft, waveformCtxLeft, singalLeftHistory);
 		redrawWaveform(waveformCanvasRight, waveformCtxRight, signalRightHistory);
-	} else if(isPanningWaveform) {
+	} else if (isPanningWaveform) {
 		const deltaY = e.clientY - lastYWaveform;
 		lastYWaveform = e.clientY;
 
@@ -1191,21 +1223,21 @@ applySpecScaleBt.addEventListener('click', () => {
 ///Shortcuts
 
 document.addEventListener('keydown', (e) => {
-	if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-		return;	
+	if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+		return;
 	}
 
-	if(e.code === "Space") {
+	if (e.code === "Space") {
 		e.preventDefault();
 
-		if(toggle.checked) {
-			if(!startRecordingBt.disabled) {
+		if (toggle.checked) {
+			if (!startRecordingBt.disabled) {
 				startRecording();
-			} else if(!stopRecordingBt.disabled) {
+			} else if (!stopRecordingBt.disabled) {
 				stopRecording();
 			}
 		}
-		
+
 	}
 
 })
@@ -1216,110 +1248,109 @@ document.addEventListener('keydown', (e) => {
 // It also reports on the fraction of samples that were at or near
 // the top of the measurement range.
 function SoundMeter(context) {
-  this.context = context;
-  this.instant = 0.0;
-  this.slow = 0.0;
-  this.clip = 0.0;
-  this.script = context.createScriptProcessor(2048, 1, 1);
-  var that = this;
-  this.script.onaudioprocess = function(event) {
-	var input = event.inputBuffer.getChannelData(0);
-	var i;
-	var sum = 0.0;
-	var clipcount = 0;
-	for (i = 0; i < input.length; ++i) {
-	  sum += input[i] * input[i];
-	  if (Math.abs(input[i]) > 0.99) {
-		clipcount += 1;
-	  }
-	}
-	that.instant = Math.sqrt(sum / input.length);
-	that.slow = 0.95 * that.slow + 0.05 * that.instant;
-	that.clip = clipcount / input.length;
-  };
+	this.context = context;
+	this.instant = 0.0;
+	this.slow = 0.0;
+	this.clip = 0.0;
+	this.script = context.createScriptProcessor(2048, 1, 1);
+	var that = this;
+	this.script.onaudioprocess = function (event) {
+		var input = event.inputBuffer.getChannelData(0);
+		var i;
+		var sum = 0.0;
+		var clipcount = 0;
+		for (i = 0; i < input.length; ++i) {
+			sum += input[i] * input[i];
+			if (Math.abs(input[i]) > 0.99) {
+				clipcount += 1;
+			}
+		}
+		that.instant = Math.sqrt(sum / input.length);
+		that.slow = 0.95 * that.slow + 0.05 * that.instant;
+		that.clip = clipcount / input.length;
+	};
 }
 
-SoundMeter.prototype.connectToSource = function(stream, callback) {
-  console.log('SoundMeter connecting');
-  try {
-	this.mic = this.context.createMediaStreamSource(stream);
-	this.mic.connect(this.script);
-	// necessary to make sample run, but should not be.
-	this.script.connect(this.context.destination);
-	if (typeof callback !== 'undefined') {
-	  callback(null);
+SoundMeter.prototype.connectToSource = function (stream, callback) {
+	console.log('SoundMeter connecting');
+	try {
+		this.mic = this.context.createMediaStreamSource(stream);
+		this.mic.connect(this.script);
+		// necessary to make sample run, but should not be.
+		this.script.connect(this.context.destination);
+		if (typeof callback !== 'undefined') {
+			callback(null);
+		}
+	} catch (e) {
+		console.error(e);
+		if (typeof callback !== 'undefined') {
+			callback(e);
+		}
 	}
-  } catch (e) {
-	console.error(e);
-	if (typeof callback !== 'undefined') {
-	  callback(e);
-	}
-  }
 };
-SoundMeter.prototype.stop = function() {
-  this.mic.disconnect();
-  this.script.disconnect();
+SoundMeter.prototype.stop = function () {
+	this.mic.disconnect();
+	this.script.disconnect();
 };
 
 
 //browser ID
-function getBrowser(){
+function getBrowser() {
 	var nVer = navigator.appVersion;
 	var nAgt = navigator.userAgent;
-	var browserName  = navigator.appName;
-	var fullVersion  = ''+parseFloat(navigator.appVersion);
-	var majorVersion = parseInt(navigator.appVersion,10);
-	var nameOffset,verOffset,ix;
+	var browserName = navigator.appName;
+	var fullVersion = '' + parseFloat(navigator.appVersion);
+	var majorVersion = parseInt(navigator.appVersion, 10);
+	var nameOffset, verOffset, ix;
 
 	// In Opera, the true version is after "Opera" or after "Version"
-	if ((verOffset=nAgt.indexOf("Opera"))!=-1) {
-	 browserName = "Opera";
-	 fullVersion = nAgt.substring(verOffset+6);
-	 if ((verOffset=nAgt.indexOf("Version"))!=-1)
-	   fullVersion = nAgt.substring(verOffset+8);
+	if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+		browserName = "Opera";
+		fullVersion = nAgt.substring(verOffset + 6);
+		if ((verOffset = nAgt.indexOf("Version")) != -1)
+			fullVersion = nAgt.substring(verOffset + 8);
 	}
 	// In MSIE, the true version is after "MSIE" in userAgent
-	else if ((verOffset=nAgt.indexOf("MSIE"))!=-1) {
-	 browserName = "Microsoft Internet Explorer";
-	 fullVersion = nAgt.substring(verOffset+5);
+	else if ((verOffset = nAgt.indexOf("MSIE")) != -1) {
+		browserName = "Microsoft Internet Explorer";
+		fullVersion = nAgt.substring(verOffset + 5);
 	}
 	// In Chrome, the true version is after "Chrome"
-	else if ((verOffset=nAgt.indexOf("Chrome"))!=-1) {
-	 browserName = "Chrome";
-	 fullVersion = nAgt.substring(verOffset+7);
+	else if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+		browserName = "Chrome";
+		fullVersion = nAgt.substring(verOffset + 7);
 	}
 	// In Safari, the true version is after "Safari" or after "Version"
-	else if ((verOffset=nAgt.indexOf("Safari"))!=-1) {
-	 browserName = "Safari";
-	 fullVersion = nAgt.substring(verOffset+7);
-	 if ((verOffset=nAgt.indexOf("Version"))!=-1)
-	   fullVersion = nAgt.substring(verOffset+8);
+	else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+		browserName = "Safari";
+		fullVersion = nAgt.substring(verOffset + 7);
+		if ((verOffset = nAgt.indexOf("Version")) != -1)
+			fullVersion = nAgt.substring(verOffset + 8);
 	}
 	// In Firefox, the true version is after "Firefox"
-	else if ((verOffset=nAgt.indexOf("Firefox"))!=-1) {
-	 browserName = "Firefox";
-	 fullVersion = nAgt.substring(verOffset+8);
+	else if ((verOffset = nAgt.indexOf("Firefox")) != -1) {
+		browserName = "Firefox";
+		fullVersion = nAgt.substring(verOffset + 8);
 	}
 	// In most other browsers, "name/version" is at the end of userAgent
-	else if ( (nameOffset=nAgt.lastIndexOf(' ')+1) <
-		   (verOffset=nAgt.lastIndexOf('/')) )
-	{
-	 browserName = nAgt.substring(nameOffset,verOffset);
-	 fullVersion = nAgt.substring(verOffset+1);
-	 if (browserName.toLowerCase()==browserName.toUpperCase()) {
-	  browserName = navigator.appName;
-	 }
+	else if ((nameOffset = nAgt.lastIndexOf(' ') + 1) <
+		(verOffset = nAgt.lastIndexOf('/'))) {
+		browserName = nAgt.substring(nameOffset, verOffset);
+		fullVersion = nAgt.substring(verOffset + 1);
+		if (browserName.toLowerCase() == browserName.toUpperCase()) {
+			browserName = navigator.appName;
+		}
 	}
 	// trim the fullVersion string at semicolon/space if present
-	if ((ix=fullVersion.indexOf(";"))!=-1)
-	   fullVersion=fullVersion.substring(0,ix);
-	if ((ix=fullVersion.indexOf(" "))!=-1)
-	   fullVersion=fullVersion.substring(0,ix);
+	if ((ix = fullVersion.indexOf(";")) != -1)
+		fullVersion = fullVersion.substring(0, ix);
+	if ((ix = fullVersion.indexOf(" ")) != -1)
+		fullVersion = fullVersion.substring(0, ix);
 
-	majorVersion = parseInt(''+fullVersion,10);
+	majorVersion = parseInt('' + fullVersion, 10);
 	if (isNaN(majorVersion)) {
-	 fullVersion  = ''+parseFloat(navigator.appVersion);
-	 majorVersion = parseInt(navigator.appVersion,10);
+		fullVersion = '' + parseFloat(navigator.appVersion);
+		majorVersion = parseInt(navigator.appVersion, 10);
 	}
 
 

@@ -10,6 +10,7 @@ import platform
 from scipy.signal import butter, sosfilt, sosfilt_zi
 
 micro_signal_thread = None
+stop_micro_signal_event = threading.Event()
 
 FRAMES_PER_PACKET = 512
 BYTES_PER_SAMPLE = 4
@@ -178,6 +179,7 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
     return t, stop_event
 
 def receive_and_send_micro_signals(conn, sio):
+    global stop_micro_signal_event
 
     try:
         conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -238,6 +240,9 @@ def receive_and_send_micro_signals(conn, sio):
     pacer_stop = None
     try:
         while True:
+            if stop_micro_signal_event.is_set():
+                break
+
             data = conn.recv(16384)
             if not data:
                 break
