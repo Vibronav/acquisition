@@ -4,3 +4,5 @@ annotations
 labelled_positions
 rec
 tracked_frames
+vnav_acquisition.pc_ip.txt
+setup.json
