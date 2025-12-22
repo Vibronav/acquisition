@@ -149,6 +149,8 @@ def sync_spectrograms(ref, measured):
     if ref.shape == measured.shape:
         return 0
     ref = ref > np.max(ref) * 0.8
+    ref = ref.astype(np.float32)
+    ref = ref - ref.mean()
     corr = correlate2d(ref, np.log10(measured + 1e-10), 'valid').squeeze()
     idx = len(corr) - np.argmax(corr)
     
