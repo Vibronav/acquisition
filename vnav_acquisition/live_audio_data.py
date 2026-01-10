@@ -32,7 +32,7 @@ def _win_timer_high_res(enable=True):
     except Exception:
         pass
 
-def is_listener_thread_running():
+def is_micro_signal_thread_active():
     global micro_signal_thread
     return micro_signal_thread is not None and micro_signal_thread.is_alive()
 
@@ -70,6 +70,8 @@ def listen_for_micro_signals(sio):
             micro_signal_thread.start()
         except socket.timeout:
             print("No connection received within timeout period.")
+        finally:
+            s.close()
 
         print("Finished thread for listening to connection from raspberrypi")
 
@@ -312,6 +314,14 @@ def receive_and_send_micro_signals(conn, sio):
                 output_stream.close()
             except Exception as e:
                 pass
+        try:
+            conn.shutdown(socket.SHUT_RDWR)
+        except Exception as e:
+            pass
+        try:
+            conn.close()
+        except Exception as e:
+            pass
 
 BP_SOS = None
 BP_ZI_L = None

@@ -248,15 +248,16 @@ def set_filter_settings():
     
     return jsonify({"status": "ok"})
 
-@app.route('/start-stram', methods=['POST'])
+@app.route('/start-stream', methods=['POST'])
 def start_stream():
+    print("Received start-stream/POST request")
     try:
         start_live_data_stream(config['connection'], socketio)
         return jsonify({"status": "ok"})
     except Exception as e:
         print(f"Error starting live data stream: {e}")
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route('/stop-stream', methods=['POST'])
 def stop_stream():
     try:

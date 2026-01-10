@@ -4,7 +4,7 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
-from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_listener_thread_running, stop_micro_signal_event, micro_signal_thread
+from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_micro_signal_thread_active, stop_micro_signal_event, micro_signal_thread
 import threading
 
 MIC_NAME = "dmic_sv_shared"
@@ -148,7 +148,13 @@ def start_live_data_stream(connection, socketio_instance):
         ssh_connect(*connection, socketio_instance=socketio_instance)
         time.sleep(1)
 
-    if not is_listener_thread_running():
+    # Protection against multiple threads
+    if is_micro_signal_thread_active():
+        stop_micro_signal_event.set()
+        time.sleep(1)
+        stop_micro_signal_event.clear()
+
+    if not is_micro_signal_thread_active():
         threading.Thread(
             target=listen_for_micro_signals,
             args=(socketio_instance,),

@@ -1140,6 +1140,7 @@ async function applyFilterSettings() {
 
 })();
 
+toggleDataStreamBt.addEventListener("click", toggleDataStream);
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
