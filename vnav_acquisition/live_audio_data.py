@@ -66,14 +66,21 @@ def listen_for_micro_signals(sio):
         try:
             conn, addr = s.accept()
             print(f"Connection from {addr}")
-            micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True)
-            micro_signal_thread.start()
+            # Create receiver thread - this is the long-running one we want to track
+            receiver_thread = threading.Thread(
+                target=receive_and_send_micro_signals, 
+                args=(conn, sio,), 
+                daemon=True
+            )
+            # Update global reference to the receiver thread (not listener)
+            micro_signal_thread = receiver_thread
+            receiver_thread.start()
         except socket.timeout:
             print("No connection received within timeout period.")
         finally:
             s.close()
 
-        print("Finished thread for listening to connection from raspberrypi")
+        print("Finished listener thread, receiver thread is now running")
 
 def _make_output_stream(device_index, callback):
     return sd.OutputStream(
@@ -185,6 +192,7 @@ def receive_and_send_micro_signals(conn, sio):
 
     try:
         conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        conn.settimeout(2.0)
     except Exception as e:
         pass
 
@@ -245,7 +253,12 @@ def receive_and_send_micro_signals(conn, sio):
             if stop_micro_signal_event.is_set():
                 break
 
-            data = conn.recv(16384)
+            try:
+                data = conn.recv(16384)
+            except socket.timeout:
+                # Timeout allows us to check stop_event periodically
+                continue
+            
             if not data:
                 break
 

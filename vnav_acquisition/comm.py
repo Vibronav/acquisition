@@ -142,24 +142,25 @@ def delete_last_recording():
 def start_live_data_stream(connection, socketio_instance):
     global ssh
 
-    stop_micro_signal_event.clear()
-
     if ssh is None:
         ssh_connect(*connection, socketio_instance=socketio_instance)
         time.sleep(1)
 
-    # Protection against multiple threads
     if is_micro_signal_thread_active():
         stop_micro_signal_event.set()
-        time.sleep(1)
-        stop_micro_signal_event.clear()
+        micro_signal_thread.join(timeout=5)
+        if micro_signal_thread.is_alive():
+            print("Warning: micro_signal_thread did not stop in time")
 
-    if not is_micro_signal_thread_active():
-        threading.Thread(
-            target=listen_for_micro_signals,
-            args=(socketio_instance,),
-            daemon=True
-        ).start()
+    # Clear the stop event before starting new thread
+    stop_micro_signal_event.clear()
+
+    # Start listener thread (it will start receiver thread and update micro_signal_thread)
+    threading.Thread(
+        target=listen_for_micro_signals,
+        args=(socketio_instance,),
+        daemon=True
+    ).start()
 
     time.sleep(1)
     start_micro_signal_sending(ssh)

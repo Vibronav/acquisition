@@ -1,8 +1,13 @@
 import alsaaudio
 import socket
 import time
+import signal
 
-BROADCAST_PORT = 54545
+# Handle SIGTERM gracefully (convert to KeyboardInterrupt for clean shutdown)
+def handle_sigterm(signum, frame):
+    raise KeyboardInterrupt("SIGTERM received")
+
+signal.signal(signal.SIGTERM, handle_sigterm)
 
 def get_server_ip():
     try:
@@ -13,7 +18,7 @@ def get_server_ip():
     except FileNotFoundError:
         print("pc_ip.txt not found")
 
-
+BROADCAST_PORT = 54545
 SERVER_IP = get_server_ip()
 PORT = 5001
 CHUNK = 512
