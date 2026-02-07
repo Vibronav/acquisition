@@ -1,18 +1,19 @@
+"""
+SSH communication module for Raspberry Pi.
+
+Handles SSH connection, file transfer, and recording orchestration.
+"""
 import os
 import time
 import paramiko
-from .sound import play_chirp_signal
-from .clean import clean_wav
 from .config import config
 from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_listener_thread_running
+from . import microphone
 import threading
-
-MIC_NAME = "dmic_sv_shared"
-CHANNEL_FMT = "stereo"
-SAMPLING_RATE = 48000
 
 ssh: paramiko.SSHClient = None
 file_name = ""
+
 
 def is_ssh_connected():
     global ssh
@@ -51,96 +52,70 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
         ssh = None
         return
 
-    if not is_listener_thread_running():
-        threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
+    if config["microphoneType"] == "MEMS":
+        if not is_listener_thread_running():
+            threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
 
-    time.sleep(1)
-    start_micro_signal_sending(ssh)
+        time.sleep(1)
+        start_micro_signal_sending(ssh)
+    else:
+        print(f'Only MEMS microphone is supported for live data')
+    
 
 def on_rec_start(connection, socketio_instance, output_filename):
-    print("Executing 'on_rec_start': Starting micro on needle")
-    global ssh
-    global file_name
-
+    global ssh, file_name
+    
     file_name = output_filename
-
+    microphone_type = config['microphone_type']
+    
     if ssh is None:
         ssh_connect(*connection, socketio_instance=socketio_instance)
         time.sleep(1)
-
-    if ssh:
-        print("Recording started")
-        remote_path = f"{config['remote_dir']}/{file_name}"
-        mkdir_commad = f"mkdir {os.path.dirname(remote_path)}"
-        ssh.exec_command(mkdir_commad)
-
-        setup_command = f"echo 'DEVICE={MIC_NAME}\nDURATION=10\nSAMPLE_RATE={SAMPLING_RATE}\n" \
-                        f"CHANNELS=2\nOUTPUT_FILE={remote_path}\nFORMAT=S32_LE' > " \
-                        f"{config['remote_dir']}/recording_setup.txt"
-        print("Setup command ====================================================================== \n")
-        print(setup_command)
-        ssh.exec_command(setup_command)
-        time.sleep(0.01)
-
-        start_command = f"bash -c 'source {config['remote_dir']}/recording_setup.txt && nohup arecord " \
-                        f"-D $DEVICE -r $SAMPLE_RATE -c $CHANNELS -f $FORMAT -t wav -V {CHANNEL_FMT} " \
-                        f"$OUTPUT_FILE &'"
-        print("Start command ===================================================================== \n")
-        print(start_command)
-        ssh.exec_command(start_command)
-        time.sleep(0.2)
-        play_chirp_signal()
-    else:
-        return False
     
-    return True
+    if microphone_type == "Contact":
+        return microphone.start_contact(ssh, file_name)
+    elif microphone_type == "MEMS":
+        return microphone.start_mems(ssh, file_name)
+    else:
+        print(f"Invalid microphone type while starting recording: {microphone_type}")
+        return False
 
-def kill_rasp_process():
-    if ssh is not None:
-        print("Killing process on RaspberryPi")
-        stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
-        ssh.exec_command(stop_command)
 
 def on_rec_stop(delete=False):
-    global ssh
-    global file_name
-    recorded_files = []
-    if ssh is not None:
-        print("Recording stopped on RaspberryPi")
-        stop_command = f"kill -INT $(ps aux | grep '[a]record -D {MIC_NAME}' | awk '{{print $2}}')"
-        ssh.exec_command(stop_command)
+    global ssh, file_name
 
-        remote_path = f"{config['remote_dir']}/{file_name}"
-        local_path = os.path.join(config["local_dir"], file_name)
-        os.makedirs(config["local_dir"], exist_ok=True)
-
-        try:
-            with ssh.open_sftp() as sftp:
-                sftp.get(remote_path, local_path)
-        except Exception as e:
-            print(f"SFPT download error. (remote '{remote_path}', local '{local_path}'.", e)
-
-        recording_status = os.path.isfile(local_path) and os.path.getsize(local_path)
-
-        if delete:
-            delete_command = f"rm {remote_path}"
-            ssh.exec_command(delete_command)
+    microphone_type = config['microphone_type']
+    if microphone_type == "Contact":
+        return microphone.stop_contact(ssh, file_name, delete)
+    elif microphone_type == "MEMS":
+        return microphone.stop_mems(ssh, file_name, delete)
     else:
-        print("SSH not connected during stopping recording")
+        print(f"Invalid microphone type while stopping recording: {microphone_type}")
         return False
-    
-    return recording_status
+
+
+def kill_rasp_process():
+    """Kill any running MEMS recording process."""
+    global ssh
+    microphone_type = config['microphone_type']
+    if microphone_type == "MEMS":
+        microphone.kill_mems_process(ssh)
+    elif microphone_type == "Contact":
+        microphone.kill_contact_process(ssh)
+    else:
+        print(f"Invalid microphone type while killing process: {microphone_type}")
 
 
 def delete_last_recording():
+    """Delete the last recorded files locally."""
     global file_name
     deleted = []
     for file in [file_name, file_name[:-len(".wav")] + ".raw.wav"]:
-        file = os.path.join(config["local_dir"], file)
-        if os.path.exists(file):
-            os.remove(file)
-            deleted.append(file)
-            print(file, "deleted")
+        file_path = os.path.join(config["local_dir"], file)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            deleted.append(file_path)
+            print(file_path, "deleted")
         else:
-            print(file, "does not exist")
+            print(file_path, "does not exist")
     return deleted
