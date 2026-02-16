@@ -149,6 +149,8 @@ def sync_spectrograms(ref, measured):
     if ref.shape == measured.shape:
         return 0
     ref = ref > np.max(ref) * 0.8
+    ref = ref.astype(np.float32)
+    ref = ref - ref.mean()
     corr = correlate2d(ref, np.log10(measured + 1e-10), 'valid').squeeze()
     idx = len(corr) - np.argmax(corr)
     
@@ -225,6 +227,7 @@ def main():
         if f.endswith('.wav')]
     
     files_to_process = sorted(files_to_process)
+    wrong_chirp_detection_files = []
     for filename in files_to_process:
         audio_file = os.path.join(audio_folder_path, f'{filename}.wav')
         video1_file = os.path.join(video1_folder_path, f'{filename}.mp4')
@@ -237,14 +240,20 @@ def main():
         remove_audio_offset(video2_file)
 
         audio_video1_delay, audio_fs1 = find_delay_by_sync(video1_file, audio_file, audio_channel, debug_plots)
-        cut_video(video1_file, -audio_video1_delay)
         audio_video2_delay, audio_fs2 = find_delay_by_sync(video2_file, audio_file, audio_channel, debug_plots)
-        cut_video(video2_file, -audio_video2_delay)
+        if audio_video1_delay > 0 or audio_video2_delay > 0:
+            wrong_chirp_detection_files.append(filename)
+            continue
+        else:
+            cut_video(video1_file, -audio_video1_delay)
+            cut_video(video2_file, -audio_video2_delay)
 
         audio_duration = get_audio_duration(audio_file, audio_channel)
         trim_video_end(video1_file, audio_duration)
         trim_video_end(video2_file, audio_duration)
 
+    print(f'Number of files with wrong chirp detection: {len(wrong_chirp_detection_files)}')
+    print(f'Wrong chirp detection files: {wrong_chirp_detection_files}')
 
 
 if __name__ == "__main__":

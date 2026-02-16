@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Enable start/stop live signals
 - Optimize live signals
 
+## [2.4.4] - 2025-12-22
+### Fixed
+- Fix sync not detecting chirp
+- Add logs after sync
+
 ## [2.4.3] - 2025-12-21
 ### Fixed
 - Remove condifential parameters
