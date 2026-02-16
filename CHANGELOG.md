@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
-## [2.4.4] - 2026-02-16
+## [2.5.0] - 2026-02-16
 ### Changed
 - Enable start/stop live signals
 - Optimize live signals
