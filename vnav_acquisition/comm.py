@@ -4,7 +4,7 @@ import paramiko
 from .sound import play_chirp_signal
 from .clean import clean_wav
 from .config import config
-from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_listener_thread_running
+from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_micro_signal_thread_active, stop_micro_signal_event, micro_signal_thread
 import threading
 
 MIC_NAME = "dmic_sv_shared"
@@ -50,12 +50,6 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
         print(f"SFPT setup upload error.", e)
         ssh = None
         return
-
-    if not is_listener_thread_running():
-        threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
-
-    time.sleep(1)
-    start_micro_signal_sending(ssh)
 
 def on_rec_start(connection, socketio_instance, output_filename):
     print("Executing 'on_rec_start': Starting micro on needle")
@@ -144,3 +138,48 @@ def delete_last_recording():
         else:
             print(file, "does not exist")
     return deleted
+
+def start_live_data_stream(connection, socketio_instance):
+    global ssh
+
+    if ssh is None:
+        ssh_connect(*connection, socketio_instance=socketio_instance)
+        time.sleep(1)
+
+    if is_micro_signal_thread_active():
+        stop_micro_signal_event.set()
+        micro_signal_thread.join(timeout=5)
+        if micro_signal_thread.is_alive():
+            print("Warning: micro_signal_thread did not stop in time")
+
+    # Clear the stop event before starting new thread
+    stop_micro_signal_event.clear()
+
+    # Start listener thread (it will start receiver thread and update micro_signal_thread)
+    threading.Thread(
+        target=listen_for_micro_signals,
+        args=(socketio_instance,),
+        daemon=True
+    ).start()
+
+    time.sleep(1)
+    start_micro_signal_sending(ssh)
+
+def stop_live_data_stream(connection, socketio_instance):
+    global ssh
+
+    stop_micro_signal_event.set()
+
+    if ssh is None:
+        ssh_connect(*connection, socketio_instance=socketio_instance)
+        time.sleep(1)
+
+    try:
+        ssh.exec_command("pkill -INT -f /home/pi/micro_signal_sender.py >/dev/null 2>&1 || true")
+        ssh.exec_command("pkill -TERM -f /home/pi/micro_signal_sender.py >/dev/null 2>&1 || true")
+    except Exception as e:
+        print("Error stopping micro signal sender:", e)
+
+    if micro_signal_thread is not None and micro_signal_thread.is_alive():
+        micro_signal_thread.join(timeout=5)
+

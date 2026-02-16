@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import base64
 from flask import Flask, request, jsonify, send_from_directory
-from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, on_rec_stop
+from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, on_rec_stop, start_live_data_stream, stop_live_data_stream
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
 from vnav_acquisition.automation import safe_run_automation
@@ -247,6 +247,25 @@ def set_filter_settings():
     runtime_config.set_value('micro_bandpass_high', high)
     
     return jsonify({"status": "ok"})
+
+@app.route('/start-stream', methods=['POST'])
+def start_stream():
+    print("Received start-stream/POST request")
+    try:
+        start_live_data_stream(config['connection'], socketio)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        print(f"Error starting live data stream: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/stop-stream', methods=['POST'])
+def stop_stream():
+    try:
+        stop_live_data_stream(config['connection'], socketio)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        print(f"Error stopping live data stream: {e}")
+        return jsonify({"error": str(e)}), 500
     
 
 def parse_args():
