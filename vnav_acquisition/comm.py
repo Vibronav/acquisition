@@ -1,8 +1,3 @@
-"""
-SSH communication module for Raspberry Pi.
-
-Handles SSH connection, file transfer, and recording orchestration.
-"""
 import os
 import time
 import paramiko

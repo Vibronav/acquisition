@@ -1,8 +1,3 @@
-"""
-Microphone recording module - type-specific implementations.
-
-Contains functions for MEMS and Contact microphone recording.
-"""
 import os
 import time
 from .sound import play_chirp_signal
