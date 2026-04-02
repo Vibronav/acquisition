@@ -61,7 +61,7 @@ def on_rec_start(connection, socketio_instance, output_filename):
     global ssh, file_name
     
     file_name = output_filename
-    microphone_type = config['microphone_type']
+    microphone_type = config['microphoneType']
     
     if ssh is None:
         ssh_connect(*connection, socketio_instance=socketio_instance)
@@ -79,7 +79,7 @@ def on_rec_start(connection, socketio_instance, output_filename):
 def on_rec_stop(delete=False):
     global ssh, file_name
 
-    microphone_type = config['microphone_type']
+    microphone_type = config['microphoneType']
     if microphone_type == "Contact":
         return microphone.stop_contact(ssh, file_name, delete)
     elif microphone_type == "MEMS":
@@ -92,7 +92,7 @@ def on_rec_stop(delete=False):
 def kill_rasp_process():
     """Kill any running MEMS recording process."""
     global ssh
-    microphone_type = config['microphone_type']
+    microphone_type = config['microphoneType']
     if microphone_type == "MEMS":
         microphone.kill_mems_process(ssh)
     elif microphone_type == "Contact":

@@ -9,8 +9,8 @@ CHANNEL_FMT = "stereo"
 SAMPLING_RATE = 48000
 
 # Contact microphone constants
-CONTACT_MIC_SCRIPT = "aproach1.py"
-CONTACT_MIC_DIR = "vibronav_files"
+CONTACT_MIC_SCRIPT = "aproach1_2.py"
+CONTACT_MIC_DIR = "contact_microphone_python/vibronavFiles"
 
 
 def start_mems(ssh, output_filename):
