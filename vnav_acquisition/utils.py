@@ -2,6 +2,7 @@ import psutil
 import ipaddress
 import time
 import socket
+from .config import config
 
 
 def get_broadcast_address():
