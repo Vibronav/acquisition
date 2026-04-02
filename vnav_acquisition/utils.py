@@ -20,8 +20,9 @@ def get_broadcast_address():
                 return str(ipaddress.IPv4Address(broadcast))
 
 def get_local_ip_address():
+    rpi_host = config['connection'][0]
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.connect(("8.8.8.8", 80))
+        s.connect((rpi_host, 80))
         return s.getsockname()[0]
         
 def build_filename(*args, sep="_"):
