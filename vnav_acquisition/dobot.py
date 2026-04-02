@@ -1,6 +1,5 @@
 import time
 from vnav_acquisition.dobot_api import DobotApiDashboard, DobotApiMove
-from openpyxl import Workbook
 
 # ---------------------------------------------
 # Robot IP and Port settings
@@ -8,30 +7,9 @@ from openpyxl import Workbook
 ROBOT_IP = "192.168.1.6"
 DASHBOARD_PORT = 29999
 MOVE_PORT = 30003
-FEED_PORT = 30004 
-
-# ---------------------------------------------
-# axis (X, Y, Z, R)
-# ---------------------------------------------
-P_UP   = (300, 0, 100, 0)  # start (Z=100)
-P_DOWN = (300, 0,   0, 0)  # End (Z=0)
-
-# ---------------------------------------------
-# 3 diffrent (SpeedFactor)
-# ---------------------------------------------
-SPEED_LIST = [
-    ("Slow(10%)",    50),
-    ("Medium(15%)",  50),
-    ("Fast(25%)",    50),
-]
-
-PARAMS = 0  # 0: No parameters, 1: With parameters
-
-# 
-EXCEL_FILENAME = "RobotHareketZamanlari.xlsx"
+FEED_PORT = 30004
 
 
-# ---------------------------------------------
 def parse_pose(response):
     """
     Parses the output of Dobot's GetPose() and returns a list [X, Y, Z, R, ...].
@@ -40,12 +18,14 @@ def parse_pose(response):
     try:
         pose_data = response.split("{")[1].split("}")[0]
         pose_values = [float(val) for val in pose_data.split(",")]
-        return pose_values  # [X, Y, Z, R, ...]
+        return pose_values
     except Exception as e:
         print(f"Error (pose parse): {e}")
         return None
 
+
 def connect_robot():
+    """Connect to the Dobot MG400 and return (dashboard, move) API instances."""
     try:
         print("Connecting to the robot...")
         dashboard = DobotApiDashboard(ROBOT_IP, DASHBOARD_PORT)
@@ -56,63 +36,62 @@ def connect_robot():
         print("Connection failed :(")
         raise e
 
-def enable_robot(dashboard):
+
+def enable_robot(dashboard, load=None, center_x=None, center_y=None, center_z=None):
+    """
+    Enable the robot. Optionally pass load parameters.
+    """
     try:
         print("Enabling the robot...")
-        if PARAMS == 0:
-            dashboard.EnableRobot()
+        if load is not None:
+            dashboard.EnableRobot(load, center_x, center_y, center_z)
         else:
-            # Load, CenterX, CenterY, CenterZ
-            load = 0.1
-            centerX = 0.1
-            centerY = 0.1
-            centerZ = 0.1
-            dashboard.EnableRobot(load, centerX, centerY, centerZ)
-        print("Robot enabled!")
+            dashboard.EnableRobot()
+        dashboard.SpeedFactor(100)
+        print("Robot enabled! (SpeedFactor reset to 100%)")
     except Exception as e:
         print("Error during robot enabling :(")
         raise e
 
-def disable_robot(dashboard):
-    """
-    # disable the robot.
-    """
-    dashboard.DisableRobot()
-    print("Robot Disabled!")
 
-def move_to_position(dashboard, move, position, speed_factor=100, tolerance=1.0):
+def disable_robot(dashboard):
+    """Disable the robot."""
+    dashboard.DisableRobot()
+    print("Robot disabled.")
+
+
+def move_to_position(dashboard, move, position, speed_l, acc_l=1, tolerance=1.0):
     """
-     Move to the given (x, y, z, r) position using MovL and return the time elapsed from the start to the end of that movement.
-     1) Send the MovL command
-     2) Wait until the robot reaches the destination (using GetPose())
-     3) Return the elapsed time as a float
+    Move to the given (x, y, z, r) position using MovL and wait until arrival.
+
+    Speed is controlled solely via the inline SpeedL parameter passed to MovL.
+    No global SpeedFactor or Dashboard SpeedL/AccL calls are made here — keeping
+    a single, explicit source of truth for movement speed.
+
+    Parameters:
+        dashboard: DobotApiDashboard instance (used only for GetPose polling)
+        move: DobotApiMove instance
+        position: tuple (x, y, z, r)
+        speed_l: Cartesian speed ratio for MovL (1–100)
+        acc_l: Cartesian acceleration ratio for MovL (1–100)
+        tolerance: Position tolerance in mm for determining arrival
+
+    Returns:
+        Elapsed time in seconds (float).
     """
     x, y, z, r = position
-    print(f"\n[Action] --> {position}, SpeedFactor={speed_factor}")
-
-    # Set SpeedFactor (overall percentage for all movements)
-    #  - On the Dobot side, it’s a proportional setting from 1 to 100
-    #  - Value can be 0.1–1.0 (or 1–100), depending on the documentation
-    
-    #dashboard.SpeedFactor(speed_factor)
-
-    # other parameters for speed and acceleration
-    dashboard.SpeedL(100)
-    dashboard.AccL(1)
-
-    # MovL 
-    userparam   = "User=0"
-    toolparam   = "Tool=0"
-    speedlparam = "SpeedL=15"
-    acclparam   = "AccL=1"
-    cpparam     = "CP=100"
+    print(f"\n[Action] --> {position}, SpeedL={speed_l}, AccL={acc_l}")
 
     start_time = time.time()
 
-    
-    move.MovL(x, y, z, r, userparam, toolparam, speedlparam, acclparam, cpparam)
+    move.MovL(x, y, z, r,
+              "User=0",
+              "Tool=0",
+              f"SpeedL={speed_l}",
+              f"AccL={acc_l}",
+              "CP=100")
 
-    # wait for the robot to reach the target position
+    # Poll GetPose until the robot reaches the target
     while True:
         time.sleep(0.1)
         response = dashboard.GetPose()
@@ -129,85 +108,3 @@ def move_to_position(dashboard, move, position, speed_factor=100, tolerance=1.0)
     duration = end_time - start_time
     print(f"Action completed, time: {duration:.2f} seconds")
     return duration
-
-# ---------------------------------------------
-# Excel preparation and saving
-# ---------------------------------------------
-def prepare_excel():
-    """
-    Creates a new Excel workbook and header row.
-    """
-    wb = Workbook()
-    sheet = wb.active
-    sheet.title = "Speed ​​Trials"
-
-    # titles
-    headers = [
-        "Speed",             # Slow(10%), Medium(15%), Fast(25%)
-        "Initial X",         # 300
-        "Initial Y",         # 0
-        "Initial Z",         # 100
-        "Initial R",         # 0
-        "End X",             # 300
-        "End Y",             # 0
-        "End Z",             # 0
-        "End R",             # 0
-        "Starting Time (s)", # 100->0 move
-        "Stop Time (s)",     # 0.50 waiting time
-        "End Time (s)"       # 0->100 return
-    ]
-    sheet.append(headers)
-    return wb, sheet
-
-def save_excel(wb, filename):
-    wb.save(filename)
-    print(f"Excel kaydedildi: {filename}")
-
-# ---------------------------------------------
-# main program
-# ---------------------------------------------
-if __name__ == "__main__":
-   
-    workbook, sheet = prepare_excel()
-
-    
-    dashboard, move = connect_robot()
-
-    try:
-        enable_robot(dashboard)
-
-      
-        for speed_name, speed_value in SPEED_LIST:
-            print(f"\n===== Speed Test: {speed_name} ({speed_value}%) =====")
-
-        
-            starting_time = move_to_position(dashboard, move, P_DOWN, speed_factor=speed_value)
-
-            stop_time = 0.20
-
-            end_time = move_to_position(dashboard, move, P_UP, speed_factor=speed_value)
-
-            row_data = [
-                speed_name,
-                P_UP[0],   # 300
-                P_UP[1],   # 0
-                P_UP[2],   # 100
-                P_UP[3],   # 0
-                P_DOWN[0], # 300
-                P_DOWN[1], # 0
-                P_DOWN[2], # 0
-                P_DOWN[3], # 0
-                round(starting_time, 2),
-                round(stop_time, 2),
-                round(end_time, 2)
-            ]
-            sheet.append(row_data)
-
-    except KeyboardInterrupt:
-        print("Kullanıcı iptal etti (CTRL+C).")
-    except Exception as e:
-        print(f"Hata oluştu: {e}")
-    finally:
-        disable_robot(dashboard)
-        # save the Excel file
-        save_excel(workbook, EXCEL_FILENAME)
