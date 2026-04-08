@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>VibroNav Acquisition Tool</title>
     <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
     <div class="container">
@@ -50,8 +52,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="microphoneType">Microphone type</label>
-                            <select id="microphoneType"></select>
+                            <label for="sensorVersion">Sensor version</label>
+                            <select id="sensorVersion"></select>
                         </div>
 
                         <div class="form-group">
@@ -125,8 +127,10 @@
                             <div class="form-group">
                                 <label>Motion style</label>
                                 <div class="radio-group">
-                                    <label><input type="radio" name="motionType" value="Only Up and Down" checked />Only up and down</label>
-                                    <label><input type="radio" name="motionType" value="Up, Down, Forward" />Up, Down, Forward</label>
+                                    <label><input type="radio" name="motionType" value="Only Up and Down" checked />Only
+                                        up and down</label>
+                                    <label><input type="radio" name="motionType" value="Up, Down, Forward" />Up, Down,
+                                        Forward</label>
                                 </div>
                             </div>
                             <div class="form-group horizontal-group">
@@ -187,7 +191,7 @@
                                     <span class="slider"></span>
                                 </label>
                             </label>
-                            
+
                             <div class="filter-fields hidden">
                                 <label class="inline">
                                     Low [Hz]
@@ -229,16 +233,17 @@
         </div>
     </div>
 
-<div id="cubeModal" class="modal">
-    <div class="modal-content">
-        <span id="cubeModalClose" class="close">&times;</span>
-        <img id="cubeModalImage" alt="Cube Detection result" />
+    <div id="cubeModal" class="modal">
+        <div class="modal-content">
+            <span id="cubeModalClose" class="close">&times;</span>
+            <img id="cubeModalImage" alt="Cube Detection result" />
+        </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/gh/corbanbrook/dsp.js/dsp.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
-<script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
-<script src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/corbanbrook/dsp.js/dsp.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.34.0/smoothie.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+    <script src="main.js"></script>
 </body>
+
 </html>
