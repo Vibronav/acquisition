@@ -40,6 +40,8 @@ remove low frequency components and normalize amplitude. Original recording is r
 
 Hostname in connection need to be specified as Ip address of raspberrypi. To get this IP connect to raspberry with e.g. Putty and run command ifconfig. IP should be in the bottom like `192.168.0.110`.
 
+microphoneType field can be specified as "MEMS" or "Contact".
+
 ## vnav_wav_process
 
 ```

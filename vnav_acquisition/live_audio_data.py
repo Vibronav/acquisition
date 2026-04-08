@@ -80,7 +80,7 @@ def listen_for_micro_signals(sio):
         finally:
             s.close()
 
-        print("Finished listener thread, receiver thread is now running")
+        print("Finished listener thread")
 
 def _make_output_stream(device_index, callback):
     return sd.OutputStream(
