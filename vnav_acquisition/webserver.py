@@ -61,7 +61,7 @@ def api_config():
         "materials": config["materials"],
         "speeds": config["speeds"],
         "needleTypes": config["needleTypes"],
-        "microphoneTypes": config["microphoneTypes"]
+        "sensorVersions": config["sensorVersions"]
     })
 
 @app.route("/run", methods=["POST"])

@@ -1134,7 +1134,7 @@ async function applyFilterSettings() {
 	const cfg = await loadConfig();
 	renderSelectOptions(materialsContainter, cfg.materials, true);
 	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
-	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
+	renderSelectOptions(microphoneTypeContainer, cfg.sensorVersions, true);
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
