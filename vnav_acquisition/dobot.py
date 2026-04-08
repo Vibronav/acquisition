@@ -60,7 +60,7 @@ def disable_robot(dashboard):
     print("Robot disabled.")
 
 
-def move_to_position(dashboard, move, position, speed_l, acc_l=1, tolerance=1.0):
+def move_to_position(dashboard, move, position, speed_l, acc_l=20, tolerance=1.0):
     """
     Move to the given (x, y, z, r) position using MovL and wait until arrival.
 
@@ -82,14 +82,12 @@ def move_to_position(dashboard, move, position, speed_l, acc_l=1, tolerance=1.0)
     x, y, z, r = position
     print(f"\n[Action] --> {position}, SpeedL={speed_l}, AccL={acc_l}")
 
+    dashboard.AccL(acc_l)
+    dashboard.SpeedL(speed_l)
+
     start_time = time.time()
 
-    move.MovL(x, y, z, r,
-              "User=0",
-              "Tool=0",
-              f"SpeedL={speed_l}",
-              f"AccL={acc_l}",
-              "CP=100")
+    move.MovL(x, y, z, r, "User=0", "Tool=0")
 
     # Poll GetPose until the robot reaches the target
     while True:
