@@ -16,6 +16,8 @@ const automationStatusEl = document.getElementById("automationStatus");
 const iterationCounterEl = document.getElementById("iterationCounter");
 const recordingDurationEl = document.getElementById("recordingDuration");
 const deleteRecordingBt = document.getElementById("deleteRecording");
+const toggleDataStreamBt = document.getElementById("toggleDataStream");
+
 
 const materialsContainter = document.getElementById("material");
 const speedSlider = document.getElementById("speed");
@@ -182,6 +184,15 @@ socket.on("iteration", (msg) => {
 	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
 });
 
+function fastMinMax(arr) {
+	let min = arr[0], max = arr[0];
+	for (let i = 1; i < arr.length; i++) {
+		if (arr[i] < min) min = arr[i];
+		if (arr[i] > max) max = arr[i];
+	}
+	return { min, max };
+}
+
 socket.on("micro-signal", (msg) => {
 
 	const bufferLeft = new Float32Array(msg.left);
@@ -194,8 +205,7 @@ socket.on("micro-signal", (msg) => {
 
 
 	if (bufferLeftDC && bufferLeftDC.length > 0) {
-		const min = Math.min(...bufferLeftDC);
-		const max = Math.max(...bufferLeftDC);
+		const { min, max } = fastMinMax(bufferLeftDC);
 		singalLeftHistory.push({ min, max });
 		if (singalLeftHistory.length > waveformCanvasLeft.width) {
 			singalLeftHistory.shift();
@@ -203,8 +213,7 @@ socket.on("micro-signal", (msg) => {
 		drawWaveform(bufferLeftDC, waveformCanvasLeft, waveformCtxLeft);
 	}
 	if (bufferRightDC && bufferRightDC.length > 0) {
-		const min = Math.min(...bufferRightDC);
-		const max = Math.max(...bufferRightDC);
+		const { min, max } = fastMinMax(bufferRightDC);
 		signalRightHistory.push({ min, max });
 		if (signalRightHistory.length > waveformCanvasRight.width) {
 			signalRightHistory.shift();
@@ -386,7 +395,7 @@ function formatLargeNumber(val) {
 }
 
 function processAndDrawSpectrogram(samples) {
-	specBuffer = specBuffer.concat(Array.from(samples));
+	for (let i = 0; i < samples.length; i++) specBuffer.push(samples[i]);
 
 	while (specBuffer.length >= fftSize) {
 		const chunk = specBuffer.slice(0, fftSize);
@@ -1020,6 +1029,38 @@ function deleteLastRecording() {
 		});
 }
 
+let isDataStreamRunning = false;
+function toggleDataStream() {
+	toggleDataStreamBt.disabled = true;
+	if (!isDataStreamRunning) {
+		fetch('/start-stream', { method: 'POST' })
+			.then(res => res.json())
+			.then(data => {
+				if (data.status === 'ok') {
+					isDataStreamRunning = true;
+					toggleDataStreamBt.textContent = "Stop Live Data";
+				} else {
+					alert("Failed to start stream: " + (data.error || "Unknown error"));
+				}
+			})
+			.catch(err => console.error(err))
+			.finally(() => toggleDataStreamBt.disabled = false);
+	} else {
+		fetch('/stop-stream', { method: 'POST' })
+			.then(res => res.json())
+			.then(data => {
+				if (data.status === 'ok') {
+					isDataStreamRunning = false;
+					toggleDataStreamBt.textContent = "Start Live Data";
+				} else {
+					alert("Failed to stop stream: " + (data.error || "Unknown error"));
+				}
+			})
+			.catch(err => console.error(err))
+			.finally(() => toggleDataStreamBt.disabled = false);
+	}
+}
+
 async function detectCube() {
 	try {
 		if (!liveVideoElement || !liveVideoElement.srcObject) {
@@ -1108,6 +1149,7 @@ async function applyFilterSettings() {
 
 })();
 
+toggleDataStreamBt.addEventListener("click", toggleDataStream);
 startAutomationBt.addEventListener("click", startAutomation);
 stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);

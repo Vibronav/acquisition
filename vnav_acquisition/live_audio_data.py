@@ -10,6 +10,7 @@ import platform
 from scipy.signal import butter, sosfilt, sosfilt_zi
 
 micro_signal_thread = None
+stop_micro_signal_event = threading.Event()
 
 FRAMES_PER_PACKET = 512
 BYTES_PER_SAMPLE = 4
@@ -31,7 +32,7 @@ def _win_timer_high_res(enable=True):
     except Exception:
         pass
 
-def is_listener_thread_running():
+def is_micro_signal_thread_active():
     global micro_signal_thread
     return micro_signal_thread is not None and micro_signal_thread.is_alive()
 
@@ -65,12 +66,21 @@ def listen_for_micro_signals(sio):
         try:
             conn, addr = s.accept()
             print(f"Connection from {addr}")
-            micro_signal_thread = threading.Thread(target=receive_and_send_micro_signals, args=(conn, sio,), daemon=True)
-            micro_signal_thread.start()
+            # Create receiver thread - this is the long-running one we want to track
+            receiver_thread = threading.Thread(
+                target=receive_and_send_micro_signals, 
+                args=(conn, sio,), 
+                daemon=True
+            )
+            # Update global reference to the receiver thread (not listener)
+            micro_signal_thread = receiver_thread
+            receiver_thread.start()
         except socket.timeout:
             print("No connection received within timeout period.")
+        finally:
+            s.close()
 
-        print("Finished thread for listening to connection from raspberrypi")
+        print("Finished listener thread, receiver thread is now running")
 
 def _make_output_stream(device_index, callback):
     return sd.OutputStream(
@@ -178,9 +188,11 @@ def start_audio_pacer(buffer_audio, buffer_audio_lock, audio_queue, warmup_state
     return t, stop_event
 
 def receive_and_send_micro_signals(conn, sio):
+    global stop_micro_signal_event
 
     try:
         conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        conn.settimeout(2.0)
     except Exception as e:
         pass
 
@@ -238,7 +250,15 @@ def receive_and_send_micro_signals(conn, sio):
     pacer_stop = None
     try:
         while True:
-            data = conn.recv(16384)
+            if stop_micro_signal_event.is_set():
+                break
+
+            try:
+                data = conn.recv(16384)
+            except socket.timeout:
+                # Timeout allows us to check stop_event periodically
+                continue
+            
             if not data:
                 break
 
@@ -307,6 +327,14 @@ def receive_and_send_micro_signals(conn, sio):
                 output_stream.close()
             except Exception as e:
                 pass
+        try:
+            conn.shutdown(socket.SHUT_RDWR)
+        except Exception as e:
+            pass
+        try:
+            conn.close()
+        except Exception as e:
+            pass
 
 BP_SOS = None
 BP_ZI_L = None

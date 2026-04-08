@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [2.5.0] - 2026-04-08
 ### Added
 - Add contact microphone support
+- Enable start/stop live signals
+### Changed
+- Optimize live signals
 
 ## [2.4.4] - 2025-12-22
 ### Fixed

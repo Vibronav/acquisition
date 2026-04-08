@@ -2,8 +2,8 @@ import os
 import time
 import paramiko
 from .config import config
-from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_listener_thread_running
 from . import microphone
+from .live_audio_data import listen_for_micro_signals, start_micro_signal_sending, is_micro_signal_thread_active, stop_micro_signal_event, micro_signal_thread
 import threading
 
 ssh: paramiko.SSHClient = None
@@ -46,16 +46,6 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
         print(f"SFPT setup upload error.", e)
         ssh = None
         return
-
-    if config["microphoneType"] == "MEMS":
-        if not is_listener_thread_running():
-            threading.Thread(target=listen_for_micro_signals, args=(socketio_instance,), daemon=True).start()
-
-        time.sleep(1)
-        start_micro_signal_sending(ssh)
-    else:
-        print(f'Only MEMS microphone is supported for live data')
-    
 
 def on_rec_start(connection, socketio_instance, output_filename):
     global ssh, file_name
@@ -112,5 +102,63 @@ def delete_last_recording():
             deleted.append(file_path)
             print(file_path, "deleted")
         else:
-            print(file_path, "does not exist")
+            print(file, "does not exist")
     return deleted
+
+def start_live_data_stream(connection, socketio_instance):
+    global ssh
+
+    microphone_type = config['microphoneType']
+    if microphone_type != "MEMS":
+        print(f'Only MEMS microphone is supported for live data')
+        return False, "Only MEMS microphone is supported for live data"
+
+    if ssh is None:
+        ssh_connect(*connection, socketio_instance=socketio_instance)
+        time.sleep(1)
+
+    if is_micro_signal_thread_active():
+        stop_micro_signal_event.set()
+        micro_signal_thread.join(timeout=5)
+        if micro_signal_thread.is_alive():
+            print("Warning: micro_signal_thread did not stop in time")
+
+    # Clear the stop event before starting new thread
+    stop_micro_signal_event.clear()
+
+    # Start listener thread (it will start receiver thread and update micro_signal_thread)
+    threading.Thread(
+        target=listen_for_micro_signals,
+        args=(socketio_instance,),
+        daemon=True
+    ).start()
+
+    time.sleep(1)
+    start_micro_signal_sending(ssh)
+    return True, "Live stream started"
+
+def stop_live_data_stream(connection, socketio_instance):
+    global ssh
+
+    microphone_type = config['microphoneType']
+    if microphone_type != "MEMS":
+        print(f'Only MEMS microphone is supported for live data')
+        return False, "Only MEMS microphone is supported for live data"
+
+    stop_micro_signal_event.set()
+
+    if ssh is None:
+        ssh_connect(*connection, socketio_instance=socketio_instance)
+        time.sleep(1)
+
+    try:
+        ssh.exec_command("pkill -INT -f /home/pi/micro_signal_sender.py >/dev/null 2>&1 || true")
+        ssh.exec_command("pkill -TERM -f /home/pi/micro_signal_sender.py >/dev/null 2>&1 || true")
+    except Exception as e:
+        print("Error stopping micro signal sender:", e)
+
+    if micro_signal_thread is not None and micro_signal_thread.is_alive():
+        micro_signal_thread.join(timeout=5)
+
+    return True, "Live stream stopped"
+
