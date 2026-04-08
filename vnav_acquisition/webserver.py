@@ -252,20 +252,24 @@ def set_filter_settings():
 def start_stream():
     print("Received start-stream/POST request")
     try:
-        start_live_data_stream(config['connection'], socketio)
+        success, message = start_live_data_stream(config['connection'], socketio)
+        if not success:
+            return jsonify({"status": "error", "error": message})
         return jsonify({"status": "ok"})
     except Exception as e:
         print(f"Error starting live data stream: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "error", "error": str(e)})
 
 @app.route('/stop-stream', methods=['POST'])
 def stop_stream():
     try:
-        stop_live_data_stream(config['connection'], socketio)
+        success, message = stop_live_data_stream(config['connection'], socketio)
+        if not success:
+            return jsonify({"status": "error", "error": message})
         return jsonify({"status": "ok"})
     except Exception as e:
         print(f"Error stopping live data stream: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "error", "error": str(e)})
     
 
 def parse_args():
