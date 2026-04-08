@@ -91,20 +91,6 @@ def kill_rasp_process():
         print(f"Invalid microphone type while killing process: {microphone_type}")
 
 
-def delete_last_recording():
-    """Delete the last recorded files locally."""
-    global file_name
-    deleted = []
-    for file in [file_name, file_name[:-len(".wav")] + ".raw.wav"]:
-        file_path = os.path.join(config["local_dir"], file)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            deleted.append(file_path)
-            print(file_path, "deleted")
-        else:
-            print(file, "does not exist")
-    return deleted
-
 def start_live_data_stream(connection, socketio_instance):
     global ssh
 
