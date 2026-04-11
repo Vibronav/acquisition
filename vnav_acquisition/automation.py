@@ -1,6 +1,6 @@
 import time
 from vnav_acquisition.config import config
-from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
+from vnav_acquisition.comm import kill_rasp_process
 from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
 from .record import start_recording, stop_recording
 from .utils import build_filename

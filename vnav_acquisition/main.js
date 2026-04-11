@@ -23,7 +23,7 @@ const materialsContainter = document.getElementById("material");
 const speedSlider = document.getElementById("speed");
 const speedValueEl = document.getElementById("speedValue");
 const needleTypeContainer = document.getElementById("needleType");
-const microphoneTypeContainer = document.getElementById("microphoneType");
+const sensorVersionContainer = document.getElementById("sensorVersion");
 const timerEl = document.getElementById("recordingTimer");
 
 const audioInputSelect = document.getElementById("audioSource");
@@ -816,7 +816,7 @@ function startAutomation() {
 	const material = materialsContainter.value;
 	const speed = parseInt(speedSlider.value);
 	const needleType = needleTypeContainer.value;
-	const microphoneType = microphoneTypeContainer.value;
+	const microphoneType = sensorVersionContainer.value;
 	const description = descriptionEl.value;
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
@@ -923,7 +923,7 @@ function startRecording() {
 	const username = usernameEl.value.trim()
 	const material = materialsContainter.value;
 	const needleType = needleTypeContainer.value;
-	const microphoneType = microphoneTypeContainer.value;
+	const microphoneType = sensorVersionContainer.value;
 	const description = descriptionEl.value;
 	const duration = parseInt(recordingDurationEl?.value || "0");
 
@@ -1040,7 +1040,7 @@ function toggleDataStream() {
 					isDataStreamRunning = true;
 					toggleDataStreamBt.textContent = "Stop Live Data";
 				} else {
-					alert("Failed to start stream: " + (data.message || "Unknown error"));
+					alert("Failed to start stream: " + (data.error || "Unknown error"));
 				}
 			})
 			.catch(err => console.error(err))
@@ -1052,6 +1052,8 @@ function toggleDataStream() {
 				if (data.status === 'ok') {
 					isDataStreamRunning = false;
 					toggleDataStreamBt.textContent = "Start Live Data";
+				} else {
+					alert("Failed to stop stream: " + (data.error || "Unknown error"));
 				}
 			})
 			.catch(err => console.error(err))
@@ -1134,7 +1136,7 @@ async function applyFilterSettings() {
 	const cfg = await loadConfig();
 	renderSelectOptions(materialsContainter, cfg.materials, true);
 	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
-	renderSelectOptions(microphoneTypeContainer, cfg.microphoneTypes, true);
+	renderSelectOptions(sensorVersionContainer, cfg.sensorVersions, true);
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });

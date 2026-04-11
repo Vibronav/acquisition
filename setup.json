@@ -1,10 +1,36 @@
 {
-    "connection": ["192.168.1.100", 22, "pi", "VibroNav"],
-    "materials": ["Slime", "Silicone", "PU", "Plato (play dough)", "Plastic", "Ikea (plastic bag)",
-                    "African (silk)", "Test"],
-    "speeds": ["slow", "medium", "fast"],
-    "needleTypes": ["Type1", "Type2", "Type3"],
-    "microphoneTypes": ["TypeA", "TypeB", "TypeC"],
+    "connection": [
+        "192.168.1.50",
+        22,
+        "pi",
+        "VibroNav"
+    ],
+    "materials": [
+        "Slime",
+        "Silicone",
+        "PU",
+        "Plato (play dough)",
+        "Plastic",
+        "Ikea (plastic bag)",
+        "African (silk)",
+        "Test"
+    ],
+    "speeds": [
+        "slow",
+        "medium",
+        "fast"
+    ],
+    "needleTypes": [
+        "Type1",
+        "Type2",
+        "Type3"
+    ],
+    "sensorVersions": [
+        "TypeA",
+        "TypeB",
+        "TypeC"
+    ],
+    "microphoneType": "MEMS",
     "local_dir": "micro_data",
     "remote_dir": "vnav_acquisition"
 }
