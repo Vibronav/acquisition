@@ -4,7 +4,7 @@ import time
 import os
 
 def start_recording(output_filename_prefix, socketio_instance):
-
+    
     video_filename = f"{output_filename_prefix}.mp4"
     audio_filename = f"{output_filename_prefix}.wav"
 

@@ -1040,7 +1040,7 @@ function toggleDataStream() {
 					isDataStreamRunning = true;
 					toggleDataStreamBt.textContent = "Stop Live Data";
 				} else {
-					alert("Failed to start stream: " + (data.message || "Unknown error"));
+					alert("Failed to start stream: " + (data.error || "Unknown error"));
 				}
 			})
 			.catch(err => console.error(err))
@@ -1052,6 +1052,8 @@ function toggleDataStream() {
 				if (data.status === 'ok') {
 					isDataStreamRunning = false;
 					toggleDataStreamBt.textContent = "Start Live Data";
+				} else {
+					alert("Failed to stop stream: " + (data.error || "Unknown error"));
 				}
 			})
 			.catch(err => console.error(err))
