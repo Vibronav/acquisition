@@ -1,7 +1,8 @@
 import time
 from vnav_acquisition.config import config
-from vnav_acquisition.comm import kill_rasp_process
-from vnav_acquisition.dobot import connect_robot, enable_robot, move_to_position
+from vnav_acquisition.comm import on_rec_start, on_rec_stop, kill_rasp_process
+from vnav_acquisition.dobot import connect_robot, enable_robot, disable_robot, move_to_position
+
 from .record import start_recording, stop_recording
 from .utils import build_filename
 
@@ -25,7 +26,7 @@ def safe_run_automation(socketio_instance, **kwargs):
             "shouldUpload": False
         })
         if dashboard:
-            dashboard.DisableRobot()
+            disable_robot(dashboard)
         dashboard = None
 
 
@@ -65,8 +66,6 @@ def run_automation(
     enable_robot(dashboard)
     time.sleep(2)
 
-    dashboard.SpeedFactor(speed)
-
     if motion_type == "Up, Down, Forward":
         gap = (finishX - initX) / num_iterations
         print(f"Gap between X positions: {gap}")
@@ -87,7 +86,7 @@ def run_automation(
             "iteration": i+1
         })
 
-        move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1, speed_l=speed)
         print(f'Moving to initial position P1: {P1}')
         time.sleep(0.3)
 
@@ -106,7 +105,7 @@ def run_automation(
         curr_Z -= interval
         while(curr_Z >= downZ):
             P2 = (P2[0], P2[1], curr_Z, P2[3])
-            move_to_position(dashboard, move, P2)
+            move_to_position(dashboard, move, P2, speed_l=speed)
             print(f'Moving to position P2: {P2}')
             time.sleep(sleep_time)
             curr_Z -= interval
@@ -114,14 +113,14 @@ def run_automation(
         curr_Z += (2 * interval)
         while(curr_Z <= upZ and interval != upZ - downZ):
             P2 = (P2[0], P2[1], curr_Z, P2[3])
-            move_to_position(dashboard, move, P2)
+            move_to_position(dashboard, move, P2, speed_l=speed)
             print(f'Moving to position P2: {P2}')
             curr_Z += interval
             if curr_Z <= upZ:
                 time.sleep(sleep_time)
         
         # Move back to P1
-        move_to_position(dashboard, move, P1)
+        move_to_position(dashboard, move, P1, speed_l=speed)
         print(f'Moving back to initial position P1: {P1}')
         time.sleep(0.5)
             
@@ -137,7 +136,7 @@ def run_automation(
 
         print(f"Iteration {i+1} completed.")
 
-    dashboard.DisableRobot()
+    disable_robot(dashboard)
     dashboard = None
     socketio_instance.emit("automation-status", {
         "status": "idle",
