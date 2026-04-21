@@ -72,8 +72,8 @@ def move_to_position(dashboard, move, position, speed_l, acc_l=20, tolerance=1.0
         dashboard: DobotApiDashboard instance (used only for GetPose polling)
         move: DobotApiMove instance
         position: tuple (x, y, z, r)
-        speed_l: Cartesian speed ratio for MovL (1–100)
-        acc_l: Cartesian acceleration ratio for MovL (1–100)
+        speed_l: Cartesian speed ratio for MovL (1-100)
+        acc_l: Cartesian acceleration ratio for MovL (1-100)
         tolerance: Position tolerance in mm for determining arrival
 
     Returns:
