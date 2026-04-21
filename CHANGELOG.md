@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.5.1] - 2026-04-21
+### Fixed
+- Fix error while connecting to RPI for live data by ethernet
+- Use correct dobot speed instead of scaling
+
 ## [2.5.0] - 2026-04-08
 ### Added
 - Add contact microphone support
