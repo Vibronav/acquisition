@@ -81,9 +81,11 @@ let isPanningSpec = false;
 let lastYSpec = null;
 let specHistory = [];
 
-const toggle = document.getElementById("modeToggle");
-const automationForm = document.getElementById("automationForm");
+const modeSelect = document.getElementById("modeSelect");
+const automationSettings = document.getElementById("automationSettings");
+const standardAutomationForm = document.getElementById("standardAutomationForm");
 const manualForm = document.getElementById("manualForm");
+const automationControls = document.getElementById("automationControls");
 const intervalToggle = document.getElementById("intervalToggle");
 const intervalEL = document.getElementById("interval");
 const sleepTimeEl = document.getElementById("sleepTime");
@@ -179,9 +181,10 @@ socket.on("automation-status", (msg) => {
 
 socket.on("iteration", (msg) => {
 	const iterInput = iterEl.value;
-	const maxIterations = iterInput ? parseInt(iterInput, 10) || 1 : 1
+	const maxIterations = msg.total || (iterInput ? parseInt(iterInput, 10) || 1 : 1)
 	const currentIteration = msg.iteration;
-	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}`;
+	const label = msg.label ? ` (${msg.label})` : "";
+	iterationCounterEl.textContent = `Iteration: ${currentIteration} / ${maxIterations}${label}`;
 });
 
 function fastMinMax(arr) {
@@ -811,13 +814,54 @@ function toggleButtons(automation_running) {
 	stopRecordingBt.disabled = !automation_running;
 }
 
-function startAutomation() {
-
+function getAutomationPayload() {
 	const material = materialsContainter.value;
 	const speed = parseInt(speedSlider.value);
 	const needleType = needleTypeContainer.value;
 	const microphoneType = sensorVersionContainer.value;
 	const description = descriptionEl.value;
+	const sleepTime = parseInt(sleepTimeEl.value);
+
+	return {
+		material: material,
+		speed: speed,
+		needleType: needleType,
+		microphoneType: microphoneType,
+		description: description,
+		sleepTime: sleepTime
+	};
+}
+
+
+function sendAutomationRequest(endpoint, payload, logMessage) {
+	fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(payload)
+	})
+		.then(res => {
+			if (!res.ok) throw new Error("Server error");
+			return res.json();
+		})
+		.then(data => {
+			startAutomationBt.disabled = true;
+			console.log(logMessage, data);
+		})
+		.catch(err => {
+			toggleButtons(false);
+			console.error(err);
+		})
+}
+
+
+function startGridAutomation() {
+	sendAutomationRequest("/run-grid", getAutomationPayload(), "Grid automation started: ");
+}
+
+
+function startStandardAutomation() {
+	const commonPayload = getAutomationPayload();
+
 	const iterInput = iterEl.value;
 	const iterations = iterInput ? parseInt(iterInput, 10) || 1 : 1;
 	const initX = parseInt(document.getElementById("initX").value);
@@ -827,7 +871,6 @@ function startAutomation() {
 	const y = parseInt(document.getElementById("y").value);
 	const r = parseInt(document.getElementById("r").value);
 	const motionType = document.querySelector('input[name="motionType"]:checked').value;
-	const sleepTime = parseInt(sleepTimeEl.value);
 
 	let interval = upZ - downZ;
 	if (intervalToggle.checked) {
@@ -845,11 +888,7 @@ function startAutomation() {
 	}
 
 	const payload = {
-		material: material,
-		speed: speed,
-		needleType: needleType,
-		microphoneType: microphoneType,
-		description: description,
+		...commonPayload,
 		iterations: iterations,
 		initX: initX,
 		finishX: finishX,
@@ -858,29 +897,19 @@ function startAutomation() {
 		y: y,
 		r: r,
 		motionType: motionType,
-		interval: interval,
-		sleepTime: sleepTime
+		interval: interval
 	};
 
+	sendAutomationRequest("/run", payload, "Automation started: ");
+}
 
-	fetch("/run", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(payload)
-	})
-		.then(res => {
-			if (!res.ok) throw new Error("Server error");
-			return res.json();
-		})
-		.then(data => {
-			startAutomationBt.disabled = true;
-			console.log("Automation started: ", data);
-		})
-		.catch(err => {
-			toggleButtons(false);
-			console.error(err);
-		})
 
+function startAutomation() {
+	if (modeSelect.value === "grid") {
+		startGridAutomation();
+	} else {
+		startStandardAutomation();
+	}
 }
 
 function stopAutomation() {
@@ -986,13 +1015,11 @@ function stopRecording() {
 }
 
 function updateFormVisibility() {
-	if (toggle.checked) {
-		automationForm.style.display = "none";
-		manualForm.style.display = "block";
-	} else {
-		automationForm.style.display = "block";
-		manualForm.style.display = "none";
-	}
+	const mode = modeSelect.value;
+	standardAutomationForm.style.display = mode === "automation" ? "block" : "none";
+	manualForm.style.display = mode === "manual" ? "block" : "none";
+	automationSettings.style.display = mode === "manual" ? "none" : "block";
+	automationControls.style.display = mode === "manual" ? "none" : "flex";
 }
 
 function startRecordingTimer() {
@@ -1137,6 +1164,7 @@ async function applyFilterSettings() {
 	renderSelectOptions(materialsContainter, cfg.materials, true);
 	renderSelectOptions(needleTypeContainer, cfg.needleTypes, true);
 	renderSelectOptions(sensorVersionContainer, cfg.sensorVersions, true);
+	updateFormVisibility();
 
 	// for getting devices and permissions
 	const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -1155,7 +1183,7 @@ stopAutomationBt.addEventListener("click", stopAutomation);
 startRecordingBt.addEventListener("click", startRecording);
 stopRecordingBt.addEventListener("click", stopRecording);
 deleteRecordingBt.addEventListener("click", deleteLastRecording);
-toggle.addEventListener("change", updateFormVisibility);
+modeSelect.addEventListener("change", updateFormVisibility);
 speedSlider.addEventListener("input", (e) => {
 	speedValueEl.textContent = e.target.value;
 })
@@ -1240,7 +1268,7 @@ document.addEventListener('keydown', (e) => {
 	if (e.code === "Space") {
 		e.preventDefault();
 
-		if (toggle.checked) {
+		if (modeSelect.value === "manual") {
 			if (!startRecordingBt.disabled) {
 				startRecording();
 			} else if (!stopRecordingBt.disabled) {
