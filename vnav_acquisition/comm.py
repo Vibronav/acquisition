@@ -41,11 +41,15 @@ def ssh_connect(hostname, port, username, password, socketio_instance):
             sftp.put(os.path.join(os.path.dirname(__file__), "asoundrc.txt"), "/home/pi/.asoundrc")
             sftp.put(os.path.join(os.path.dirname(__file__), "pc_ip.txt"), "/home/pi/pc_ip.txt")
             sftp.put(os.path.join(os.path.dirname(__file__), "micro_signal_sender.py"), "/home/pi/micro_signal_sender.py")
+            sftp.put(os.path.join(os.path.dirname(__file__), "mems_continuous_recorder.py"), "/home/pi/mems_continuous_recorder.py")
             print(f"SFPT setup upload completed.")
     except Exception as e:
         print(f"SFPT setup upload error.", e)
         ssh = None
         return
+
+    if config['microphoneType'] == "MEMS":
+        microphone.ensure_mems_continuous(ssh)
 
 def on_rec_start(connection, socketio_instance, output_filename):
     global ssh, file_name
