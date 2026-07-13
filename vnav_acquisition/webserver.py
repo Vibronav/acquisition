@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from vnav_acquisition.comm import is_ssh_connected, ssh_connect, on_rec_start, on_rec_stop, start_live_data_stream, stop_live_data_stream
 from vnav_acquisition.config import config
 from vnav_acquisition.runtime_config import runtime_config
-from vnav_acquisition.automation import safe_run_automation
+from vnav_acquisition.automation import safe_run_automation, safe_run_grid_automation
 from .record import start_recording, stop_recording, delete_last_recording
 from .utils import build_filename, get_local_ip_address
 from .track_position import detect_cube_pose
@@ -16,17 +16,16 @@ import threading
 import webbrowser
 import argparse
 import os   # Berke 16.09.2024
-from pathlib import Path
 from flask_socketio import SocketIO
 import sounddevice as sd
 import time
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = BASE_DIR
-IP_FILE = BASE_DIR / "pc_ip.txt"
+IP_FILE = os.path.join(BASE_DIR, "pc_ip.txt")
 
-app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 app.config["JSON_AS_ASCII"] = False
 
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -95,6 +94,39 @@ def run():
             num_iterations = params["iterations"],
             interval = params["interval"],
             sleep_time = params["sleepTime"],
+            socketio_instance=socketio
+        ),
+        daemon=True
+    )
+
+    automation_thread.start()
+
+    return jsonify({"status": "started"})
+
+
+@app.route("/run-grid", methods=["POST"])
+def run_grid():
+    global automation_thread, stop_event
+    print("Received run-grid/POST request")
+    params = request.get_json(force=True)
+    print(f'With params: {params}')
+
+    required = ("material", "speed", "needleType", "sleepTime")
+    if not all(param in params for param in required):
+        return jsonify({"error": "Missing parameters"}), 400
+
+    stop_event.clear()
+    automation_thread = threading.Thread(
+        target=safe_run_grid_automation,
+        kwargs=dict(
+            material=params["material"],
+            needle_type=params["needleType"],
+            microphone_type=params["microphoneType"],
+            description=params["description"],
+            stop_event=stop_event,
+            grid_config_path=config["grid_config"],
+            speed=int(params["speed"]),
+            sleep_time=params["sleepTime"],
             socketio_instance=socketio
         ),
         daemon=True
@@ -288,7 +320,8 @@ def main():
 
     port = args.port
     url = "http://127.0.0.1:{0}".format(port)
-    IP_FILE.write_text(get_local_ip_address())
+    with open(IP_FILE, "w") as f:
+        f.write(get_local_ip_address())
 
     ssh_connect(*config['connection'], socketio_instance=socketio)
 
