@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.6.0] - 2026-07-13
+### Fixed
+- Add new mode for dobot grid experiment
+
 ## [2.5.1] - 2026-04-21
 ### Fixed
 - Fix error while connecting to RPI for live data by ethernet
