@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 ## [2.6.0] - 2026-07-13
-### Fixed
+### Added
 - Add new mode for dobot grid experiment
 
 ## [2.5.1] - 2026-04-21
