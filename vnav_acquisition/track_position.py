@@ -14,6 +14,8 @@ camera_matrix = np.array([[630.41, 0.0, 640],
 
 dist_coeffs = np.array([0.14, -0.44, 0.0, 0.0, 0.31])
 
+ANNOTATION_AXIS = "Y"
+
 def show_video_frame(frame, fps, display):
     if not display:
         return True
@@ -54,7 +56,7 @@ def calculate_speed(df, fps=30, frame_interval=1):
     df['dy'] = df['Object_Y_cm'].shift(-frame_interval) - df['Object_Y_cm']
     df['dz'] = df['Object_Z_cm'].shift(-frame_interval) - df['Object_Z_cm']
 
-    df['velocity_cm/s'] = df['dy'] / dt
+    df['velocity_cm/s'] = df[f'd{ANNOTATION_AXIS.lower()}'] / dt
     df['velocity_all_cm/s'] = np.sqrt(df['dx']**2 + df['dy']**2 + df['dz']**2) / dt
 
     return df
@@ -62,6 +64,8 @@ def calculate_speed(df, fps=30, frame_interval=1):
 def create_annotations(df, video_name, audio_path, annotations_folder, distances_file_path):
     df = df.copy()
     df.reset_index(drop=True, inplace=True)
+
+    position_column = f'Object_{ANNOTATION_AXIS}_cm'
 
     if audio_path is not None:
         audio_sr, audio_signal = read_wave(audio_path)
@@ -74,14 +78,14 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
         video_annotations = {}
         audio_annotations = {} if audio_path is not None and data_synchronized else None
 
-        min_high = df["Object_Y_cm"].dropna().idxmin()
+        min_high = df[position_column].dropna().idxmin()
         df_down = df.loc[:min_high]
 
-        tracked_high = df_down[df_down['Object_Y_cm'].notna()].copy()
+        tracked_high = df_down[df_down[position_column].notna()].copy()
         tracked_high['velocity_mean'] = tracked_high['velocity_cm/s'].rolling(window=5, min_periods=2).mean()
 
         for idx, distance in enumerate(distances, start=1):
-            y = tracked_high['Object_Y_cm']
+            y = tracked_high[position_column]
             velocity_mean = tracked_high['velocity_mean']
 
             cross_condition = (y.shift(1) > distance) & (y.shift(-1) < distance)
@@ -639,10 +643,14 @@ def parse_args():
     parser.add_argument("--table-offset", default=0.0, type=float,
                          help="E.g. when provided 2cm, level 0 will be 2 cm above table (By default 0.0 cm)")
     parser.add_argument("--distances-path", type=str, help="Path to distances.txt file for annotations (if not provided, will not annotate, only track positions)")
+    parser.add_argument("--annotation-axis", type=str.upper, choices=["X", "Y", "Z"], default="Y", help="Coordinate used for annotations (default: Y).")
     return parser.parse_args()
 
 def main():
+    global ANNOTATION_AXIS
+
     args = parse_args()
+    ANNOTATION_AXIS = args.annotation_axis
 
     video_folder_path = args.video_path
     if not os.path.exists(video_folder_path):
