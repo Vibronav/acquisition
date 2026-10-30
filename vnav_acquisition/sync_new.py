@@ -32,7 +32,7 @@ def extract_audio_from_video(video_file):
         ffmpeg_command = ['ffmpeg', '-loglevel', 'error', '-i', video_file, tmp_wav_file]
 
         try:
-            subprocess.run(ffmpeg_command)
+            subprocess.run(ffmpeg_command, check=True, stderr=subprocess.PIPE, text=True)
             fs, x = read_wave(tmp_wav_file)
             os.remove(tmp_wav_file)
             return fs, x
@@ -49,7 +49,7 @@ def ffprobe_value(filename, select_stream):
         "-of", "csv=p=0",
         filename
     ]
-    p = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    p = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     out = p.stdout.strip()
     if not out:
         return None
@@ -90,7 +90,7 @@ def remove_audio_offset(video_path):
         tmp_path
     ]
 
-    subprocess.run(ffmpeg_command)
+    subprocess.run(ffmpeg_command, check=True, stderr=subprocess.PIPE, text=True)
     os.replace(tmp_path, video_path)
         
 def cut_video(video_path, cut_seconds):
@@ -109,7 +109,7 @@ def cut_video(video_path, cut_seconds):
         tmp_path
     ]
 
-    subprocess.run(ffmpeg_command)
+    subprocess.run(ffmpeg_command, check=True, stderr=subprocess.PIPE, text=True)
     os.replace(tmp_path, video_path)
 
 def get_audio_duration(audio_file, audio_channel):
@@ -132,7 +132,7 @@ def trim_video_end(video_path, target_duration):
         tmp_path
     ]
 
-    subprocess.run(ffmpeg_command)
+    subprocess.run(ffmpeg_command, check=True, stderr=subprocess.PIPE, text=True)
     os.replace(tmp_path, video_path)
 
 def calculate_energy_with_stft(signal: np.ndarray, fs: int, n_fft: int = 2048, show=False):
@@ -228,32 +228,47 @@ def main():
     
     files_to_process = sorted(files_to_process)
     wrong_chirp_detection_files = []
+    failed_recordings = []
     for filename in files_to_process:
         audio_file = os.path.join(audio_folder_path, f'{filename}.wav')
         video1_file = os.path.join(video1_folder_path, f'{filename}.mp4')
         video2_file = os.path.join(video2_folder_path, f'{filename}.mp4')
         if not os.path.exists(video1_file) or not os.path.exists(video2_file) or not os.path.exists(audio_file):
             print(f"Missing video file: {video1_file} or {video2_file} or audio file: {audio_file}")
+            failed_recordings.append((filename, "Missing video or audio file"))
             continue
 
-        remove_audio_offset(video1_file)
-        remove_audio_offset(video2_file)
+        try:
+            remove_audio_offset(video1_file)
+            remove_audio_offset(video2_file)
 
-        audio_video1_delay, audio_fs1 = find_delay_by_sync(video1_file, audio_file, audio_channel, debug_plots)
-        audio_video2_delay, audio_fs2 = find_delay_by_sync(video2_file, audio_file, audio_channel, debug_plots)
-        if audio_video1_delay > 0 or audio_video2_delay > 0:
-            wrong_chirp_detection_files.append(filename)
+            audio_video1_delay, audio_fs1 = find_delay_by_sync(video1_file, audio_file, audio_channel, debug_plots)
+            audio_video2_delay, audio_fs2 = find_delay_by_sync(video2_file, audio_file, audio_channel, debug_plots)
+            if audio_video1_delay > 0 or audio_video2_delay > 0:
+                wrong_chirp_detection_files.append(filename)
+                continue
+            else:
+                cut_video(video1_file, -audio_video1_delay)
+                cut_video(video2_file, -audio_video2_delay)
+
+            audio_duration = get_audio_duration(audio_file, audio_channel)
+            trim_video_end(video1_file, audio_duration)
+            trim_video_end(video2_file, audio_duration)
+        except Exception as e:
+            error = f'{type(e).__name__}: {e}'
+            if isinstance(e, subprocess.CalledProcessError) and e.stderr:
+                error += f'\n{e.stderr.strip()}'
+
+            failed_recordings.append((filename, error))
+            print(f"Error processing {filename}: {error}")
             continue
-        else:
-            cut_video(video1_file, -audio_video1_delay)
-            cut_video(video2_file, -audio_video2_delay)
-
-        audio_duration = get_audio_duration(audio_file, audio_channel)
-        trim_video_end(video1_file, audio_duration)
-        trim_video_end(video2_file, audio_duration)
 
     print(f'Number of files with wrong chirp detection: {len(wrong_chirp_detection_files)}')
     print(f'Wrong chirp detection files: {wrong_chirp_detection_files}')
+
+    print(f'Number of failed recordings: {len(failed_recordings)}')
+    for filename, error in failed_recordings:
+        print(f'Failed recording: {filename} - {error}')
 
 
 if __name__ == "__main__":
