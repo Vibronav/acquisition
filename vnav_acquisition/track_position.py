@@ -85,10 +85,10 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
         tracked_high['velocity_mean'] = tracked_high['velocity_cm/s'].rolling(window=5, min_periods=2).mean()
 
         for idx, distance in enumerate(distances, start=1):
-            y = tracked_high[position_column]
+            coordinate = tracked_high[position_column]
             velocity_mean = tracked_high['velocity_mean']
 
-            cross_condition = (y.shift(1) > distance) & (y.shift(-1) < distance)
+            cross_condition = (coordinate.shift(1) > distance) & (coordinate.shift(-1) < distance)
             velocity_condition = (velocity_mean < 0)
             candidates = tracked_high[cross_condition & velocity_condition]
 
@@ -97,11 +97,11 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
             else:
                 mask_moving_down = velocity_condition
                 if mask_moving_down.any():
-                    diffs = (y - distance).abs()
+                    diffs = (coordinate - distance).abs()
                     best_idx = diffs[mask_moving_down].idxmin()
                     chosen_row = tracked_high.loc[best_idx]
                 else:
-                    diffs = (y - distance).abs()
+                    diffs = (coordinate - distance).abs()
                     best_idx = diffs.idxmin()
                     chosen_row = tracked_high.loc[best_idx]
 
