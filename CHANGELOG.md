@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 ### Fixed
 
+## [2.7.0] - 2026-11-06
+### Added
+- Script for automatic annotations fast review
+
+### Fixed
+- errors during synchronization
+- erros during automatic annotations
+
 ## [2.6.0] - 2026-07-13
 ### Added
 - Add new mode for dobot grid experiment

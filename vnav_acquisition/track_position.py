@@ -75,21 +75,28 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
 
     distances = read_distances_from_file(distances_file_path)
     if distances:
+        increasing = distances[-1] > distances[0]
         video_annotations = {}
         audio_annotations = {} if audio_path is not None and data_synchronized else None
 
-        min_high = df[position_column].dropna().idxmin()
-        df_down = df.loc[:min_high]
+        coordinate_values = df[position_column].dropna()
+        end_idx = coordinate_values.idxmax() if increasing else coordinate_values.idxmin()
+        segment = df.loc[:end_idx]
 
-        tracked_high = df_down[df_down[position_column].notna()].copy()
+        tracked_high = segment[segment[position_column].notna()].copy()
         tracked_high['velocity_mean'] = tracked_high['velocity_cm/s'].rolling(window=5, min_periods=2).mean()
 
         for idx, distance in enumerate(distances, start=1):
             coordinate = tracked_high[position_column]
             velocity_mean = tracked_high['velocity_mean']
 
-            cross_condition = (coordinate.shift(1) > distance) & (coordinate.shift(-1) < distance)
-            velocity_condition = (velocity_mean < 0)
+            if increasing:
+                cross_condition = (coordinate.shift(1) < distance) & (coordinate.shift(-1) > distance)
+                velocity_condition = (velocity_mean > 0)
+            else:
+                cross_condition = (coordinate.shift(1) > distance) & (coordinate.shift(-1) < distance)
+                velocity_condition = (velocity_mean < 0)
+
             candidates = tracked_high[cross_condition & velocity_condition]
 
             if not candidates.empty:

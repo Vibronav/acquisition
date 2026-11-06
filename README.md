@@ -172,6 +172,22 @@ options:
 ```
 
 
+## vnav_review_annotations
+
+Browse frames selected by annotations with needle X/Y/Z positions from labelled_positions.
+The MP4, JSON and CSV files must have matching basenames.
+
+```powershell
+python -m vnav_acquisition.review_annotations --video-path "D:\data\video_cam1" --second-video-path "D:\data\video_cam2" --audio-path "D:\data\audio_raw" --annotations-path "D:\data\annotations" --positions-path "D:\data\labelled_positions"
+```
+
+Space toggles playback (one annotation per second), A selects the previous annotation,
+D selects the next annotation, and Esc exits. Navigation spans all videos in the folder.
+The viewer starts paused. A/D pause playback; playback stops at the last annotation.
+F copies both camera videos and the WAV file for the current recording into
+`tofix_video_cam1`, `tofix_video_cam2`, and `tofix_audio_raw`, respectively.
+Each destination is created beside its source folder. Original files are preserved.
+
 ## Installation
 
 ### Highly recommended instalation
