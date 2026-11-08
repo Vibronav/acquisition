@@ -190,7 +190,7 @@ Each destination is created beside its source folder. Original files are preserv
 
 ## Installation
 
-### Highly recommended instalation
+### Installation on Windows or Linux
 
 Requires Python 3.10. and ffmpeg 4.3.1 To install tool, run in command line:
 
@@ -229,8 +229,56 @@ python -m pip install https://github.com/Vibronav/acquisition/archive/refs/tags/
 
 Then to run it you need to open terminal in folder with tool and enter environment as above
 
-### Basic instalation (not recommended)
+### Installation on macOS
+
+Requires [Homebrew](https://brew.sh/) and FFmpeg.
+
+1. Install Python and Tkinter:
+
+```commandline
+brew install python@3.11 python-tk@3.11
+```
+
+2. Create a folder for the tool, then create and activate the environment:
+
+```commandline
+mkdir -p ~/vibronav
+cd ~/vibronav
+"$(brew --prefix python@3.11)/bin/python3.11" -m venv .acq
+source .acq/bin/activate
+python -m pip install --upgrade pip
+```
+
+3. Install the tool:
 
 ```commandline
 python -m pip install https://github.com/Vibronav/acquisition/archive/master.zip
 ```
+
+4. Download and edit the configuration template. If you already have a `setup.json`, use it instead:
+
+```commandline
+curl -fL https://raw.githubusercontent.com/Vibronav/acquisition/master/setup.json -o setup.json
+mkdir -p recordings
+open -e setup.json
+```
+
+Set the device connection details and `local_dir` to the path of your recordings folder
+(e.g. `/Users/yourname/vibronav/recordings`), then save the file.
+See the setup JSON format above for the available settings.
+
+5. Start the application:
+
+```commandline
+vnav_acquisition --setup setup.json
+```
+
+To run it again in a new terminal, enter the folder and activate the environment:
+
+```commandline
+cd ~/vibronav
+source .acq/bin/activate
+vnav_acquisition --setup setup.json
+```
+
+Stop the application with `Ctrl+C`. Use `deactivate` to leave the environment.
