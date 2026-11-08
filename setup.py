@@ -1,11 +1,7 @@
 from setuptools import setup, find_packages
 
-try:
-    with open('requirements.txt', encoding='utf-16') as fp:
-        install_requires = fp.read()
-except:
-    with open('requirements.txt') as fp:
-        install_requires = fp.read()
+with open('requirements.txt', encoding='utf-8') as fp:
+    install_requires = fp.read()
 
 setup(
     name='vnav-acquisition',
