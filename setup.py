@@ -5,7 +5,7 @@ with open('requirements.txt', encoding='utf-8') as fp:
 
 setup(
     name='vnav-acquisition',
-    version='1.5.1',
+    version='2.8.0',
     description='Vibronav acquisition tools',
     author='Dominik Rzepka',
     author_email='dominik.rzepka@gmail.com',
@@ -15,6 +15,7 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     packages=find_packages(),
+    python_requires='>=3.11',
     install_requires=install_requires,
     extras_require={},
     package_data={

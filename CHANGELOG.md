@@ -6,9 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased] - yyyy-mm-dd
 ### Added
-### Deleted
+- Installation instructions for macOS using Homebrew and a virtual environment.
+
 ### Changed
-### Fixed
+- Require Python 3.11 or later in package metadata and installation instructions.
+- Update SciPy from 1.15.3 to 1.17.1.
+- Convert `requirements.txt` to UTF-8 and explicitly read it as UTF-8 in `setup.py`.
 
 ## [2.7.0] - 2026-11-06
 ### Added

@@ -192,7 +192,7 @@ Each destination is created beside its source folder. Original files are preserv
 
 ### Installation on Windows or Linux
 
-Requires Python 3.10. and ffmpeg 4.3.1 To install tool, run in command line:
+Requires Python 3.11 or later and FFmpeg 4.3.1. To install the tool, run in command line:
 
 1. create folder for tool and enter it
 2. open commandline in this folder, then type command to create environment:
