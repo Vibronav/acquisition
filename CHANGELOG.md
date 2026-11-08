@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. The format 
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased] - yyyy-mm-dd
+## [2.8.0] - 2026-11-08
 ### Added
 - Installation instructions for macOS using Homebrew and a virtual environment.
 
