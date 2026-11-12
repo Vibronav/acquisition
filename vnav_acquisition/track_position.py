@@ -67,11 +67,11 @@ def create_annotations(df, video_name, audio_path, annotations_folder, distances
 
     position_column = f'Object_{ANNOTATION_AXIS}_cm'
 
-    if audio_path is not None:
+    if audio_path is not None and os.path.isfile(audio_path):
         audio_sr, audio_signal = read_wave(audio_path)
         data_synchronized = durations_match(df, audio_sr, audio_signal, fps=30)
     else:
-        data_synchronized = False
+        return
 
     distances = read_distances_from_file(distances_file_path)
     if distances:
