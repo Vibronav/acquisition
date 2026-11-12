@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file. The format 
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+## [2.8.1] - 2026 -11-12
+### Added
+- Step through video frames and update the selected annotation with the arrow keys and Enter.
+- Update audio annotation times and samples using the selected frame time from the labelled positions CSV.
+
+### Changed
+- Match the annotation review spectrogram's palette, mel scale, and dB range to the Audacity settings.
+
+### Fixed
+- Skip audio annotations when a video's matching WAV file is missing.
+
 ## [2.8.0] - 2026-11-08
 ### Added
 - Installation instructions for macOS using Homebrew and a virtual environment.
